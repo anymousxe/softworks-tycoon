@@ -818,3 +818,171 @@ db.collection('artifacts').doc(APP_ID).collection('system').doc('config')
             }
         }
     });
+
+// --- 4. AI SYSTEM ASSISTANT CONFIG ---
+const AI_CONFIG = {
+    dailyLimit: 40,
+    storageKey: 'softworks_ai_usage'
+};
+
+// --- SYSTEM PROMPT ---
+function getSystemPrompt(context) {
+    return `
+    You are 'System AI', a helpful, witty, Gen-Z tech assistant inside the game 'Softworks Tycoon'. 
+    
+    CURRENT GAME STATE:
+    - Company: ${context.company}
+    - Funds: $${context.funds.toLocaleString()}
+    - Reputation: ${context.reputation}
+    - Compute Power: ${context.compute} TF
+    - Live Products: ${context.products.join(', ') || "None"}
+    - Unlocked Tech: ${context.unlockedTech.join(', ') || "None"}
+    - Top Rivals: ${context.rivals.join(', ')}
+
+    USER QUERY: "${context.userQuery}"
+    
+    ROLE: Help the user with product names, strategy, or lore.
+    TONE: Cyberpunk, tech-savvy, slightly slang-heavy (use words like 'cracked', 'bet', 'mid', 'meta').
+    CONSTRAINT: Keep answers short (under 50 words).
+    `;
+}
+
+// --- AI & WIDGET LOGIC ---
+
+const chatWindow = document.getElementById('ai-chat-window');
+const chatToggleBtn = document.getElementById('btn-toggle-chat');
+const chatCloseBtn = document.getElementById('btn-close-chat');
+const chatMessages = document.getElementById('chat-messages');
+const chatForm = document.getElementById('chat-form');
+const chatInput = document.getElementById('chat-input');
+const limitLabel = document.getElementById('ai-limit-counter');
+
+function toggleChat() {
+    chatWindow.classList.toggle('hidden');
+    if(!chatWindow.classList.contains('hidden')) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        updateLimitDisplay();
+    }
+}
+
+if(chatToggleBtn) chatToggleBtn.addEventListener('click', toggleChat);
+if(chatCloseBtn) chatCloseBtn.addEventListener('click', toggleChat);
+
+function getUsageData() {
+    const today = new Date().toDateString();
+    const data = JSON.parse(localStorage.getItem(AI_CONFIG.storageKey)) || { date: today, count: 0 };
+    if (data.date !== today) return { date: today, count: 0 };
+    return data;
+}
+
+function incrementUsage() {
+    const data = getUsageData();
+    data.count++;
+    localStorage.setItem(AI_CONFIG.storageKey, JSON.stringify(data));
+    updateLimitDisplay();
+}
+
+function updateLimitDisplay() {
+    const data = getUsageData();
+    const remaining = Math.max(0, AI_CONFIG.dailyLimit - data.count);
+    if(limitLabel) limitLabel.textContent = `${remaining}/${AI_CONFIG.dailyLimit} MSGS LEFT`;
+    
+    if (remaining <= 0 && chatInput) {
+        chatInput.placeholder = "Daily limit reached. Refresh tomorrow.";
+        chatInput.disabled = true;
+        chatForm.querySelector('button').disabled = true;
+    }
+}
+
+function appendMessage(role, text) {
+    const div = document.createElement('div');
+    if (role === 'user') {
+        div.className = "bg-cyan-900/30 p-3 rounded-xl rounded-tr-none text-xs text-cyan-100 border border-cyan-500/20 self-end ml-8";
+        div.innerHTML = text; 
+    } else {
+        div.className = "bg-slate-800/50 p-3 rounded-xl rounded-tl-none text-xs text-slate-300 border border-white/5 mr-8";
+        div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    }
+    chatMessages.appendChild(div);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function askGemini(prompt) {
+    const usage = getUsageData();
+    if (usage.count >= AI_CONFIG.dailyLimit) {
+        appendMessage('system', "❌ <b>System Alert:</b> Daily neural link quota exceeded. Cooldown active until 00:00 Local Time.");
+        return;
+    }
+
+    // Build Context
+    const context = {
+        company: gameState.companyName,
+        funds: gameState.cash,
+        week: gameState.week,
+        year: gameState.year,
+        reputation: gameState.reputation,
+        compute: getCompute(),
+        products: gameState.products.map(p => `${p.name} (v${p.version}, Q:${p.quality}, Hype:${p.hype})`),
+        rivals: RIVALS.map(r => `${r.name} (${r.strength}%)`),
+        unlockedTech: gameState.unlockedTechs,
+        userQuery: prompt
+    };
+
+    const systemPrompt = getSystemPrompt(context);
+
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = "text-xs text-slate-500 italic ml-2 animate-pulse";
+    loadingDiv.id = "ai-loading";
+    loadingDiv.innerText = "Computing...";
+    chatMessages.appendChild(loadingDiv);
+
+    try {
+        if (typeof SECRETS === 'undefined' || !SECRETS.GEMINI_API_KEY) {
+            throw new Error("API Key missing in secrets.js");
+        }
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${SECRETS.GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: systemPrompt }] }]
+            })
+        });
+
+        const data = await response.json();
+        
+        const loader = document.getElementById('ai-loading');
+        if(loader) loader.remove();
+
+        if (data.error) {
+            appendMessage('system', `❌ Error: ${data.error.message}`);
+        } else {
+            const aiText = data.candidates[0].content.parts[0].text;
+            appendMessage('system', aiText);
+            incrementUsage(); 
+        }
+
+    } catch (e) {
+        const loader = document.getElementById('ai-loading');
+        if(loader) loader.remove();
+        appendMessage('system', `❌ Connection Error: ${e.message}`);
+    }
+}
+
+if(chatForm) {
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        appendMessage('user', text);
+        chatInput.value = '';
+        askGemini(text);
+    });
+}
+
+// Initialize Chat Limit
+updateLimitDisplay();
+
+// Initialize Icons at the very end to ensure Chat Button has an icon
+lucide.createIcons();
