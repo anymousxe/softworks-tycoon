@@ -72,13 +72,16 @@
             </div>
             
             <!-- User Profile Section -->
-            <div class="flex items-center gap-4 bg-slate-900/50 p-3 pr-6 rounded-full border border-slate-800 backdrop-blur-sm">
+            <div class="flex items-center gap-4 bg-slate-900/50 p-2 pr-4 pl-2 rounded-full border border-slate-800 backdrop-blur-sm">
                 <img id="user-photo" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest" class="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-700" alt="Profile">
-                <div class="text-left">
+                <div class="text-left mr-2">
                     <div class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Operator</div>
                     <div id="user-name" class="text-white font-bold text-sm">Guest Agent</div>
                     <div id="user-email" class="text-xs text-slate-400 font-mono hidden">...</div>
                 </div>
+                <button id="btn-logout" class="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-red-400 transition-colors border border-transparent hover:border-white/10" title="Logout">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
             </div>
         </div>
 
@@ -167,6 +170,8 @@
                 <button class="nav-btn" data-tab="dev"><i data-lucide="plus-square"></i><span>Dev</span></button>
                 <button class="nav-btn" data-tab="market"><i data-lucide="briefcase"></i><span>B2B</span></button>
                 <button class="nav-btn" data-tab="pr"><i data-lucide="megaphone"></i><span>Media</span></button>
+                <button class="nav-btn" data-tab="reviews"><i data-lucide="message-square"></i><span>Reviews</span></button>
+                <button class="nav-btn" data-tab="shop"><i data-lucide="shopping-cart"></i><span>Shop</span></button>
                 <div class="flex-1"></div>
                 <button id="btn-exit-game" class="nav-btn text-red-500 hover:text-red-400 hover:bg-red-900/10"><i data-lucide="log-out"></i><span>Exit</span></button>
             </aside>
