@@ -4,16 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Softworks Tycoon</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icon.png" />
 
-    <!-- DISCORD & SOCIAL EMBEDS -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://softworks-tycoon.xyz/">
     <meta property="og:title" content="Softworks Tycoon">
@@ -23,15 +19,11 @@
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
 
-    <!-- NOTIFICATION CONTAINER -->
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- TUTORIAL OVERLAY (Fixed) -->
     <div id="tutorial-overlay" class="hidden fixed inset-0 z-[90] pointer-events-none">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
-        <!-- Highlight Box -->
         <div id="tutorial-highlight" class="absolute border-4 border-cyan-400 rounded-xl shadow-[0_0_50px_rgba(34,211,238,0.5)] transition-all duration-300"></div>
-        <!-- Tutorial Text Box -->
         <div id="tutorial-box" class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#0a0a0a] border border-cyan-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl pointer-events-auto flex flex-col gap-4 animate-in">
             <div class="flex items-center gap-3">
                 <div class="bg-cyan-500/20 p-2 rounded-lg"><i data-lucide="graduation-cap" class="text-cyan-400 w-6 h-6"></i></div>
@@ -45,7 +37,6 @@
         </div>
     </div>
 
-    <!-- SKIP CONFIRM MODAL -->
     <div id="skip-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="glass-panel p-8 rounded-2xl max-w-sm w-full relative shadow-2xl bg-black animate-in border border-red-500/30">
             <h3 class="text-xl font-bold text-white mb-2">Abort Training?</h3>
@@ -57,7 +48,6 @@
         </div>
     </div>
 
-    <!-- SETTINGS MODAL -->
     <div id="settings-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black animate-in">
             <div class="flex justify-between items-center mb-6">
@@ -72,11 +62,17 @@
                     </div>
                     <button id="btn-restart-tutorial" class="bg-slate-800 hover:bg-white hover:text-black text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">START</button>
                 </div>
+                <div class="flex items-center justify-between p-4 border border-red-900/30 rounded-xl bg-red-900/10">
+                    <div>
+                        <div class="text-white font-bold text-sm">Wipe AI Memory</div>
+                        <div class="text-xs text-slate-500">Clear chat history cache</div>
+                    </div>
+                    <button id="btn-wipe-ai" class="bg-red-900/50 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">WIPE</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- RENAME MODAL -->
     <div id="rename-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="glass-panel p-8 rounded-2xl max-w-sm w-full relative shadow-2xl bg-black">
             <h3 class="text-xl font-bold text-white mb-4">Rebrand Company</h3>
@@ -88,7 +84,6 @@
         </div>
     </div>
 
-    <!-- LOGIN SCREEN -->
     <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
         <div class="relative bg-black/40 border border-white/10 p-12 rounded-3xl shadow-2xl max-w-md w-full text-center backdrop-blur-xl">
@@ -109,7 +104,6 @@
         </div>
     </div>
 
-    <!-- MAIN MENU -->
     <div id="menu-screen" class="hidden min-h-screen p-8 pt-20 max-w-7xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
             <div>
@@ -117,7 +111,6 @@
                 <div class="text-cyan-500 font-mono tracking-widest text-lg">SELECT SAVE FILE</div>
             </div>
             
-            <!-- User Profile Section -->
             <div class="flex items-center gap-4 bg-slate-900/50 p-2 pr-4 pl-2 rounded-full border border-slate-800 backdrop-blur-sm">
                 <img id="user-photo" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest" class="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-700" alt="Profile">
                 <div class="text-left mr-2">
@@ -132,13 +125,32 @@
         </div>
 
         <div id="save-slots" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Saves injected here by JS -->
+            </div>
+    </div>
+
+    <div id="create-screen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black border border-cyan-500/20">
+            <h2 class="text-3xl font-black text-white mb-6">NEW CORPORATION</h2>
+            
+            <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">Company Name</label>
+            <input id="inp-comp-name" class="w-full bg-slate-900 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-bold placeholder-slate-600" placeholder="e.g. Apex Industries">
+            
+            <div id="btn-toggle-sandbox" class="flex items-center gap-4 p-4 rounded-xl border border-slate-700 cursor-pointer hover:bg-slate-800 transition-all mb-8">
+                <div class="p-2 bg-yellow-500/10 rounded-lg text-yellow-500"><i data-lucide="infinity"></i></div>
+                <div>
+                    <div class="text-white font-bold text-sm">Sandbox Mode</div>
+                    <div class="text-[10px] text-slate-500">Unlimited money & research. No achievements.</div>
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <button id="btn-cancel-create" class="px-6 py-3 text-slate-500 hover:text-white text-sm font-bold tracking-widest">CANCEL</button>
+                <button id="btn-confirm-create" class="flex-1 bg-white hover:bg-cyan-400 text-black font-black py-3 rounded-xl text-sm transition-all tracking-widest shadow-lg shadow-white/5">INITIALIZE</button>
+            </div>
         </div>
     </div>
 
-    <!-- GAME UI -->
     <div id="game-screen" class="hidden flex flex-col h-screen bg-[#050505]">
-        <!-- TOP HUD -->
         <header class="h-20 border-b border-white/5 bg-black/40 flex items-center justify-between px-6 z-10 backdrop-blur-xl">
             <div class="flex items-center gap-5">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
@@ -182,7 +194,6 @@
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <!-- SIDEBAR -->
             <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-8 gap-3 z-10 backdrop-blur-md overflow-y-auto custom-scrollbar">
                 <button id="nav-dash" class="nav-btn active" data-tab="dash"><i data-lucide="layout-dashboard"></i><span>Home</span></button>
                 <button id="nav-rivals" class="nav-btn" data-tab="rivals"><i data-lucide="swords"></i><span>Rivals</span></button>
@@ -203,18 +214,14 @@
                 <button id="btn-exit-game" class="nav-btn text-red-500 hover:text-red-400 hover:bg-red-900/10 mt-2"><i data-lucide="log-out"></i><span>Exit</span></button>
             </aside>
 
-            <!-- MAIN CONTENT AREA -->
             <main id="main-view" class="flex-1 overflow-y-auto bg-[#050505] p-8 relative">
-                <!-- Background ambient glow -->
                 <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none"></div>
                 <div class="max-w-7xl mx-auto relative z-10" id="content-area">
-                    <!-- Content injected by JS -->
-                </div>
+                    </div>
             </main>
         </div>
     </div>
 
-    <!-- AI CHAT WIDGET -->
     <div id="ai-widget-container" class="fixed bottom-6 right-28 z-[100] flex flex-col items-end gap-4 pointer-events-none">
         <div id="ai-chat-window" class="hidden w-[350px] h-[500px] glass-panel rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-cyan-500/30 animate-in origin-bottom-left pointer-events-auto bg-black">
             <div class="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center backdrop-blur-md">
@@ -230,8 +237,7 @@
                 <button id="btn-close-chat" class="text-slate-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
             <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-black/20">
-                <!-- Messages injected here -->
-            </div>
+                </div>
             <div class="p-3 bg-black/60 border-t border-white/10 backdrop-blur-md">
                 <form id="chat-form" class="flex gap-2">
                     <input id="chat-input" type="text" placeholder="Ask System AI..." class="flex-1 bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white focus:border-cyan-500 outline-none transition-colors font-mono">
@@ -247,15 +253,12 @@
         developed by anymousxe
     </div>
 
-    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
-    <!-- Secrets -->
     <script src="secrets.js"></script>
     
-    <!-- Main Logic -->
     <script src="main.js"></script>
 </body>
 </html>
