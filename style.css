@@ -1,7 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap');
+
 /* Base overrides */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #050505; /* Deep OLED Black */
+    background-color: #050505;
     color: #e2e8f0;
 }
 .font-mono {
@@ -14,14 +16,16 @@ body {
 ::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
 
-/* Nav Button Styles - ICONS FIXED HERE */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+
+/* Nav Button Styles */
 .nav-btn {
     width: 56px;
     height: 56px;
     display: flex;
     flex-direction: column;
-    align-items: center;     /* Fixed: centers icons horizontally */
-    justify-content: center; /* Fixed: centers icons vertically */
+    align-items: center;
+    justify-content: center;
     gap: 4px;
     border-radius: 14px;
     color: #525252;
@@ -39,20 +43,13 @@ body {
     font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
 }
 
-/* Glass Panel - Used for Rivals, Dashboard & Popups */
+/* Glass Panel */
 .glass-panel {
     background: rgba(15, 15, 15, 0.6);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
-
-/* Background Grid */
-.bg-grid-white {
-    background-size: 40px 40px;
-    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
 /* Animations */
