@@ -20,11 +20,6 @@
     <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market in this real-time strategy game.">
     <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png">
     <meta name="theme-color" content="#06b6d4">
-    
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Softworks Tycoon">
-    <meta name="twitter:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
-    <meta name="twitter:image" content="https://softworks-tycoon.xyz/banner.png">
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
 
@@ -32,10 +27,13 @@
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- TUTORIAL OVERLAY -->
+    <!-- pointer-events-none ensures clicks pass through the background if needed -->
     <div id="tutorial-overlay" class="hidden fixed inset-0 z-[90] pointer-events-none">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
+        
         <!-- Highlight Box (Positioned by JS) -->
         <div id="tutorial-highlight" class="absolute border-4 border-cyan-400 rounded-xl shadow-[0_0_50px_rgba(34,211,238,0.5)] transition-all duration-300"></div>
+        
         <!-- Tutorial Text Box -->
         <div id="tutorial-box" class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#0a0a0a] border border-cyan-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl pointer-events-auto flex flex-col gap-4 animate-in">
             <div class="flex items-center gap-3">
@@ -89,7 +87,7 @@
             </div>
             
             <div class="mt-6 pt-6 border-t border-white/10 text-center">
-                <p class="text-[10px] text-slate-600 font-mono">Softworks v2.2 // Build 2025</p>
+                <p class="text-[10px] text-slate-600 font-mono">Softworks v2.3 // Build 2025</p>
             </div>
         </div>
     </div>
