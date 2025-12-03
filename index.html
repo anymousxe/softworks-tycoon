@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icon.png" />
     <style>
-        /* Quick toast animation override since we aren't editing style.css */
+        /* Quick toast animation override */
         @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
@@ -30,7 +30,7 @@
     <!-- NOTIFICATION CONTAINER -->
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- RENAME MODAL (Hidden by default) -->
+    <!-- RENAME MODAL -->
     <div id="rename-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="bg-slate-900 border border-slate-700 p-8 rounded-2xl max-w-sm w-full relative shadow-2xl">
             <h3 class="text-xl font-bold text-white mb-4">Rebrand Company</h3>
@@ -169,7 +169,7 @@
                 <button class="nav-btn" data-tab="research"><i data-lucide="flask-conical"></i><span>R&D</span></button>
                 <button class="nav-btn" data-tab="dev"><i data-lucide="plus-square"></i><span>Dev</span></button>
                 <button class="nav-btn" data-tab="market"><i data-lucide="briefcase"></i><span>B2B</span></button>
-                <button class="nav-btn" data-tab="pr"><i data-lucide="megaphone"></i><span>Media</span></button>
+                <button class="nav-btn" data-tab="ads"><i data-lucide="megaphone"></i><span>Ads</span></button>
                 <button class="nav-btn" data-tab="reviews"><i data-lucide="message-square"></i><span>Reviews</span></button>
                 <button class="nav-btn" data-tab="shop"><i data-lucide="shopping-cart"></i><span>Shop</span></button>
                 <div class="flex-1"></div>
