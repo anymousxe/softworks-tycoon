@@ -16,9 +16,19 @@ body {
 
 /* Nav Button Styles */
 .nav-btn {
-    width: 56px; height: 56px; display: flex; flex-direction: column; alignItems: center; justifyContent: center;
-    gap: 4px; border-radius: 14px; color: #525252; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative; border: 1px solid transparent; background: transparent;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 14px;
+    color: #525252;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    border: 1px solid transparent;
+    background: transparent;
 }
 .nav-btn:hover { background-color: rgba(255, 255, 255, 0.05); color: #e2e8f0; transform: translateY(-2px); }
 .nav-btn.active {
