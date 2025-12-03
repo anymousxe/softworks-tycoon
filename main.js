@@ -1,5 +1,4 @@
 // --- 1. FIREBASE CONFIGURATION ---
-// YOUR KEYS - SOFTWORKS TYCOON
 const firebaseConfig = {
     apiKey: "AIzaSyD0FKEuORJd63FPGbM_P3gThpZknVsytsU",
     authDomain: "softworks-tycoon.firebaseapp.com",
@@ -9,11 +8,11 @@ const firebaseConfig = {
     appId: "1:591489940224:web:9e355e8a43dc06446a91e5"
 };
 
-// Initialize Firebase (Compat Mode)
+// Initialize Firebase
 try {
     firebase.initializeApp(firebaseConfig);
 } catch (e) {
-    console.error("Firebase Init Error (ignore if hot-reloading):", e);
+    console.error("Firebase Init Error:", e);
 }
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -24,31 +23,67 @@ let activeSaveId = null;
 let gameState = null;
 let saveInterval = null;
 
-// Game Data Consts
-const APP_ID = 'softworks-tycoon'; // Namespace for your specific DB
+// --- GAME DATA ---
+const APP_ID = 'softworks-tycoon';
+
 const HARDWARE = [
-    { id: 'h100', name: 'H100 Cluster', cost: 15000, compute: 10, upkeep: 200 },
-    { id: 'h200', name: 'H200 Chipset', cost: 35000, compute: 30, upkeep: 450, reqTech: 'h200_unlock' },
-    { id: 'dojo', name: 'Dojo Node', cost: 120000, compute: 120, upkeep: 1200 },
-    { id: 'quantum', name: 'Q-Bit Array', cost: 1000000, compute: 2000, upkeep: 8000, reqTech: 'quantum_tech' }
+    { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 2, upkeep: 50 },
+    { id: 'a100', name: 'A100 Rack', cost: 8000, compute: 8, upkeep: 150 },
+    { id: 'h100', name: 'H100 Cluster', cost: 15000, compute: 15, upkeep: 250 },
+    { id: 'h200', name: 'Nvidia H200', cost: 35000, compute: 40, upkeep: 500, reqTech: 'h200_unlock' },
+    { id: 'b200', name: 'Blackwell B200', cost: 60000, compute: 75, upkeep: 800, reqTech: 'blackwell_arch' },
+    { id: 'dojo', name: 'Dojo Supercomputer', cost: 120000, compute: 150, upkeep: 1200 },
+    { id: 'tpu_pod', name: 'Google TPU Pod', cost: 250000, compute: 350, upkeep: 2500, reqTech: 'tpu_opt' },
+    { id: 'cerebras', name: 'Wafer Scale Engine', cost: 500000, compute: 800, upkeep: 4000, reqTech: 'wafer_scale' },
+    { id: 'quantum', name: 'Q-Bit Array', cost: 1500000, compute: 3000, upkeep: 10000, reqTech: 'quantum_tech' },
+    { id: 'neural_link', name: 'Bio-Neural Hive', cost: 5000000, compute: 10000, upkeep: 25000, reqTech: 'bio_computing' }
 ];
+
 const RESEARCH = [
     { id: 'opt_algos', name: 'Optimized Algos', cost: 50, desc: '-1 Week Dev Time' },
-    { id: 'h200_unlock', name: 'H200 Hardware', cost: 150, desc: 'Unlock H200 in Store' },
-    { id: 'agi_theory', name: 'AGI Theory', cost: 500, desc: 'Unlock Conscious AI' },
-    { id: 'quantum_tech', name: 'Quantum Comp', cost: 1000, desc: 'Unlock Quantum Servers' }
+    { id: 'h200_unlock', name: 'H200 Hardware', cost: 150, desc: 'Unlock H200 Chips' },
+    { id: 'blackwell_arch', name: 'Blackwell Arch', cost: 300, desc: 'Unlock B200 Chips' },
+    { id: 'tpu_opt', name: 'TPU Optimization', cost: 600, desc: 'Unlock TPU Pods' },
+    { id: 'agi_theory', name: 'AGI Theory', cost: 1000, desc: 'Unlock Conscious AI Product' },
+    { id: 'wafer_scale', name: 'Wafer Scale', cost: 2000, desc: 'Unlock Cerebras WSE' },
+    { id: 'quantum_tech', name: 'Quantum Supremacy', cost: 5000, desc: 'Unlock Quantum Servers' },
+    { id: 'bio_computing', name: 'Bio-Computing', cost: 10000, desc: 'Unlock Neural Hive' }
 ];
+
 const PRODUCTS = [
-    { id: 'text', name: 'LLM', cost: 50000, time: 4, compute: 10, specs: ['Chat', 'Code', 'Writing'] },
-    { id: 'image', name: 'Image Gen', cost: 80000, time: 6, compute: 20, specs: ['Art', 'Photo', 'Logo'] },
-    { id: 'video', name: 'Video Model', cost: 150000, time: 8, compute: 50, specs: ['Deepfake', 'Cinema', 'VFX'] },
-    { id: 'audio', name: 'Audio Synth', cost: 60000, time: 5, compute: 15, specs: ['Music', 'Voice', 'SFX'] },
-    { id: 'agi', name: 'Conscious AI', cost: 5000000, time: 20, compute: 1000, specs: ['Sentience'], reqTech: 'agi_theory' }
+    { id: 'text', name: 'LLM', cost: 50000, time: 4, compute: 10, specs: ['Chatbot', 'Coding', 'Writing'] },
+    { id: 'image', name: 'Image Gen', cost: 80000, time: 6, compute: 20, specs: ['Realistic', 'Anime', 'Logo'] },
+    { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 15, specs: ['Music', 'Voice', 'SFX'] },
+    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 50, specs: ['Deepfake', 'Cinema', 'VFX'] },
+    { id: 'game_ai', name: 'NPC Brain', cost: 200000, time: 10, compute: 80, specs: ['Gaming', 'Simulation', 'VR'] },
+    { id: 'robotics', name: 'Robot OS', cost: 300000, time: 12, compute: 120, specs: ['Industrial', 'Home', 'Military'] },
+    { id: 'agi', name: 'Conscious AI', cost: 5000000, time: 24, compute: 2000, specs: ['Sentience'], reqTech: 'agi_theory' }
 ];
+
 const COMPANIES = [
-    { name: 'NvidiaX', budget: 8000 }, { name: 'Facebooc', budget: 3000 },
-    { name: 'Microhard', budget: 5000 }, { name: 'Joggle', budget: 6000 },
-    { name: 'Govt_Defense', budget: 25000 }
+    { name: 'Indie Devs', budget: 500 },
+    { name: 'Startup Inc', budget: 1500 },
+    { name: 'Facebooc', budget: 3000 },
+    { name: 'StreamFlix', budget: 4000 },
+    { name: 'Microhard', budget: 5000 },
+    { name: 'Joggle', budget: 6000 },
+    { name: 'Amacon', budget: 7000 },
+    { name: 'NvidiaX', budget: 8000 },
+    { name: 'Tessla', budget: 9000 },
+    { name: 'Fruit Co', budget: 10000 },
+    { name: 'OpenAI (Real)', budget: 12000 },
+    { name: 'Wall Street', budget: 15000 },
+    { name: 'SpaceY', budget: 18000 },
+    { name: 'Pentagon', budget: 25000 },
+    { name: 'Global Gov', budget: 50000 }
+];
+
+const INFLUENCERS = [
+    { id: 'tech_tuber', name: 'Marques Brownlee', cost: 50000, impact: 20, type: 'Review' },
+    { id: 'linus', name: 'Linus Tech Tips', cost: 40000, impact: 15, type: 'Showcase' },
+    { id: 'mr_beast', name: 'Mr Beast', cost: 1000000, impact: 80, type: 'Viral Video' },
+    { id: 'news_outlet', name: 'TechCrunch', cost: 15000, impact: 10, type: 'Article' },
+    { id: 'hacker_news', name: 'Hacker News', cost: 5000, impact: 5, type: 'Post' }
 ];
 
 // --- 2. AUTH & SCREEN MANAGEMENT ---
@@ -58,7 +93,14 @@ auth.onAuthStateChanged(user => {
     if (user) {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('menu-screen').classList.remove('hidden');
-        document.getElementById('user-email').textContent = user.isAnonymous ? 'Guest Agent' : user.email;
+        
+        // Update User Profile in Menu
+        const name = user.displayName || (user.isAnonymous ? 'Guest Agent' : 'User');
+        const photo = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
+        document.getElementById('user-name').textContent = name;
+        document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0,8);
+        document.getElementById('user-photo').src = photo;
+
         loadSaves();
     } else {
         document.getElementById('login-screen').classList.remove('hidden');
@@ -68,13 +110,10 @@ auth.onAuthStateChanged(user => {
 
 document.getElementById('btn-login-google').addEventListener('click', () => {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(e => {
-        alert("Login Error: " + e.message);
-    });
+    auth.signInWithPopup(provider).catch(e => alert(e.message));
 });
 
 document.getElementById('btn-login-guest').addEventListener('click', () => {
-    // Falls back to Anonymous auth which generates a Guest ID
     auth.signInAnonymously().catch(e => alert(e.message));
 });
 
@@ -90,44 +129,43 @@ function loadSaves() {
         snapshot.forEach(doc => {
             const data = doc.data();
             const el = document.createElement('div');
-            el.className = 'bg-slate-900 border border-slate-800 p-6 cursor-pointer hover:border-cyan-500 hover:bg-slate-800 transition group relative';
+            el.className = 'glass-panel p-8 rounded-2xl cursor-pointer hover:border-cyan-500 transition-all group relative hover:-translate-y-1';
             el.innerHTML = `
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="text-2xl font-bold text-white group-hover:text-cyan-400">${data.companyName}</h3>
-                    <button class="text-slate-600 hover:text-red-500 delete-btn p-2" data-id="${doc.id}">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 class="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors tracking-tight">${data.companyName}</h3>
+                        <div class="mt-2 inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-800 text-slate-400'}">
+                            ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
+                        </div>
+                    </div>
+                    <button class="text-slate-600 hover:text-red-500 delete-btn p-2 transition-colors" data-id="${doc.id}">
                         <i data-lucide="trash-2"></i>
                     </button>
                 </div>
-                <div class="flex justify-between text-sm font-mono text-slate-500 border-t border-slate-800 pt-3">
-                    <span>W${data.week} Y${data.year}</span>
-                    <span class="${data.cash < 0 ? 'text-red-500' : 'text-green-500'}">$${data.cash.toLocaleString()}</span>
-                </div>
-                <div class="mt-2 text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'text-yellow-500' : 'text-slate-600'}">
-                    ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
+                <div class="flex justify-between text-sm font-mono text-slate-500 border-t border-slate-700/50 pt-4">
+                    <div class="flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4"></i> W${data.week} Y${data.year}</div>
+                    <div class="${data.cash < 0 ? 'text-red-500' : 'text-green-400'} font-bold">$${data.cash.toLocaleString()}</div>
                 </div>
             `;
             
-            // Click to load
             el.addEventListener('click', (e) => {
                 if(e.target.closest('.delete-btn')) return;
                 startGame(doc.id, data);
             });
 
-            // Click to delete
             el.querySelector('.delete-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
-                if(confirm('Permanently delete this save file?')) savesRef.doc(doc.id).delete();
+                if(confirm('Delete this save file forever?')) savesRef.doc(doc.id).delete();
             });
 
             container.appendChild(el);
         });
         lucide.createIcons();
 
-        // Add "New Game" button if slots available
         if(snapshot.size < 6) {
             const btn = document.createElement('button');
-            btn.className = 'border-2 border-dashed border-slate-800 text-slate-600 p-6 hover:text-cyan-400 hover:border-cyan-500 hover:bg-slate-900/50 transition flex flex-col items-center justify-center gap-2 min-h-[160px]';
-            btn.innerHTML = `<i data-lucide="plus" class="w-8 h-8"></i><span class="font-bold">NEW SAVE</span>`;
+            btn.className = 'border-2 border-dashed border-slate-800 text-slate-600 p-8 rounded-2xl hover:text-cyan-400 hover:border-cyan-500 hover:bg-slate-900/50 transition flex flex-col items-center justify-center gap-3 min-h-[200px] group';
+            btn.innerHTML = `<i data-lucide="plus" class="w-10 h-10 group-hover:scale-110 transition-transform"></i><span class="font-bold tracking-widest">NEW SAVE</span>`;
             btn.onclick = () => document.getElementById('create-screen').classList.remove('hidden');
             container.appendChild(btn);
             lucide.createIcons();
@@ -143,6 +181,7 @@ document.getElementById('btn-toggle-sandbox').addEventListener('click', () => {
     div.classList.toggle('border-yellow-500', isSandbox);
     div.classList.toggle('bg-yellow-500/10', isSandbox);
     div.querySelector('.font-bold').classList.toggle('text-yellow-500', isSandbox);
+    div.querySelector('i').classList.toggle('text-yellow-500', isSandbox);
 });
 
 document.getElementById('btn-confirm-create').addEventListener('click', async () => {
@@ -154,9 +193,9 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         isSandbox,
         cash: isSandbox ? 100000000 : 25000,
         week: 1, year: 2025,
-        researchPts: isSandbox ? 1000 : 0,
+        researchPts: isSandbox ? 5000 : 0,
         reputation: 0,
-        hardware: [{ typeId: 'h100', count: 1 }],
+        hardware: [{ typeId: 'gtx_cluster', count: 1 }],
         products: [],
         unlockedTechs: [],
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -165,7 +204,7 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
     try {
         await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').add(newSave);
         document.getElementById('create-screen').classList.add('hidden');
-        document.getElementById('inp-comp-name').value = ''; // clear input
+        document.getElementById('inp-comp-name').value = '';
     } catch(e) {
         alert("Error creating save: " + e.message);
     }
@@ -189,7 +228,7 @@ function startGame(id, data) {
     lucide.createIcons();
     
     if (saveInterval) clearInterval(saveInterval);
-    saveInterval = setInterval(saveGame, 5000); // Save every 5s
+    saveInterval = setInterval(saveGame, 5000);
 }
 
 function saveGame() {
@@ -198,7 +237,23 @@ function saveGame() {
       .doc(activeSaveId).update(gameState).catch(e => console.error("Auto-save failed:", e));
 }
 
-// Helper: Calculate Compute
+// Rename Feature
+document.getElementById('trigger-rename').addEventListener('click', () => {
+    document.getElementById('rename-modal').classList.remove('hidden');
+    document.getElementById('inp-rename-company').value = gameState.companyName;
+});
+document.getElementById('btn-cancel-rename').onclick = () => document.getElementById('rename-modal').classList.add('hidden');
+document.getElementById('btn-confirm-rename').onclick = () => {
+    const newName = document.getElementById('inp-rename-company').value;
+    if(newName) {
+        gameState.companyName = newName;
+        updateHUD();
+        saveGame();
+        document.getElementById('rename-modal').classList.add('hidden');
+        showToast('Company Rebranded!', 'success');
+    }
+};
+
 function getCompute() {
     return gameState.hardware.reduce((total, hw) => {
         const tier = HARDWARE.find(h => h.id === hw.typeId);
@@ -206,81 +261,70 @@ function getCompute() {
     }, 0);
 }
 
-// Helper: Ticker / Notification
 function showToast(msg, type = 'info') {
     const container = document.getElementById('toast-container');
     const el = document.createElement('div');
-    const colors = type === 'success' ? 'border-green-500 bg-green-900/80 text-green-200' : 'border-cyan-500 bg-slate-900/90 text-cyan-400';
+    const colors = type === 'success' ? 'border-green-500 bg-green-900/90 text-green-100' : (type === 'error' ? 'border-red-500 bg-red-900/90 text-red-100' : 'border-cyan-500 bg-slate-900/90 text-cyan-400');
     
-    el.className = `toast-enter p-4 rounded-lg border-l-4 shadow-xl backdrop-blur-md font-mono text-sm max-w-xs ${colors}`;
-    el.innerHTML = msg;
+    el.className = `toast-enter p-4 rounded-xl border-l-4 shadow-2xl backdrop-blur-md font-bold text-sm max-w-sm flex items-center gap-3 ${colors}`;
+    el.innerHTML = type === 'success' ? `<i data-lucide="check-circle" class="w-5 h-5"></i> ${msg}` : `<i data-lucide="info" class="w-5 h-5"></i> ${msg}`;
     
     container.appendChild(el);
+    lucide.createIcons();
+
     setTimeout(() => {
         el.style.opacity = '0';
         el.style.transform = 'translateY(-10px)';
         setTimeout(() => el.remove(), 500);
     }, 4000);
 
-    // Also update ticker
-    document.getElementById('hud-ticker').textContent = msg;
+    document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
 // --- CORE: Advance Week ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
     const btn = document.getElementById('btn-next-week');
     btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> Processing`;
+    btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i>`;
     lucide.createIcons();
 
     setTimeout(() => {
-        // 1. Time
         gameState.week++;
         if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
 
-        // 2. Expenses
         const upkeep = gameState.hardware.reduce((sum, hw) => {
             const t = HARDWARE.find(x => x.id === hw.typeId);
             return sum + (t.upkeep * hw.count);
         }, 0);
         gameState.cash -= upkeep;
 
-        // 3. Research (Passive gain based on Reputation + Compute overhead)
-        const passiveResearch = Math.floor(gameState.reputation / 10) + 1;
+        // Passive Research
+        const passiveResearch = Math.floor(gameState.reputation / 5) + Math.floor(getCompute() * 0.05) + 5;
         gameState.researchPts += passiveResearch;
 
-        // 4. Products
         gameState.products.forEach(p => {
-            // Development
             if((!p.released || p.isUpdating) && p.weeksLeft > 0) {
                 p.weeksLeft--;
-                
-                // Tech: Optimized Algos makes dev faster? (Simulated by checking unlocked techs)
-                // We could implement logic here, but keeping it simple for now.
-
                 if(p.weeksLeft <= 0) {
                     p.isUpdating = false;
                     if(p.updateType) {
-                        // It was an update
                         const major = p.updateType === 'major';
                         p.version = parseFloat((p.version + (major ? 1.0 : 0.1)).toFixed(1));
                         p.quality = Math.min(100, p.quality + (major ? 15 : 5));
-                        p.hype = 100; // Hype reset on update
+                        p.hype = 100;
                         showToast(`${p.name} updated to v${p.version}!`, 'success');
                         p.updateType = null;
                     } else {
-                        // First release
                         p.released = true;
-                        p.quality = Math.floor(Math.random() * 40) + 50; // 50-90 start
+                        p.quality = Math.floor(Math.random() * 40) + 50;
                         p.version = 1.0;
                         p.hype = 100;
-                        gameState.reputation += 5;
-                        showToast(`🚀 ${p.name} Launched successfully!`, 'success');
+                        gameState.reputation += 10;
+                        showToast(`🚀 ${p.name} Launched!`, 'success');
                     }
                 }
             }
 
-            // Revenue
             if(p.released && !p.isUpdating) {
                 let weeklyRev = 0;
                 p.contracts.forEach(cName => {
@@ -288,14 +332,11 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                     if(comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
                 });
                 
-                // Hype Decay
                 p.hype = Math.max(0, p.hype - 2);
 
                 if(p.isOpenSource) {
-                    // Open Source grants reputation and hype sustain
-                    if(p.hype > 0) gameState.reputation += 0.2;
+                    if(p.hype > 0) gameState.reputation += 0.5;
                 } else {
-                    // Closed source makes money
                     gameState.cash += weeklyRev;
                     p.revenue += weeklyRev;
                 }
@@ -303,14 +344,13 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
         });
 
         updateHUD();
-        // Re-render current tab
         const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
         renderTab(activeTab);
 
         btn.disabled = false;
-        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i> Next`;
+        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Next`;
         lucide.createIcons();
-    }, 500); // 0.5s delay for "processing" feel
+    }, 400); 
 });
 
 // --- UI RENDERING ---
@@ -318,13 +358,12 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 function updateHUD() {
     document.getElementById('hud-company-name').textContent = gameState.companyName;
     document.getElementById('hud-cash').textContent = `$${gameState.cash.toLocaleString()}`;
-    document.getElementById('hud-cash').className = gameState.cash < 0 ? 'text-red-500 font-bold' : 'text-green-400 font-bold';
+    document.getElementById('hud-cash').className = gameState.cash < 0 ? 'text-red-500 text-lg font-bold' : 'text-green-400 text-lg font-bold';
     document.getElementById('hud-compute').textContent = `${getCompute()} TF`;
     document.getElementById('hud-research').textContent = `${Math.floor(gameState.researchPts)} PTS`;
     document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`;
 }
 
-// Navigation
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         if(btn.id === 'btn-exit-game') {
@@ -332,6 +371,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
             if(saveInterval) clearInterval(saveInterval);
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('menu-screen').classList.remove('hidden');
+            loadSaves(); // refresh saves
             return;
         }
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -350,18 +390,18 @@ function renderTab(tab) {
         const rev = gameState.products.reduce((acc, p) => acc + (p.revenue||0), 0);
         
         content.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-xl">
-                    <div class="text-[10px] text-slate-500 font-bold uppercase">Live Products</div>
-                    <div class="text-3xl font-black text-white">${liveProducts}</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-slate-900/50 border border-slate-800 p-8 rounded-2xl">
+                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Live Products</div>
+                    <div class="text-4xl font-black text-white mt-2">${liveProducts}</div>
                 </div>
-                <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-xl">
-                    <div class="text-[10px] text-slate-500 font-bold uppercase">Total Revenue</div>
-                    <div class="text-3xl font-black text-green-400">$${rev.toLocaleString()}</div>
+                <div class="bg-slate-900/50 border border-slate-800 p-8 rounded-2xl">
+                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Lifetime Revenue</div>
+                    <div class="text-4xl font-black text-green-400 mt-2">$${rev.toLocaleString()}</div>
                 </div>
-                <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-xl">
-                    <div class="text-[10px] text-slate-500 font-bold uppercase">Reputation</div>
-                    <div class="text-3xl font-black text-purple-400">${Math.floor(gameState.reputation)}</div>
+                <div class="bg-slate-900/50 border border-slate-800 p-8 rounded-2xl">
+                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Reputation</div>
+                    <div class="text-4xl font-black text-purple-400 mt-2">${Math.floor(gameState.reputation)}</div>
                 </div>
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="product-list"></div>
@@ -370,40 +410,40 @@ function renderTab(tab) {
         const list = document.getElementById('product-list');
         gameState.products.forEach(p => {
             const card = document.createElement('div');
-            card.className = 'bg-slate-900 border border-slate-800 p-6 relative group hover:border-slate-600 transition rounded-xl overflow-hidden';
+            card.className = 'glass-panel p-6 relative group hover:border-cyan-500/50 transition-all rounded-2xl overflow-hidden';
             
             if(p.isOpenSource) {
-                card.innerHTML += `<div class="absolute top-0 right-0 bg-green-500 text-black text-[10px] font-bold px-2 py-1">OPEN SOURCE</div>`;
+                card.innerHTML += `<div class="absolute top-0 right-0 bg-green-500 text-black text-[9px] font-black px-3 py-1 rounded-bl-xl tracking-widest">OPEN SOURCE</div>`;
             }
 
             if(p.released && !p.isUpdating) {
                 card.innerHTML += `
-                    <div class="flex justify-between items-start mb-4">
+                    <div class="flex justify-between items-start mb-6">
                         <div>
-                            <h3 class="text-xl font-bold text-white">${p.name} <span class="text-cyan-500 text-sm">v${p.version}</span></h3>
-                            <div class="text-xs text-slate-500">${p.type.toUpperCase()}</div>
+                            <h3 class="text-2xl font-bold text-white tracking-tight">${p.name} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
+                            <div class="text-xs text-slate-500 font-bold mt-1 bg-slate-800 inline-block px-2 py-0.5 rounded">${p.type.toUpperCase()}</div>
                         </div>
-                        <div class="text-right">
-                            <div class="text-[10px] text-slate-500 uppercase">Rev/Wk</div>
-                            <div class="text-green-400 font-mono">$${p.isOpenSource ? 0 : Math.floor(p.revenue * 0.01).toLocaleString()}</div>
+                        <div class="text-right mt-2">
+                            <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Revenue</div>
+                            <div class="text-green-400 font-mono font-bold">$${p.isOpenSource ? 0 : Math.floor(p.revenue * 0.01).toLocaleString()}/wk</div>
                         </div>
                     </div>
                     
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div class="bg-black/50 p-2 rounded">
-                            <div class="text-[10px] text-slate-500 uppercase">Quality</div>
-                            <div class="${p.quality > 80 ? 'text-green-400' : 'text-yellow-400'} font-bold">${p.quality}/100</div>
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                            <div class="text-[9px] text-slate-500 uppercase font-bold">Quality</div>
+                            <div class="${p.quality > 80 ? 'text-green-400' : 'text-yellow-400'} font-black text-xl">${p.quality}</div>
                         </div>
-                        <div class="bg-black/50 p-2 rounded">
-                            <div class="text-[10px] text-slate-500 uppercase">Hype</div>
-                            <div class="text-purple-400 font-bold">${p.hype}%</div>
+                        <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                            <div class="text-[9px] text-slate-500 uppercase font-bold">Hype</div>
+                            <div class="text-purple-400 font-black text-xl">${p.hype}%</div>
                         </div>
                     </div>
 
-                    <div class="flex gap-2">
-                        <button class="bg-slate-800 text-white px-3 py-2 text-xs font-bold flex-1 hover:bg-slate-700 btn-patch rounded" data-id="${p.id}">PATCH (v${(p.version+0.1).toFixed(1)})</button>
-                        <button class="bg-white text-black px-3 py-2 text-xs font-bold flex-1 hover:bg-cyan-400 btn-major rounded" data-id="${p.id}">MAJOR (v${Math.floor(p.version)+1}.0)</button>
-                        <button class="text-slate-500 hover:text-red-500 px-2 btn-delete" data-id="${p.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    <div class="flex gap-3">
+                        <button class="bg-slate-800 text-white px-4 py-3 text-[10px] font-bold flex-1 hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH (v${(p.version+0.1).toFixed(1)})</button>
+                        <button class="bg-white text-black px-4 py-3 text-[10px] font-bold flex-1 hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">MAJOR (v${Math.floor(p.version)+1}.0)</button>
+                        <button class="text-slate-500 hover:text-red-500 hover:bg-red-900/10 px-3 btn-delete rounded-xl transition-colors" data-id="${p.id}"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
                     </div>
                 `;
                 card.querySelector('.btn-patch').onclick = () => startUpdate(p.id, 'minor');
@@ -416,13 +456,13 @@ function renderTab(tab) {
                 };
             } else {
                 card.innerHTML += `
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="font-bold text-white">${p.name}</h3>
-                        <span class="text-xs font-mono text-cyan-500">${p.weeksLeft}w</span>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-white text-lg">${p.name}</h3>
+                        <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${p.weeksLeft}w LEFT</span>
                     </div>
-                    <div class="text-slate-500 text-xs font-mono mb-2">${p.isUpdating ? 'UPDATING...' : 'TRAINING MODEL...'}</div>
+                    <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Developing Update...' : 'Training Model...'}</div>
                     <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div class="h-full bg-cyan-500 animate-pulse" style="width: ${((p.isUpdating ? 6-p.weeksLeft : 4-p.weeksLeft)/6)*100}%"></div>
+                        <div class="h-full bg-cyan-500 animate-pulse shadow-[0_0_10px_cyan]" style="width: ${((p.isUpdating ? 6-p.weeksLeft : 4-p.weeksLeft)/6)*100}%"></div>
                     </div>
                 `;
             }
@@ -432,7 +472,7 @@ function renderTab(tab) {
     }
 
     if(tab === 'server') {
-        content.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="server-grid"></div>`;
+        content.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>`;
         const grid = document.getElementById('server-grid');
         
         HARDWARE.forEach(h => {
@@ -440,15 +480,15 @@ function renderTab(tab) {
             const owned = gameState.hardware.find(x => x.typeId === h.id)?.count || 0;
             
             const el = document.createElement('div');
-            el.className = `p-6 border rounded-xl ${locked ? 'border-slate-900 opacity-50 bg-slate-900/20' : 'border-slate-800 bg-slate-900/40 hover:border-slate-600'}`;
+            el.className = `p-6 border rounded-2xl transition-all ${locked ? 'border-slate-800 opacity-40 bg-slate-900/10' : 'border-slate-700 bg-slate-900/40 hover:border-blue-500/50'}`;
             el.innerHTML = `
                 <div class="flex justify-between mb-2">
-                    <div class="text-white font-bold text-lg">${h.name}</div>
+                    <div class="text-white font-bold text-lg leading-tight">${h.name}</div>
                     ${locked ? '<i data-lucide="lock" class="w-4 h-4 text-slate-600"></i>' : ''}
                 </div>
-                <div class="text-slate-500 text-xs mb-4 font-mono">${h.compute} TF / $${h.upkeep} wk</div>
-                <div class="text-4xl font-black text-slate-700 mb-4">${owned}</div>
-                <button class="w-full border border-slate-700 text-white py-2 text-xs font-bold hover:bg-white hover:text-black transition rounded" ${locked ? 'disabled' : ''}>
+                <div class="text-slate-500 text-xs mb-6 font-mono">${h.compute} TF / $${h.upkeep} wk</div>
+                <div class="text-4xl font-black text-white mb-6">${owned}</div>
+                <button class="w-full border border-slate-600 text-white py-3 text-[10px] tracking-widest font-bold hover:bg-white hover:text-black transition-colors rounded-xl uppercase" ${locked ? 'disabled' : ''}>
                     BUY $${h.cost.toLocaleString()}
                 </button>
             `;
@@ -460,7 +500,7 @@ function renderTab(tab) {
                         if(hw) hw.count++; else gameState.hardware.push({ typeId: h.id, count: 1 });
                         updateHUD();
                         renderTab('server');
-                        showToast(`Purchased ${h.name}`);
+                        showToast(`Purchased ${h.name}`, 'success');
                     } else showToast('Insufficient Funds!', 'error');
                 };
             }
@@ -471,9 +511,9 @@ function renderTab(tab) {
 
     if(tab === 'research') {
         content.innerHTML = `
-            <div class="flex items-center gap-4 mb-6">
-                <h2 class="text-4xl font-black text-white">R&D LAB</h2>
-                <div class="text-purple-400 font-mono">${gameState.researchPts} PTS AVAILABLE</div>
+            <div class="flex items-center gap-6 mb-8">
+                <h2 class="text-5xl font-black text-white tracking-tighter">R&D LAB</h2>
+                <div class="text-purple-400 font-mono bg-purple-900/20 px-4 py-2 rounded-xl border border-purple-500/30 font-bold">${gameState.researchPts} PTS AVAILABLE</div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="research-grid"></div>
         `;
@@ -482,15 +522,15 @@ function renderTab(tab) {
         RESEARCH.forEach(r => {
             const unlocked = gameState.unlockedTechs.includes(r.id);
             const el = document.createElement('div');
-            el.className = `p-6 border rounded-xl transition ${unlocked ? 'border-purple-500 bg-purple-900/10' : 'border-slate-800 bg-slate-900/40 hover:border-purple-500/50'}`;
+            el.className = `p-8 border rounded-2xl transition-all relative overflow-hidden ${unlocked ? 'border-purple-500 bg-purple-900/10' : 'border-slate-800 bg-slate-900/40 hover:border-purple-500/50'}`;
             el.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <i data-lucide="beaker" class="${unlocked ? 'text-purple-500' : 'text-slate-600'}"></i>
-                    ${unlocked ? '<span class="bg-purple-500 text-black text-[10px] font-bold px-2 py-1 rounded">UNLOCKED</span>' : ''}
+                <div class="flex justify-between items-center mb-6">
+                    <i data-lucide="flask-conical" class="${unlocked ? 'text-purple-500' : 'text-slate-600'} w-6 h-6"></i>
+                    ${unlocked ? '<span class="bg-purple-500 text-black text-[9px] font-black px-2 py-1 rounded tracking-widest">ACQUIRED</span>' : ''}
                 </div>
-                <h3 class="font-bold text-white mb-1">${r.name}</h3>
-                <p class="text-xs text-slate-500 mb-4">${r.desc}</p>
-                ${!unlocked ? `<button class="w-full bg-slate-800 hover:bg-purple-600 text-white font-bold py-2 rounded text-xs">RESEARCH (${r.cost} PTS)</button>` : ''}
+                <h3 class="font-bold text-white mb-2 text-xl">${r.name}</h3>
+                <p class="text-xs text-slate-500 mb-6 leading-relaxed">${r.desc}</p>
+                ${!unlocked ? `<button class="w-full bg-slate-800 hover:bg-purple-600 text-white font-bold py-3 rounded-xl text-xs tracking-widest transition-colors">UNLOCK (${r.cost} PTS)</button>` : ''}
             `;
             
             if(!unlocked) {
@@ -511,21 +551,24 @@ function renderTab(tab) {
 
     if(tab === 'dev') {
         content.innerHTML = `
-            <h2 class="text-2xl font-bold text-white mb-6">NEW PROJECT</h2>
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">NEW PROJECT</h2>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4" id="dev-types"></div>
-                <div class="bg-slate-900/80 border border-slate-800 p-6 rounded-xl h-fit">
-                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block">Project Config</label>
-                    <input id="new-proj-name" class="w-full bg-black border border-slate-700 p-3 text-white mb-4 rounded focus:border-cyan-500 outline-none" placeholder="Project Name">
+                <div class="glass-panel p-8 rounded-2xl h-fit border-l-4 border-cyan-500">
+                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Codename</label>
+                    <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="e.g. Skynet v1">
                     
-                    <div class="flex items-center gap-2 mb-6 p-3 border border-slate-800 rounded cursor-pointer hover:bg-slate-800" id="btn-toggle-opensource">
-                        <div class="w-4 h-4 border border-slate-500 rounded" id="check-os"></div>
-                        <span class="text-sm text-white">Open Source License</span>
+                    <div class="flex items-center gap-3 mb-8 p-4 border border-slate-700 rounded-xl cursor-pointer hover:bg-slate-800 transition-colors" id="btn-toggle-opensource">
+                        <div class="w-5 h-5 border-2 border-slate-500 rounded" id="check-os"></div>
+                        <div>
+                            <div class="text-sm text-white font-bold">Open Source License</div>
+                            <div class="text-[10px] text-slate-500">Free release. High Reputation gain. No Revenue.</div>
+                        </div>
                     </div>
 
-                    <div id="proj-cost-preview" class="mb-4 text-xs text-slate-400 font-mono"></div>
+                    <div id="proj-cost-preview" class="mb-6 text-xs text-slate-400 font-mono bg-black/30 p-4 rounded-xl border border-white/5">Select a model type...</div>
 
-                    <button id="btn-start-dev" class="w-full bg-white hover:bg-cyan-400 text-black font-bold py-4 rounded-xl transition-all shadow-lg shadow-cyan-900/20">INITIALIZE PROJECT</button>
+                    <button id="btn-start-dev" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 tracking-widest text-sm">INITIALIZE</button>
                 </div>
             </div>
         `;
@@ -537,34 +580,36 @@ function renderTab(tab) {
         PRODUCTS.forEach(p => {
             const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
             const btn = document.createElement('div');
-            btn.className = `p-4 border cursor-pointer rounded-xl transition-all ${locked ? 'border-slate-800 opacity-50' : 'border-slate-700 hover:border-cyan-500 hover:bg-slate-900'}`;
+            btn.className = `p-6 border cursor-pointer rounded-2xl transition-all relative ${locked ? 'border-slate-800 opacity-40 bg-slate-900/10' : 'border-slate-700 hover:border-cyan-500 hover:bg-slate-900/60 bg-slate-900/30'}`;
             btn.innerHTML = `
-                <div class="flex justify-between mb-2">
-                    <div class="font-bold text-white">${p.name}</div>
+                <div class="flex justify-between mb-3">
+                    <div class="font-bold text-white text-lg">${p.name}</div>
                     ${locked ? '<i data-lucide="lock" class="w-4 h-4 text-red-500"></i>' : ''}
                 </div>
-                <div class="text-xs text-slate-500 font-mono">Cost: $${p.cost.toLocaleString()} <br> TF: ${p.compute}</div>
+                <div class="text-xs text-slate-500 font-mono space-y-1">
+                    <div>Cost: $${p.cost.toLocaleString()}</div>
+                    <div>Compute: ${p.compute} TF</div>
+                </div>
             `;
             if(!locked) {
                 btn.onclick = () => {
-                    document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500', 'bg-cyan-900/10'));
-                    btn.classList.add('border-cyan-500', 'bg-cyan-900/10');
+                    document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500', 'bg-cyan-900/20'));
+                    btn.classList.add('border-cyan-500', 'bg-cyan-900/20');
                     selectedType = p;
                     document.getElementById('proj-cost-preview').innerHTML = `
-                        Cost: $${p.cost.toLocaleString()}<br>
-                        Dev Time: ${p.time} Weeks<br>
-                        Required Compute: ${p.compute} TF
+                        <div class="flex justify-between mb-1"><span>Cost</span> <span class="text-white">$${p.cost.toLocaleString()}</span></div>
+                        <div class="flex justify-between mb-1"><span>Time</span> <span class="text-white">${p.time} Weeks</span></div>
+                        <div class="flex justify-between"><span>Compute</span> <span class="${getCompute() >= p.compute ? 'text-green-400' : 'text-red-500'}">${p.compute} TF</span></div>
                     `;
                 };
             }
             typeContainer.appendChild(btn);
         });
 
-        // OS Toggle
         document.getElementById('btn-toggle-opensource').onclick = () => {
             openSource = !openSource;
             const box = document.getElementById('check-os');
-            box.className = `w-4 h-4 border rounded ${openSource ? 'bg-green-500 border-green-500' : 'border-slate-500'}`;
+            box.className = `w-5 h-5 border-2 rounded transition-colors ${openSource ? 'bg-green-500 border-green-500' : 'border-slate-500'}`;
         };
 
         document.getElementById('btn-start-dev').onclick = () => {
@@ -597,43 +642,97 @@ function renderTab(tab) {
     
     // Market Logic
     if(tab === 'market') {
-        content.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="market-grid"></div>`;
+        content.innerHTML = `
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">B2B MARKETPLACE</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="market-grid"></div>
+        `;
         const grid = document.getElementById('market-grid');
         
         COMPANIES.forEach(c => {
             const el = document.createElement('div');
-            el.className = 'bg-slate-900 border border-slate-800 p-6 rounded-xl';
+            el.className = 'glass-panel p-6 rounded-2xl';
             el.innerHTML = `
-                <div class="flex justify-between items-center mb-4">
+                <div class="flex justify-between items-center mb-6">
                     <h3 class="font-bold text-white text-lg">${c.name}</h3>
-                    <span class="text-green-500 font-mono text-sm">$${c.budget.toLocaleString()}/wk</span>
+                    <span class="text-green-400 font-mono text-xs bg-green-900/20 px-2 py-1 rounded border border-green-500/20">$${c.budget.toLocaleString()}/wk</span>
                 </div>
-                <div class="space-y-2" id="contracts-${c.name}"></div>
+                <div class="space-y-2" id="contracts-${c.name.replace(/\s+/g, '')}"></div>
             `;
             
-            const pList = el.querySelector(`#contracts-${c.name}`);
+            const pList = el.querySelector(`#contracts-${c.name.replace(/\s+/g, '')}`);
             const commercialProducts = gameState.products.filter(p => p.released && !p.isOpenSource);
             
             if(commercialProducts.length === 0) {
-                pList.innerHTML = `<div class="text-xs text-slate-600 italic">No commercial products available.</div>`;
+                pList.innerHTML = `<div class="text-xs text-slate-600 italic py-2 text-center">No products to pitch.</div>`;
             } else {
                 commercialProducts.forEach(p => {
                     const active = p.contracts.includes(c.name);
                     const btn = document.createElement('button');
-                    btn.className = `w-full flex justify-between text-xs p-2 rounded border transition ${active ? 'bg-green-900/20 border-green-500 text-green-400' : 'border-slate-800 text-slate-400 hover:bg-slate-800'}`;
-                    btn.innerHTML = `<span>${p.name}</span><span>${active ? 'ACTIVE' : 'PITCH'}</span>`;
+                    btn.className = `w-full flex justify-between items-center text-xs p-3 rounded-lg border transition-all ${active ? 'bg-green-500/10 border-green-500 text-green-400' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`;
+                    btn.innerHTML = `
+                        <span class="font-bold">${p.name}</span>
+                        ${active ? '<i data-lucide="check" class="w-3 h-3"></i>' : '<span class="text-[9px] uppercase tracking-wider">PITCH</span>'}
+                    `;
                     btn.onclick = () => {
                         if(active) {
                             p.contracts = p.contracts.filter(x => x !== c.name);
+                            showToast(`Contract ended with ${c.name}`);
                         } else {
                             p.contracts.push(c.name);
-                            showToast(`Contract Signed with ${c.name}`, 'success');
+                            showToast(`Signed with ${c.name}!`, 'success');
                         }
                         renderTab('market');
                     };
                     pList.appendChild(btn);
                 });
             }
+            grid.appendChild(el);
+        });
+        lucide.createIcons();
+    }
+
+    // PR / Media Tab
+    if(tab === 'pr') {
+        content.innerHTML = `
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="text-3xl font-black text-white tracking-tight">MEDIA RELATIONS</h2>
+                <div class="text-purple-400 font-bold bg-purple-900/20 px-4 py-2 rounded-xl border border-purple-500/20">Reputation: ${Math.floor(gameState.reputation)}</div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="pr-grid"></div>
+        `;
+        const grid = document.getElementById('pr-grid');
+        
+        INFLUENCERS.forEach(inf => {
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-6 rounded-2xl hover:border-purple-500/50 transition-colors';
+            el.innerHTML = `
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-xl">📺</div>
+                    <div>
+                        <h3 class="font-bold text-white text-lg leading-tight">${inf.name}</h3>
+                        <div class="text-xs text-purple-400">${inf.type}</div>
+                    </div>
+                </div>
+                <div class="flex justify-between text-xs text-slate-500 mb-6 font-mono border-t border-slate-700/50 pt-4">
+                    <span>Impact: +${inf.impact} Rep</span>
+                    <span>Cost: $${inf.cost.toLocaleString()}</span>
+                </div>
+                <button class="w-full bg-white text-black font-bold py-3 rounded-xl text-xs tracking-widest hover:bg-purple-400 transition-colors">SPONSOR CONTENT</button>
+            `;
+            
+            el.querySelector('button').onclick = () => {
+                if(gameState.cash >= inf.cost) {
+                    gameState.cash -= inf.cost;
+                    gameState.reputation += inf.impact;
+                    
+                    // Boost hype of all products
+                    gameState.products.forEach(p => { if(p.released) p.hype = Math.min(100, p.hype + 20); });
+                    
+                    updateHUD();
+                    renderTab('pr');
+                    showToast(`Sponsored video with ${inf.name}!`, 'success');
+                } else showToast('Insufficient Funds!', 'error');
+            };
             grid.appendChild(el);
         });
     }
