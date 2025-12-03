@@ -268,7 +268,7 @@ function startGame(id, data) {
     // Check Tutorial on Start
     setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
 
-    // CHANGELOG CHECK (NEW LOGIC)
+    // CHANGELOG CHECK
     if (!localStorage.getItem('patch_notes_v2.0_seen')) {
         document.getElementById('changelog-modal').classList.remove('hidden');
     }
@@ -523,7 +523,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         gameState.reputation += 10;
                         showToast(`🚀 ${p.name} Launched! Quality: ${p.quality}/100`, 'success');
                         
-                        // NEW: Generate Dynamic Review
+                        // Generate Dynamic Review via Vercel Proxy
                         generateDynamicReview(p);
                     }
                 }
@@ -565,12 +565,12 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
     }, 400); 
 });
 
-// --- DYNAMIC REVIEW GENERATION ---
+// --- DYNAMIC REVIEW GENERATION (SECURE PROXY VERSION) ---
 async function generateDynamicReview(product) {
     const status = checkRateLimit(); // Check shared quota
     
-    // If rate limited or no API key, use fallback
-    if (!status.allowed || typeof SECRETS === 'undefined' || !SECRETS.GEMINI_API_KEY) {
+    // If rate limited, use fallback immediately
+    if (!status.allowed) {
         generateFallbackReview(product);
         return;
     }
@@ -583,11 +583,13 @@ async function generateDynamicReview(product) {
     Format: "Review Text"`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${SECRETS.GEMINI_API_KEY}`, {
+        // CALL VERCEL PROXY instead of Google Directly
+        const response = await fetch('/api/proxy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            body: JSON.stringify({ prompt: prompt })
         });
+        
         const data = await response.json();
         let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Interesting release.";
         text = text.replace(/"/g, ''); // Clean quotes
@@ -1164,7 +1166,23 @@ function appendMessage(role, text, save = true) {
     }
 }
 
-// AI Interaction
+// --- CONTEXT HELPER ---
+function createContext(userQuery) {
+     return {
+        company: gameState.companyName,
+        funds: gameState.cash,
+        week: gameState.week,
+        year: gameState.year,
+        reputation: gameState.reputation,
+        compute: getCompute(),
+        products: gameState.products.map(p => `${p.name} (v${p.version})`),
+        rivals: RIVALS.map(r => `${r.name} (${r.strength}%)`),
+        unlockedTech: gameState.unlockedTechs,
+        userQuery: userQuery
+    };
+}
+
+// --- AI INTERACTION (SECURE PROXY VERSION) ---
 async function askGemini(prompt) {
     const status = checkRateLimit();
     if (!status.allowed) {
@@ -1172,23 +1190,6 @@ async function askGemini(prompt) {
         return;
     }
 
-    // Build Context
-    const context = {
-        company: gameState.companyName,
-        funds: gameState.cash,
-        week: gameState.week,
-        year: gameState.year,
-        reputation: gameState.reputation,
-        compute: getCompute(),
-        products: gameState.products.map(p => `${p.name} (v${p.version}, Q:${p.quality}, Hype:${p.hype})`),
-        rivals: RIVALS.map(r => `${r.name} (${r.strength}%)`),
-        unlockedTech: gameState.unlockedTechs,
-        userQuery: prompt
-    };
-
-    const systemPrompt = getSystemPrompt(context);
-
-    // Show Loading
     const loadingDiv = document.createElement('div');
     loadingDiv.className = "text-xs text-slate-500 italic ml-2 animate-pulse";
     loadingDiv.id = "ai-loading";
@@ -1197,26 +1198,24 @@ async function askGemini(prompt) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
-        if (typeof SECRETS === 'undefined' || !SECRETS.GEMINI_API_KEY) {
-            throw new Error("API Key missing in secrets.js");
-        }
+        const context = createContext(prompt);
+        // Use the function from your global scope
+        const fullPrompt = getSystemPrompt(context); 
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${SECRETS.GEMINI_API_KEY}`, {
+        // 🚨 LIVE SITE CALL: We always call our Vercel proxy, which knows the secret key.
+        const response = await fetch('/api/proxy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: systemPrompt }] }]
-            })
+            body: JSON.stringify({ prompt: fullPrompt }) // Send the full prompt to the server
         });
 
         const data = await response.json();
         
-        // Remove loading
         const loader = document.getElementById('ai-loading');
         if(loader) loader.remove();
 
         if (data.error) {
-            appendMessage('system', `❌ Error: ${data.error.message}`, false);
+            appendMessage('system', `❌ Error: ${data.error.message || data.error}`, false);
         } else {
             const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "System Error: No response data.";
             appendMessage('system', aiText);
