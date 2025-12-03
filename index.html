@@ -17,16 +17,21 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://softworks-tycoon.xyz/">
     <meta property="og:title" content="Softworks Tycoon">
-    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
+    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market in this real-time strategy game.">
     <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png">
     <meta name="theme-color" content="#06b6d4">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Softworks Tycoon">
+    <meta name="twitter:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
+    <meta name="twitter:image" content="https://softworks-tycoon.xyz/banner.png">
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
 
     <!-- NOTIFICATION CONTAINER -->
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- TUTORIAL OVERLAY (New) -->
+    <!-- TUTORIAL OVERLAY -->
     <div id="tutorial-overlay" class="hidden fixed inset-0 z-[90] pointer-events-none">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
         <!-- Highlight Box (Positioned by JS) -->
@@ -39,13 +44,25 @@
             </div>
             <p id="tutorial-text" class="text-slate-300 text-sm leading-relaxed">Welcome CEO.</p>
             <div class="flex justify-between items-center mt-2">
-                <button id="btn-skip-tutorial" class="text-xs text-slate-500 hover:text-white underline">Skip Tutorial</button>
+                <button id="btn-trigger-skip" class="text-xs text-slate-500 hover:text-white underline">Skip Tutorial</button>
                 <button id="btn-next-tutorial" class="bg-white text-black px-6 py-2 rounded-lg font-bold hover:bg-cyan-400 transition-colors text-sm">Next</button>
             </div>
         </div>
     </div>
 
-    <!-- SETTINGS MODAL (New) -->
+    <!-- SKIP CONFIRM MODAL (New) -->
+    <div id="skip-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-sm w-full relative shadow-2xl bg-black animate-in border border-red-500/30">
+            <h3 class="text-xl font-bold text-white mb-2">Abort Training?</h3>
+            <p class="text-slate-400 text-sm mb-6">You will miss out on the initial funding grant and guidance. Are you sure?</p>
+            <div class="flex gap-3">
+                <button id="btn-cancel-skip" class="px-4 py-2 text-slate-300 hover:text-white text-sm font-bold">RESUME</button>
+                <button id="btn-confirm-skip" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-lg text-sm transition-colors">SKIP IT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
     <div id="settings-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black animate-in">
             <div class="flex justify-between items-center mb-6">
@@ -65,14 +82,14 @@
                 <div class="flex items-center justify-between p-4 border border-slate-800 rounded-xl bg-slate-900/50">
                     <div>
                         <div class="text-white font-bold text-sm">Clear AI History</div>
-                        <div class="text-xs text-slate-500">Wipe chat memory</div>
+                        <div class="text-xs text-slate-500">Wipe chat memory & cooldowns</div>
                     </div>
                     <button id="btn-wipe-ai" class="text-red-400 hover:bg-red-900/20 px-4 py-2 rounded-lg text-xs font-bold transition-colors border border-red-900/30">WIPE</button>
                 </div>
             </div>
             
             <div class="mt-6 pt-6 border-t border-white/10 text-center">
-                <p class="text-[10px] text-slate-600 font-mono">Softworks v2.0 // Build 2025</p>
+                <p class="text-[10px] text-slate-600 font-mono">Softworks v2.1 // Build 2025</p>
             </div>
         </div>
     </div>
@@ -243,10 +260,8 @@
         </div>
     </div>
 
-    <!-- AI CHAT WIDGET (Window Only, No Floating Button) -->
-    <!-- Z-Index 100 ensures it is ABOVE everything -->
+    <!-- AI CHAT WIDGET (Window Only) -->
     <div id="ai-widget-container" class="fixed bottom-6 right-28 z-[100] flex flex-col items-end gap-4 pointer-events-none">
-        
         <!-- Chat Window -->
         <div id="ai-chat-window" class="hidden w-[350px] h-[500px] glass-panel rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-cyan-500/30 animate-in origin-bottom-left pointer-events-auto bg-black">
             <!-- Header -->
@@ -256,7 +271,7 @@
                         <i data-lucide="bot" class="text-white w-5 h-5"></i>
                     </div>
                     <div>
-                        <div class="font-bold text-white text-sm">System AI</div>
+                        <div class="font-bold text-white text-sm">Gemini 3 Pro</div>
                         <div class="text-[10px] text-cyan-400 font-mono" id="ai-limit-counter">...</div>
                     </div>
                 </div>
