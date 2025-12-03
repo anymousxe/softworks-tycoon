@@ -95,17 +95,18 @@ const SHOP_ITEMS = [
     { id: 'neon', name: 'Neon Office Lights', cost: 5000, effect: 'Permanent Vibe Boost', type: 'permanent' }
 ];
 
-const REVIEW_TEXTS = {
-    good: ["Literally cracked. 🔥", "Best AI I've used.", "W release.", "Game changer fr.", "Take my money 💰"],
-    mid: ["It's mid but okay.", "Does the job i guess.", "Waiting for updates.", "Kinda buggy."],
-    bad: ["Bro what is this? 💀", "Refunded.", "Laggier than my grandma's PC.", "This ain't it chief."]
+// Fallback reviews only (API is primary now)
+const FALLBACK_REVIEWS = {
+    good: ["Literally cracked. 🔥", "Best AI I've used.", "W release."],
+    mid: ["It's mid but okay.", "Does the job i guess."],
+    bad: ["Bro what is this? 💀", "Refunded."]
 };
 
 // --- 4. AI SYSTEM ASSISTANT CONFIG ---
 const AI_CONFIG = {
-    msgLimit: 40,
-    storageKeyTimestamps: 'softworks_ai_timestamps_v3',
-    storageKeyHistory: 'softworks_ai_history_v3'
+    msgLimit: 20, // 20 Messages per window
+    storageKeyTimestamps: 'softworks_ai_timestamps_v4', // Version 4 for fresh start
+    storageKeyHistory: 'softworks_ai_history_v4'
 };
 
 // --- SYSTEM PROMPT ---
@@ -261,13 +262,14 @@ function startGame(id, data) {
     saveInterval = setInterval(saveGame, 5000);
 }
 
-// --- TUTORIAL SYSTEM ---
+// --- TUTORIAL SYSTEM (FIXED) ---
 const tutorialOverlay = document.getElementById('tutorial-overlay');
 const tutorialBox = document.getElementById('tutorial-box');
 const tutorialHighlight = document.getElementById('tutorial-highlight');
 const tutorialText = document.getElementById('tutorial-text');
 const btnNextTut = document.getElementById('btn-next-tutorial');
-const btnSkipTut = document.getElementById('btn-skip-tutorial');
+const btnTriggerSkip = document.getElementById('btn-trigger-skip');
+const skipModal = document.getElementById('skip-modal');
 
 function runTutorial(step) {
     if(step >= 99) {
@@ -276,43 +278,39 @@ function runTutorial(step) {
     }
 
     tutorialOverlay.classList.remove('hidden');
-    // Default style
     tutorialHighlight.style.opacity = '1';
     btnNextTut.style.display = 'block';
 
     if(step === 0) {
-        // Welcome
         positionHighlight(null);
         tutorialText.textContent = "Welcome, CEO. I am your onboard guidance system. Let's get your AI empire started. First, we need compute power.";
+        // IMPORTANT: Directly update state and re-run, no saving needed yet
         btnNextTut.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); };
     }
     else if(step === 1) {
-        // Point to Market
         const btn = document.getElementById('nav-market');
         positionHighlight(btn);
-        tutorialText.textContent = "Navigate to the MARKET to purchase your first GPU cluster.";
-        btnNextTut.style.display = 'none'; // Must click nav to proceed
-        // The nav click handler will check tutorial step
+        tutorialText.textContent = "Navigate to the MARKET tab to purchase your first GPU cluster.";
+        btnNextTut.style.display = 'none'; // Force click on nav
     }
     else if(step === 2) {
-        // Inside Market: Buy GTX
-        const btn = document.querySelector('#server-grid button'); // First button is usually GTX
-        if(btn) {
-            positionHighlight(btn);
-            tutorialText.textContent = "The 'Consumer GPU Cluster' is cheap but effective for starting out. Buy one now.";
-            btnNextTut.style.display = 'none';
-            // The buy handler will advance this
-        }
+        // Wait for render, then highlight
+        setTimeout(() => {
+            const btn = document.querySelector('#server-grid button'); // First button (GTX)
+            if(btn) {
+                positionHighlight(btn);
+                tutorialText.textContent = "The 'Consumer GPU Cluster' is cheap but effective for starting out. Buy one now.";
+                btnNextTut.style.display = 'none';
+            }
+        }, 300);
     }
     else if(step === 3) {
-        // Point to Create
         const btn = document.getElementById('nav-dev');
         positionHighlight(btn);
         tutorialText.textContent = "Hardware acquired. Now, navigate to the CREATE tab to start your first LLM.";
         btnNextTut.style.display = 'none';
     }
     else if(step === 4) {
-        // Done
         positionHighlight(null);
         tutorialText.textContent = "You're ready. Use the Sidebar to manage your empire, and click 'AI Help' if you need strategy advice. Good luck.";
         btnNextTut.textContent = "Finish";
@@ -338,12 +336,21 @@ function positionHighlight(element) {
     tutorialHighlight.style.animation = 'pulse-ring 2s infinite';
 }
 
-btnSkipTut.addEventListener('click', () => {
-    if(confirm("Skip the tutorial?")) {
-        gameState.tutorialStep = 99;
-        saveGame();
-        tutorialOverlay.classList.add('hidden');
-    }
+// Skip Logic
+btnTriggerSkip.addEventListener('click', () => {
+    skipModal.classList.remove('hidden');
+});
+
+document.getElementById('btn-cancel-skip').addEventListener('click', () => {
+    skipModal.classList.add('hidden');
+});
+
+document.getElementById('btn-confirm-skip').addEventListener('click', () => {
+    gameState.tutorialStep = 99;
+    saveGame();
+    tutorialOverlay.classList.add('hidden');
+    skipModal.classList.add('hidden');
+    showToast('Tutorial Skipped', 'info');
 });
 
 // --- SETTINGS LOGIC ---
@@ -373,7 +380,7 @@ function setupRealtimeListener(saveId) {
         .onSnapshot(doc => {
             if (doc.exists) {
                 const newData = doc.data();
-                // Merge carefully to avoid UI jumps
+                // Merge carefully
                 gameState = newData;
                 updateHUD();
                 
@@ -477,7 +484,9 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         p.hype = 100;
                         gameState.reputation += 10;
                         showToast(`🚀 ${p.name} Launched! Quality: ${p.quality}/100`, 'success');
-                        generateReview(p);
+                        
+                        // NEW: Generate Dynamic Review
+                        generateDynamicReview(p);
                     }
                 }
             }
@@ -498,7 +507,9 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                     gameState.cash += weeklyRev;
                     p.revenue += weeklyRev;
                 }
-                if(Math.random() > 0.95) generateReview(p);
+                
+                // Randomly generate extra reviews
+                if(Math.random() > 0.98) generateDynamicReview(p);
             }
         });
 
@@ -516,9 +527,56 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
     }, 400); 
 });
 
-function generateReview(product) {
+// --- DYNAMIC REVIEW GENERATION ---
+async function generateDynamicReview(product) {
+    const status = checkRateLimit(); // Check shared quota
+    
+    // If rate limited or no API key, use fallback
+    if (!status.allowed || typeof SECRETS === 'undefined' || !SECRETS.GEMINI_API_KEY) {
+        generateFallbackReview(product);
+        return;
+    }
+
+    const prompt = `Generate a very short (max 10 words) game review for an AI product named "${product.name}". 
+    Quality is ${product.quality}/100.
+    If Quality > 80: Enthusiastic, slang (cracked, fire).
+    If Quality 40-80: Meh, average.
+    If Quality < 40: Angry, hate it.
+    Format: "Review Text"`;
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${SECRETS.GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        });
+        const data = await response.json();
+        let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Interesting release.";
+        text = text.replace(/"/g, ''); // Clean quotes
+
+        // Add to reviews
+        const users = ['User', 'Anon', 'Dev', 'AI_Fan', 'TechBro'];
+        const user = users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random()*100);
+        
+        gameState.reviews.unshift({
+            product: product.name,
+            user: user,
+            rating: product.quality > 80 ? 5 : (product.quality < 40 ? 1 : 3),
+            text: text,
+            week: gameState.week
+        });
+        if(gameState.reviews.length > 20) gameState.reviews.pop();
+        recordMessage(); // Count against quota
+
+    } catch (e) {
+        console.error("AI Review Failed:", e);
+        generateFallbackReview(product);
+    }
+}
+
+function generateFallbackReview(product) {
     const sentiment = product.quality > 80 ? 'good' : (product.quality < 40 ? 'bad' : 'mid');
-    const texts = REVIEW_TEXTS[sentiment];
+    const texts = FALLBACK_REVIEWS[sentiment];
     const text = texts[Math.floor(Math.random() * texts.length)];
     const users = ['User', 'Anon', 'Dev', 'AI_Fan', 'TechBro'];
     const user = users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random()*100);
@@ -555,10 +613,15 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         }
         if(btn.id === 'btn-toggle-chat-sidebar') {
             toggleChat();
-            // Tutorial Step 4 Trigger
+            // Tutorial Step 4 Trigger (Finish)
             if(gameState.tutorialStep === 3) {
-               // Wait for window to open then finish tutorial
-               setTimeout(() => { gameState.tutorialStep = 4; runTutorial(4); }, 500);
+                // The nav to 'dev' was step 3, clicking AI help is step 4
+                // We actually need to fix logic here: 
+                // Step 0: Welcome -> Next
+                // Step 1: Nav Market -> Click
+                // Step 2: Buy GPU -> Click
+                // Step 3: Nav Dev -> Click (This happens in click handler below)
+                // Step 4: Finish -> Click AI Help
             }
             return;
         }
@@ -576,8 +639,8 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
             runTutorial(2);
         }
         if(btn.dataset.tab === 'dev' && gameState.tutorialStep === 3) {
-            // Wait, we skip to step 4 only when clicking AI help, let's adjust
-            // Actually let's make step 3 go to create, step 4 go to AI help.
+            gameState.tutorialStep = 4;
+            runTutorial(4);
         }
     });
 });
@@ -1008,10 +1071,10 @@ function checkRateLimit() {
     const now = Date.now();
     
     // Dynamic Window Logic:
-    // If user sent > 30 messages in last 15 mins (spamming), window is 25 mins.
+    // If user sent > 15 messages in last 15 mins (spamming), window is 25 mins.
     // Else window is 15 mins.
     const recentCount = stamps.filter(t => (now - t) < 15 * 60 * 1000).length;
-    const windowMinutes = recentCount > 30 ? 25 : 15; 
+    const windowMinutes = recentCount > 15 ? 25 : 15; 
     const windowMs = windowMinutes * 60 * 1000;
 
     // Filter stamps to only keep those within current window
@@ -1021,8 +1084,8 @@ function checkRateLimit() {
     localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps));
 
     return {
-        allowed: stamps.length < 40,
-        remaining: Math.max(0, 40 - stamps.length),
+        allowed: stamps.length < AI_CONFIG.msgLimit,
+        remaining: Math.max(0, AI_CONFIG.msgLimit - stamps.length),
         windowMinutes: windowMinutes
     };
 }
@@ -1030,7 +1093,7 @@ function checkRateLimit() {
 function updateLimitDisplay() {
     const status = checkRateLimit();
     if(limitLabel) {
-        limitLabel.textContent = `${status.remaining}/40 MSGS (${status.windowMinutes}m Window)`;
+        limitLabel.textContent = `${status.remaining}/${AI_CONFIG.msgLimit} MSGS (${status.windowMinutes}m Window)`;
         // Visual indicator if throttled
         limitLabel.className = status.remaining === 0 ? "text-[10px] text-red-500 font-mono animate-pulse" : "text-[10px] text-cyan-400 font-mono";
     }
@@ -1109,7 +1172,7 @@ async function askGemini(prompt) {
     const loadingDiv = document.createElement('div');
     loadingDiv.className = "text-xs text-slate-500 italic ml-2 animate-pulse";
     loadingDiv.id = "ai-loading";
-    loadingDiv.innerText = "Thinking...";
+    loadingDiv.innerText = "Analyzing...";
     chatMessages.appendChild(loadingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
