@@ -295,7 +295,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
         }
 
         // --- RIVAL AI SIMULATION ---
-        if(Math.random() > 0.85) { // 15% chance per week for a rival to drop
+        if(Math.random() > 0.85) { // 15% chance per week
             const rival = RIVALS[Math.floor(Math.random() * RIVALS.length)];
             const release = rival.releases[Math.floor(Math.random() * rival.releases.length)];
             showToast(`COMPETITOR ALERT: ${rival.name} released ${release}!`, 'error');
@@ -304,7 +304,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             gameState.products.forEach(p => {
                 if(p.released) {
                     p.hype = Math.max(0, p.hype - 10);
-                    p.quality = Math.max(0, p.quality - 2); // Your tech is getting old
+                    p.quality = Math.max(0, p.quality - 2); 
                 }
             });
         }
@@ -514,76 +514,44 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    if(tab === 'rivals') {
+    if(tab === 'lab') {
         content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">MARKET LEADERBOARD</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="rivals-grid"></div>
-        `;
-        const grid = document.getElementById('rivals-grid');
-        
-        // Add Player Card
-        const playerCard = document.createElement('div');
-        playerCard.className = 'glass-panel p-6 rounded-2xl border border-cyan-500/50 bg-cyan-900/10';
-        playerCard.innerHTML = `
-            <div class="flex items-center gap-4 mb-4">
-                <div class="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center font-bold text-black">YOU</div>
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">RESEARCH & HARDWARE</h2>
+            <div class="grid grid-cols-1 gap-8">
+                <!-- Server Room -->
                 <div>
-                    <h3 class="font-bold text-white">${gameState.companyName}</h3>
-                    <div class="text-xs text-cyan-400">Rising Star</div>
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="server" class="text-cyan-500"></i> SERVER ROOM</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>
+                </div>
+                <!-- Research -->
+                <div>
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="flask-conical" class="text-purple-500"></i> R&D LAB <span class="text-xs text-slate-500 ml-2">${Math.floor(gameState.researchPts)} PTS AVAILABLE</span></h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="research-grid"></div>
                 </div>
             </div>
-            <div class="text-2xl font-black text-white">${Math.floor(gameState.reputation)} REP</div>
         `;
-        grid.appendChild(playerCard);
-
-        RIVALS.forEach(r => {
-            const el = document.createElement('div');
-            el.className = 'glass-panel p-6 rounded-2xl';
-            el.innerHTML = `
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-slate-500">${r.name[0]}</div>
-                    <div>
-                        <h3 class="font-bold text-white ${r.color}">${r.name}</h3>
-                        <div class="text-xs text-slate-500">Market Giant</div>
-                    </div>
-                </div>
-                <div class="flex justify-between text-xs font-mono text-slate-400 mb-2">
-                    <span>Dominance</span>
-                    <span>${r.strength}%</span>
-                </div>
-                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                    <div class="h-full bg-white/20" style="width: ${r.strength}%"></div>
-                </div>
-            `;
-            grid.appendChild(el);
-        });
-    }
-
-    if(tab === 'server') {
-        content.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>`;
-        const grid = document.getElementById('server-grid');
+        
+        const serverGrid = document.getElementById('server-grid');
         HARDWARE.forEach(h => {
             const locked = h.reqTech && !gameState.unlockedTechs.includes(h.reqTech);
             const owned = gameState.hardware.find(x => x.typeId === h.id)?.count || 0;
             const el = document.createElement('div');
-            el.className = `p-6 border rounded-2xl transition-all ${locked ? 'border-slate-800 opacity-40 bg-slate-900/10' : 'border-slate-700 bg-slate-900/40 hover:border-blue-500/50'}`;
+            el.className = `glass-panel p-6 rounded-2xl transition-all ${locked ? 'opacity-50 bg-slate-900/20' : 'hover:border-cyan-500/50'}`;
             el.innerHTML = `<div class="text-white font-bold text-lg">${h.name}</div><div class="text-slate-500 text-xs mb-4">${h.compute} TF</div><div class="text-4xl font-black text-white mb-4">${owned}</div><button class="w-full border border-slate-600 text-white py-2 text-xs font-bold hover:bg-white hover:text-black rounded transition" ${locked ? 'disabled' : ''}>BUY $${h.cost.toLocaleString()}</button>`;
-            if(!locked) el.querySelector('button').onclick = () => { if(gameState.cash >= h.cost) { gameState.cash -= h.cost; const hw = gameState.hardware.find(x => x.typeId === h.id); if(hw) hw.count++; else gameState.hardware.push({typeId:h.id, count:1}); updateHUD(); renderTab('server'); showToast(`Purchased ${h.name}`, 'success'); } else showToast('Insufficient Funds', 'error'); };
-            grid.appendChild(el);
+            if(!locked) el.querySelector('button').onclick = () => { if(gameState.cash >= h.cost) { gameState.cash -= h.cost; const hw = gameState.hardware.find(x => x.typeId === h.id); if(hw) hw.count++; else gameState.hardware.push({typeId:h.id, count:1}); updateHUD(); renderTab('lab'); showToast(`Purchased ${h.name}`, 'success'); } else showToast('Insufficient Funds', 'error'); };
+            serverGrid.appendChild(el);
         });
-    }
 
-    if(tab === 'research') {
-        content.innerHTML = `<div class="flex items-center gap-6 mb-8"><h2 class="text-5xl font-black text-white tracking-tighter">R&D LAB</h2><div class="text-purple-400 font-mono font-bold">${Math.floor(gameState.researchPts)} PTS</div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="research-grid"></div>`;
-        const grid = document.getElementById('research-grid');
+        const researchGrid = document.getElementById('research-grid');
         RESEARCH.forEach(r => {
             const unlocked = gameState.unlockedTechs.includes(r.id);
             const el = document.createElement('div');
-            el.className = `p-8 border rounded-2xl transition-all ${unlocked ? 'border-purple-500 bg-purple-900/10' : 'border-slate-800 bg-slate-900/40 hover:border-purple-500/50'}`;
+            el.className = `glass-panel p-8 rounded-2xl transition-all ${unlocked ? 'border-purple-500 bg-purple-900/10' : 'hover:border-purple-500/50'}`;
             el.innerHTML = `<h3 class="font-bold text-white mb-2">${r.name}</h3><p class="text-xs text-slate-500 mb-4">${r.desc}</p>${!unlocked ? `<button class="w-full bg-slate-800 hover:bg-purple-600 text-white font-bold py-3 rounded-xl text-xs tracking-widest transition-colors">UNLOCK (${r.cost} PTS)</button>` : '<span class="text-purple-500 font-bold text-xs">ACQUIRED</span>'}`;
-            if(!unlocked) el.querySelector('button').onclick = () => { if(gameState.researchPts >= r.cost) { gameState.researchPts -= r.cost; gameState.unlockedTechs.push(r.id); updateHUD(); renderTab('research'); showToast('Researched!', 'success'); } else showToast('Need Points', 'error'); };
-            grid.appendChild(el);
+            if(!unlocked) el.querySelector('button').onclick = () => { if(gameState.researchPts >= r.cost) { gameState.researchPts -= r.cost; gameState.unlockedTechs.push(r.id); updateHUD(); renderTab('lab'); showToast('Researched!', 'success'); } else showToast('Need Points', 'error'); };
+            researchGrid.appendChild(el);
         });
+        lucide.createIcons();
     }
 
     if(tab === 'dev') {
@@ -612,22 +580,19 @@ function renderTab(tab) {
         let selectedType = null, openSource = false, injectAmount = 0;
         const typeContainer = document.getElementById('dev-types');
         
-        // Setup Slider Logic
         const slider = document.getElementById('research-inject');
         const valLabel = document.getElementById('inject-val');
         const boostLabel = document.getElementById('quality-boost');
-        
         slider.oninput = (e) => {
             injectAmount = parseInt(e.target.value);
             valLabel.textContent = `${injectAmount} PTS`;
-            // 100 Points = 1 Quality
             boostLabel.textContent = Math.floor(injectAmount / 100);
         };
 
         PRODUCTS.forEach(p => {
             const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
             const btn = document.createElement('div');
-            btn.className = `p-6 border cursor-pointer rounded-2xl transition-all ${locked ? 'border-slate-800 opacity-40' : 'border-slate-700 hover:border-cyan-500'}`;
+            btn.className = `glass-panel p-6 cursor-pointer rounded-2xl transition-all ${locked ? 'opacity-40' : 'hover:border-cyan-500'}`;
             btn.innerHTML = `<div class="font-bold text-white text-lg">${p.name}</div><div class="text-xs text-slate-500">$${p.cost.toLocaleString()} | ${p.compute} TF</div>`;
             if(!locked) btn.onclick = () => { document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500')); btn.classList.add('border-cyan-500'); selectedType = p; };
             typeContainer.appendChild(btn);
@@ -640,30 +605,35 @@ function renderTab(tab) {
             if(getCompute() < selectedType.compute) return showToast('Need Compute', 'error');
             
             gameState.cash -= selectedType.cost;
-            gameState.researchPts -= injectAmount; // Deduct injected points
+            gameState.researchPts -= injectAmount;
             
             gameState.products.push({ 
-                id: Date.now().toString(), 
-                name, 
-                type: selectedType.id, 
-                version: 1.0, 
-                quality: 0, 
-                revenue: 0, 
-                hype: 0, 
-                released: false, 
-                isUpdating: false, 
-                isOpenSource: openSource, 
-                weeksLeft: selectedType.time, 
-                researchBonus: Math.floor(injectAmount / 100), // Save bonus for release
-                contracts: [] 
+                id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 0, revenue: 0, hype: 0, 
+                released: false, isUpdating: false, isOpenSource: openSource, weeksLeft: selectedType.time, 
+                researchBonus: Math.floor(injectAmount / 100), contracts: [] 
             });
             updateHUD(); showToast('Started Dev', 'success'); renderTab('dash');
         };
     }
 
-    if(tab === 'market') {
-        content.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="market-grid"></div>`;
-        const grid = document.getElementById('market-grid');
+    if(tab === 'biz') {
+        content.innerHTML = `
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">BUSINESS GROWTH</h2>
+            <div class="grid grid-cols-1 gap-8">
+                <!-- B2B -->
+                <div>
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="briefcase" class="text-green-500"></i> CONTRACTS</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="market-grid"></div>
+                </div>
+                <!-- Ads -->
+                <div>
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-yellow-500"></i> CAMPAIGNS</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="ads-grid"></div>
+                </div>
+            </div>
+        `;
+        
+        const marketGrid = document.getElementById('market-grid');
         COMPANIES.forEach(c => {
             const el = document.createElement('div');
             el.className = 'glass-panel p-6 rounded-2xl';
@@ -679,20 +649,14 @@ function renderTab(tab) {
                 btn.onclick = () => {
                     if(active) p.contracts = p.contracts.filter(x => x !== c.name);
                     else { p.contracts.push(c.name); showToast('Contract Signed!', 'success'); }
-                    renderTab('market');
+                    renderTab('biz');
                 };
                 pList.appendChild(btn);
             });
-            grid.appendChild(el);
+            marketGrid.appendChild(el);
         });
-    }
 
-    if(tab === 'ads') {
-        content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">ADVERTISING MANAGER</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="ads-grid"></div>
-        `;
-        const grid = document.getElementById('ads-grid');
+        const adsGrid = document.getElementById('ads-grid');
         AD_CAMPAIGNS.forEach(ad => {
             const el = document.createElement('div');
             el.className = 'glass-panel p-6 rounded-2xl hover:border-yellow-500/50 transition-colors';
@@ -705,32 +669,13 @@ function renderTab(tab) {
             el.querySelector('button').onclick = () => {
                 if(gameState.cash >= ad.cost) {
                     gameState.cash -= ad.cost;
-                    // Boost hype of all released products
                     gameState.products.forEach(p => { if(p.released) p.hype = Math.min(100, p.hype + ad.hype); });
-                    updateHUD();
-                    showToast('Campaign Launched! 📈', 'success');
+                    updateHUD(); showToast('Campaign Launched! 📈', 'success');
                 } else showToast('Insufficient Funds', 'error');
             };
-            grid.appendChild(el);
+            adsGrid.appendChild(el);
         });
         lucide.createIcons();
-    }
-
-    if(tab === 'reviews') {
-        content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">PUBLIC SENTIMENT</h2>
-            ${!gameState.reviews || gameState.reviews.length === 0 ? '<div class="text-slate-500 italic">No reviews yet.</div>' : '<div class="space-y-4" id="reviews-list"></div>'}
-        `;
-        if(gameState.reviews) {
-            const list = document.getElementById('reviews-list');
-            gameState.reviews.forEach(r => {
-                const el = document.createElement('div');
-                el.className = 'glass-panel p-4 rounded-xl flex gap-4';
-                const color = r.rating >= 4 ? 'bg-green-500' : (r.rating <= 2 ? 'bg-red-500' : 'bg-yellow-500');
-                el.innerHTML = `<div class="w-2 rounded-full ${color} shrink-0"></div><div><div class="flex items-center gap-2 mb-1"><span class="font-bold text-white text-sm">@${r.user}</span><span class="text-xs text-slate-500">on ${r.product}</span></div><p class="text-slate-300 text-sm">"${r.text}"</p></div>`;
-                list.appendChild(el);
-            });
-        }
     }
 
     if(tab === 'shop') {
@@ -742,8 +687,6 @@ function renderTab(tab) {
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
         `;
         const grid = document.getElementById('shop-grid');
-        
-        // Render Dynamic Stock
         if(gameState.shopStock) {
             gameState.shopStock.forEach(item => {
                 const el = document.createElement('div');
@@ -754,10 +697,7 @@ function renderTab(tab) {
                         gameState.cash -= item.cost;
                         if(item.type === 'research') gameState.researchPts += item.amount;
                         if(item.type === 'cosmetic') showToast('Cosmetic Purchased!', 'success');
-                        // Add buff logic here if needed
-                        updateHUD();
-                        showToast('Purchased!', 'success');
-                        // Remove from stock to simulate single stock
+                        updateHUD(); showToast('Purchased!', 'success');
                         gameState.shopStock = gameState.shopStock.filter(x => x !== item);
                         renderTab('shop');
                     } else showToast('Insufficient Funds!', 'error');
