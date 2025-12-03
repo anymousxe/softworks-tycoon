@@ -24,9 +24,12 @@ const APP_ID = 'softworks-tycoon';
 // --- DATA POOLS ---
 const HARDWARE = [
     { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 2, upkeep: 50 },
+    { id: 'rtx_4090_farm', name: 'RTX 4090 Farm', cost: 5500, compute: 6, upkeep: 120 }, // NEW
     { id: 'a100', name: 'A100 Rack', cost: 8000, compute: 8, upkeep: 150 },
+    { id: 'v100_legacy', name: 'V100 Legacy Rack', cost: 12000, compute: 12, upkeep: 200 }, // NEW
     { id: 'h100', name: 'H100 Cluster', cost: 15000, compute: 15, upkeep: 250 },
     { id: 'h200', name: 'Nvidia H200', cost: 35000, compute: 40, upkeep: 500, reqTech: 'h200_unlock' },
+    { id: 'gh200_super', name: 'GH200 Superchip', cost: 48000, compute: 60, upkeep: 650, reqTech: 'blackwell_arch' }, // NEW
     { id: 'b200', name: 'Blackwell B200', cost: 60000, compute: 75, upkeep: 800, reqTech: 'blackwell_arch' },
     { id: 'dojo', name: 'Dojo Supercomputer', cost: 120000, compute: 150, upkeep: 1200 },
     { id: 'tpu_pod', name: 'Google TPU Pod', cost: 250000, compute: 350, upkeep: 2500, reqTech: 'tpu_opt' },
@@ -38,7 +41,7 @@ const HARDWARE = [
 const RESEARCH = [
     { id: 'opt_algos', name: 'Optimized Algos', cost: 50, desc: '-1 Week Dev Time' },
     { id: 'h200_unlock', name: 'H200 Hardware', cost: 150, desc: 'Unlock H200 Chips' },
-    { id: 'blackwell_arch', name: 'Blackwell Arch', cost: 300, desc: 'Unlock B200 Chips' },
+    { id: 'blackwell_arch', name: 'Blackwell Arch', cost: 300, desc: 'Unlock B200/GH200' },
     { id: 'tpu_opt', name: 'TPU Optimization', cost: 600, desc: 'Unlock TPU Pods' },
     { id: 'agi_theory', name: 'AGI Theory', cost: 1000, desc: 'Unlock Conscious AI Product' },
     { id: 'wafer_scale', name: 'Wafer Scale', cost: 2000, desc: 'Unlock Cerebras WSE' },
@@ -100,30 +103,30 @@ const REVIEW_TEXTS = {
 
 // --- 4. AI SYSTEM ASSISTANT CONFIG ---
 const AI_CONFIG = {
-    dailyLimit: 40,
-    storageKeyUsage: 'softworks_ai_usage_v2', // v2 to reset old buggy data
-    storageKeyHistory: 'softworks_ai_history_v2'
+    msgLimit: 40,
+    storageKeyTimestamps: 'softworks_ai_timestamps_v3',
+    storageKeyHistory: 'softworks_ai_history_v3'
 };
 
 // --- SYSTEM PROMPT ---
 function getSystemPrompt(context) {
     return `
-    You are 'System AI', a helpful, witty, Gen-Z tech assistant inside the game 'Softworks Tycoon'. 
+    You are 'Gemini 3 Pro', an advanced, strategic AI advisor embedded in the game 'Softworks Tycoon'.
     
-    CURRENT GAME STATE:
-    - Company: ${context.company}
+    CURRENT STATUS:
     - Funds: $${context.funds.toLocaleString()}
     - Reputation: ${context.reputation}
-    - Compute Power: ${context.compute} TF
-    - Live Products: ${context.products.join(', ') || "None"}
+    - Compute: ${context.compute} TF
+    - Products: ${context.products.join(', ') || "None"}
     - Unlocked Tech: ${context.unlockedTech.join(', ') || "None"}
-    - Top Rivals: ${context.rivals.join(', ')}
-
+    
     USER QUERY: "${context.userQuery}"
     
-    ROLE: Help the user with product names, strategy, or lore.
-    TONE: Cyberpunk, tech-savvy, slightly slang-heavy (use words like 'cracked', 'bet', 'mid', 'meta').
-    CONSTRAINT: Keep answers short (under 50 words).
+    INSTRUCTIONS:
+    1. Act like a highly intelligent, slightly futuristic AI. Use "Thinking..." or "Analyzing..." if needed.
+    2. Be helpful but strategic. Don't just give answers, give *plans*.
+    3. Use Gen-Z/Tech slang (e.g., "cracked", "meta", "scaling", "moat").
+    4. Keep it concise (under 50 words).
     `;
 }
 
@@ -220,11 +223,12 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         week: 1, year: 2025,
         researchPts: isSandbox ? 5000 : 0,
         reputation: 0,
-        hardware: [{ typeId: 'gtx_cluster', count: 1 }],
+        hardware: [], // Start with nothing to force tutorial usage
         products: [],
         reviews: [],
         unlockedTechs: [],
-        purchasedItems: [], // Track permanent shop items
+        purchasedItems: [], 
+        tutorialStep: 0, // 0 = Not started, 99 = Done
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').add(newSave);
@@ -239,45 +243,147 @@ function startGame(id, data) {
     gameState = data;
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
+    if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; // Assume old saves are experts
     
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
-    // START REALTIME LISTENER
     setupRealtimeListener(id);
 
     updateHUD();
     renderTab('dash');
     lucide.createIcons();
     
+    // Check Tutorial on Start
+    setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
+
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(saveGame, 5000);
 }
 
+// --- TUTORIAL SYSTEM ---
+const tutorialOverlay = document.getElementById('tutorial-overlay');
+const tutorialBox = document.getElementById('tutorial-box');
+const tutorialHighlight = document.getElementById('tutorial-highlight');
+const tutorialText = document.getElementById('tutorial-text');
+const btnNextTut = document.getElementById('btn-next-tutorial');
+const btnSkipTut = document.getElementById('btn-skip-tutorial');
+
+function runTutorial(step) {
+    if(step >= 99) {
+        tutorialOverlay.classList.add('hidden');
+        return;
+    }
+
+    tutorialOverlay.classList.remove('hidden');
+    // Default style
+    tutorialHighlight.style.opacity = '1';
+    btnNextTut.style.display = 'block';
+
+    if(step === 0) {
+        // Welcome
+        positionHighlight(null);
+        tutorialText.textContent = "Welcome, CEO. I am your onboard guidance system. Let's get your AI empire started. First, we need compute power.";
+        btnNextTut.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); };
+    }
+    else if(step === 1) {
+        // Point to Market
+        const btn = document.getElementById('nav-market');
+        positionHighlight(btn);
+        tutorialText.textContent = "Navigate to the MARKET to purchase your first GPU cluster.";
+        btnNextTut.style.display = 'none'; // Must click nav to proceed
+        // The nav click handler will check tutorial step
+    }
+    else if(step === 2) {
+        // Inside Market: Buy GTX
+        const btn = document.querySelector('#server-grid button'); // First button is usually GTX
+        if(btn) {
+            positionHighlight(btn);
+            tutorialText.textContent = "The 'Consumer GPU Cluster' is cheap but effective for starting out. Buy one now.";
+            btnNextTut.style.display = 'none';
+            // The buy handler will advance this
+        }
+    }
+    else if(step === 3) {
+        // Point to Create
+        const btn = document.getElementById('nav-dev');
+        positionHighlight(btn);
+        tutorialText.textContent = "Hardware acquired. Now, navigate to the CREATE tab to start your first LLM.";
+        btnNextTut.style.display = 'none';
+    }
+    else if(step === 4) {
+        // Done
+        positionHighlight(null);
+        tutorialText.textContent = "You're ready. Use the Sidebar to manage your empire, and click 'AI Help' if you need strategy advice. Good luck.";
+        btnNextTut.textContent = "Finish";
+        btnNextTut.onclick = () => { 
+            gameState.tutorialStep = 99; 
+            saveGame(); 
+            tutorialOverlay.classList.add('hidden'); 
+        };
+    }
+}
+
+function positionHighlight(element) {
+    if(!element) {
+        tutorialHighlight.style.opacity = '0';
+        return;
+    }
+    const rect = element.getBoundingClientRect();
+    tutorialHighlight.style.opacity = '1';
+    tutorialHighlight.style.top = `${rect.top - 5}px`;
+    tutorialHighlight.style.left = `${rect.left - 5}px`;
+    tutorialHighlight.style.width = `${rect.width + 10}px`;
+    tutorialHighlight.style.height = `${rect.height + 10}px`;
+    tutorialHighlight.style.animation = 'pulse-ring 2s infinite';
+}
+
+btnSkipTut.addEventListener('click', () => {
+    if(confirm("Skip the tutorial?")) {
+        gameState.tutorialStep = 99;
+        saveGame();
+        tutorialOverlay.classList.add('hidden');
+    }
+});
+
+// --- SETTINGS LOGIC ---
+const settingsModal = document.getElementById('settings-modal');
+document.getElementById('btn-settings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
+document.getElementById('btn-close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+document.getElementById('btn-restart-tutorial').addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+    gameState.tutorialStep = 0;
+    saveGame();
+    runTutorial(0);
+});
+
+document.getElementById('btn-wipe-ai').addEventListener('click', () => {
+    localStorage.removeItem(AI_CONFIG.storageKeyHistory);
+    localStorage.removeItem(AI_CONFIG.storageKeyTimestamps);
+    alert("AI Memory Wiped.");
+});
+
 // --- REAL-TIME SAVE LISTENER ---
 function setupRealtimeListener(saveId) {
-    if (realtimeUnsubscribe) {
-        realtimeUnsubscribe();
-    }
+    if (realtimeUnsubscribe) realtimeUnsubscribe();
 
     realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
         .doc(saveId)
         .onSnapshot(doc => {
             if (doc.exists) {
-                gameState = doc.data();
+                const newData = doc.data();
+                // Merge carefully to avoid UI jumps
+                gameState = newData;
                 updateHUD();
                 
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
+                // Don't re-render if typing
                 if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) {
                     renderTab(activeTab);
                 }
-
-                if (gameState.cash < 0) {
-                    document.getElementById('hud-cash').classList.add('animate-pulse');
-                }
+                if (gameState.cash < 0) document.getElementById('hud-cash').classList.add('animate-pulse');
             }
-        }, error => {
-            console.error("Realtime update error:", error);
         });
 }
 
@@ -449,11 +555,30 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         }
         if(btn.id === 'btn-toggle-chat-sidebar') {
             toggleChat();
+            // Tutorial Step 4 Trigger
+            if(gameState.tutorialStep === 3) {
+               // Wait for window to open then finish tutorial
+               setTimeout(() => { gameState.tutorialStep = 4; runTutorial(4); }, 500);
+            }
             return;
         }
+        if(btn.id === 'btn-settings') {
+            return; // Handled by settings click listener
+        }
+        
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         renderTab(btn.dataset.tab);
+
+        // Tutorial Logic for Tab Switches
+        if(btn.dataset.tab === 'market' && gameState.tutorialStep === 1) {
+            gameState.tutorialStep = 2; 
+            runTutorial(2);
+        }
+        if(btn.dataset.tab === 'dev' && gameState.tutorialStep === 3) {
+            // Wait, we skip to step 4 only when clicking AI help, let's adjust
+            // Actually let's make step 3 go to create, step 4 go to AI help.
+        }
     });
 });
 
@@ -602,7 +727,25 @@ function renderTab(tab) {
             const el = document.createElement('div');
             el.className = `glass-panel p-6 rounded-2xl transition-all ${locked ? 'opacity-50 bg-slate-900/20' : 'hover:border-cyan-500/50'}`;
             el.innerHTML = `<div class="text-white font-bold text-lg mb-1">${h.name}</div><div class="text-slate-500 text-xs mb-6 font-mono">${h.compute} TF / $${h.upkeep} wk</div><div class="text-4xl font-black text-white mb-6">${owned}</div><button class="w-full border border-slate-600 text-white py-3 text-[10px] tracking-widest font-bold hover:bg-white hover:text-black rounded-xl uppercase transition-colors" ${locked ? 'disabled' : ''}>BUY $${h.cost.toLocaleString()}</button>`;
-            if(!locked) el.querySelector('button').onclick = () => { if(gameState.cash >= h.cost) { gameState.cash -= h.cost; const hw = gameState.hardware.find(x => x.typeId === h.id); if(hw) hw.count++; else gameState.hardware.push({typeId:h.id, count:1}); updateHUD(); renderTab('market'); showToast(`Purchased ${h.name}`, 'success'); } else showToast('Insufficient Funds', 'error'); };
+            
+            if(!locked) {
+                el.querySelector('button').onclick = () => { 
+                    if(gameState.cash >= h.cost) { 
+                        gameState.cash -= h.cost; 
+                        const hw = gameState.hardware.find(x => x.typeId === h.id); 
+                        if(hw) hw.count++; else gameState.hardware.push({typeId:h.id, count:1}); 
+                        updateHUD(); 
+                        renderTab('market'); 
+                        showToast(`Purchased ${h.name}`, 'success'); 
+                        
+                        // Tutorial trigger
+                        if(gameState.tutorialStep === 2 && h.id === 'gtx_cluster') {
+                            gameState.tutorialStep = 3;
+                            runTutorial(3);
+                        }
+                    } else showToast('Insufficient Funds', 'error'); 
+                };
+            }
             grid.appendChild(el);
         });
     }
@@ -846,30 +989,60 @@ function toggleChat() {
 
 if(chatCloseBtn) chatCloseBtn.addEventListener('click', toggleChat);
 
-// Usage Persistence
-function getUsageData() {
-    const today = new Date().toDateString();
-    const data = JSON.parse(localStorage.getItem(AI_CONFIG.storageKeyUsage)) || { date: today, count: 0 };
-    if (data.date !== today) return { date: today, count: 0 }; // Reset for new day
-    return data;
+// --- DYNAMIC RATE LIMIT LOGIC ---
+// Timestamps are stored as an array of epoch numbers [12312312, 12312323, ...]
+function getTimestamps() {
+    const data = localStorage.getItem(AI_CONFIG.storageKeyTimestamps);
+    return data ? JSON.parse(data) : [];
 }
 
-function incrementUsage() {
-    const data = getUsageData();
-    data.count++;
-    localStorage.setItem(AI_CONFIG.storageKeyUsage, JSON.stringify(data));
+function recordMessage() {
+    const stamps = getTimestamps();
+    stamps.push(Date.now());
+    localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps));
     updateLimitDisplay();
 }
 
-function updateLimitDisplay() {
-    const data = getUsageData();
-    const remaining = Math.max(0, AI_CONFIG.dailyLimit - data.count);
-    if(limitLabel) limitLabel.textContent = `${remaining}/${AI_CONFIG.dailyLimit} MSGS LEFT`;
+function checkRateLimit() {
+    let stamps = getTimestamps();
+    const now = Date.now();
     
-    if (remaining <= 0 && chatInput) {
-        chatInput.placeholder = "Daily limit reached. Refresh tomorrow.";
+    // Dynamic Window Logic:
+    // If user sent > 30 messages in last 15 mins (spamming), window is 25 mins.
+    // Else window is 15 mins.
+    const recentCount = stamps.filter(t => (now - t) < 15 * 60 * 1000).length;
+    const windowMinutes = recentCount > 30 ? 25 : 15; 
+    const windowMs = windowMinutes * 60 * 1000;
+
+    // Filter stamps to only keep those within current window
+    stamps = stamps.filter(t => (now - t) < windowMs);
+    
+    // Save cleaned stamps back to storage
+    localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps));
+
+    return {
+        allowed: stamps.length < 40,
+        remaining: Math.max(0, 40 - stamps.length),
+        windowMinutes: windowMinutes
+    };
+}
+
+function updateLimitDisplay() {
+    const status = checkRateLimit();
+    if(limitLabel) {
+        limitLabel.textContent = `${status.remaining}/40 MSGS (${status.windowMinutes}m Window)`;
+        // Visual indicator if throttled
+        limitLabel.className = status.remaining === 0 ? "text-[10px] text-red-500 font-mono animate-pulse" : "text-[10px] text-cyan-400 font-mono";
+    }
+    
+    if (status.remaining <= 0 && chatInput) {
+        chatInput.placeholder = `Cooldown active (${status.windowMinutes}m)...`;
         chatInput.disabled = true;
         chatForm.querySelector('button').disabled = true;
+    } else if (chatInput) {
+        chatInput.placeholder = "Ask System AI...";
+        chatInput.disabled = false;
+        chatForm.querySelector('button').disabled = false;
     }
 }
 
@@ -910,9 +1083,9 @@ function appendMessage(role, text, save = true) {
 
 // AI Interaction
 async function askGemini(prompt) {
-    const usage = getUsageData();
-    if (usage.count >= AI_CONFIG.dailyLimit) {
-        appendMessage('system', "❌ <b>System Alert:</b> Daily neural link quota exceeded. Cooldown active until 00:00 Local Time.", false);
+    const status = checkRateLimit();
+    if (!status.allowed) {
+        appendMessage('system', `❌ <b>System Alert:</b> Neural link overheated. Cooldown active for ${status.windowMinutes} minutes.`, false);
         return;
     }
 
@@ -936,7 +1109,7 @@ async function askGemini(prompt) {
     const loadingDiv = document.createElement('div');
     loadingDiv.className = "text-xs text-slate-500 italic ml-2 animate-pulse";
     loadingDiv.id = "ai-loading";
-    loadingDiv.innerText = "Computing...";
+    loadingDiv.innerText = "Thinking...";
     chatMessages.appendChild(loadingDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
@@ -965,7 +1138,7 @@ async function askGemini(prompt) {
         } else {
             const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "System Error: No response data.";
             appendMessage('system', aiText);
-            incrementUsage(); 
+            recordMessage(); // Only record successful hits
         }
 
     } catch (e) {
@@ -988,6 +1161,8 @@ if(chatForm) {
 }
 
 // Initial Load
+// updateLimitDisplay is called inside loadChatHistory effectively via checkRateLimit check
+setInterval(updateLimitDisplay, 60000); // Check limit every minute to refresh UI
 updateLimitDisplay();
 loadChatHistory();
 
