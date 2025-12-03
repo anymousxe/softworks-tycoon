@@ -25,7 +25,8 @@ body.theme-light .text-slate-500 { color: #64748b; }
 body.theme-light .text-white { color: #0f172a; }
 body.theme-light .border-slate-700 { border-color: #cbd5e1; }
 body.theme-light .border-slate-800 { border-color: #e2e8f0; }
-body.theme-light .bg-slate-900\/50 { background-color: rgba(255, 255, 255, 0.5); }
+body.theme-light .bg-slate-900 { background-color: rgba(255, 255, 255, 0.5); }
+body.theme-light .bg-black { background-color: #f8fafc; }
 body.theme-light .nav-btn:hover { background-color: rgba(0, 0, 0, 0.05); color: #000; }
 
 /* 2. Hacker Mode (Premium) */
@@ -46,7 +47,7 @@ body.theme-hacker .glass-panel {
 body.theme-hacker .text-white { color: #00ff00; }
 body.theme-hacker .text-slate-500 { color: #005500; }
 body.theme-hacker .text-slate-400 { color: #004400; }
-body.theme-hacker .bg-slate-900\/50 { background-color: #001100; border: 1px solid #00ff00; }
+body.theme-hacker .bg-slate-900 { background-color: #001100; border: 1px solid #00ff00; }
 body.theme-hacker button {
     background: #000;
     border: 1px solid #00ff00;
