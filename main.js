@@ -104,8 +104,8 @@ const FALLBACK_REVIEWS = {
 
 // --- 4. AI SYSTEM ASSISTANT CONFIG ---
 const AI_CONFIG = {
-    msgLimit: 20, // 20 Messages per window
-    windowMinutes: 20, // 20 Minute sliding window
+    msgLimit: 40, // 40 Messages per window (BUFFED)
+    windowMinutes: 5, // 5 Minute sliding window (BUFFED)
     storageKeyTimestamps: 'softworks_ai_timestamps_v5', 
     // Chat history is now stored in DB, not localStorage
 };
@@ -268,9 +268,20 @@ function startGame(id, data) {
     // Check Tutorial on Start
     setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
 
+    // CHANGELOG CHECK (NEW LOGIC)
+    if (!localStorage.getItem('patch_notes_v2.0_seen')) {
+        document.getElementById('changelog-modal').classList.remove('hidden');
+    }
+
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(saveGame, 5000);
 }
+
+// CHANGELOG CLOSE BUTTON
+document.getElementById('btn-close-changelog').addEventListener('click', () => {
+    document.getElementById('changelog-modal').classList.add('hidden');
+    localStorage.setItem('patch_notes_v2.0_seen', 'true');
+});
 
 // --- TUTORIAL SYSTEM ---
 const tutorialOverlay = document.getElementById('tutorial-overlay');
@@ -1085,9 +1096,9 @@ function checkRateLimit() {
     
     // Dynamic Window Logic:
     // If user sent > 15 messages in last 15 mins (spamming), window is 25 mins.
-    // Else window is 20 mins (updated per user request).
+    // Else window is 5 mins (updated per user request).
     const recentCount = stamps.filter(t => (now - t) < 15 * 60 * 1000).length;
-    const windowMinutes = recentCount > 15 ? 25 : 20; 
+    const windowMinutes = recentCount > 25 ? 25 : AI_CONFIG.windowMinutes; 
     const windowMs = windowMinutes * 60 * 1000;
 
     // Filter stamps to only keep those within current window
