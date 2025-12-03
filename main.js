@@ -86,6 +86,19 @@ const INFLUENCERS = [
     { id: 'hacker_news', name: 'Hacker News', cost: 5000, impact: 5, type: 'Post' }
 ];
 
+const SHOP_ITEMS = [
+    { id: 'research_boost_s', name: 'Data Set (Small)', cost: 5000, effect: 'Research +100', type: 'research', amount: 100 },
+    { id: 'research_boost_l', name: 'Data Set (Large)', cost: 20000, effect: 'Research +500', type: 'research', amount: 500 },
+    { id: 'consultant', name: 'AI Consultant', cost: 10000, effect: 'Dev Speed Boost (1wk)', type: 'buff', duration: 1 },
+    { id: 'coffee', name: 'Espresso Machine', cost: 2000, effect: 'Morale +10', type: 'cosmetic' }
+];
+
+const REVIEW_TEXTS = {
+    good: ["Literally cracked. 🔥", "Best AI I've used.", "W release.", "Game changer fr.", "Take my money 💰"],
+    mid: ["It's mid but okay.", "Does the job i guess.", "Waiting for updates.", "Kinda buggy."],
+    bad: ["Bro what is this? 💀", "Refunded.", "Laggier than my grandma's PC.", "This ain't it chief."]
+};
+
 // --- 2. AUTH & SCREEN MANAGEMENT ---
 
 auth.onAuthStateChanged(user => {
@@ -115,6 +128,12 @@ document.getElementById('btn-login-google').addEventListener('click', () => {
 
 document.getElementById('btn-login-guest').addEventListener('click', () => {
     auth.signInAnonymously().catch(e => alert(e.message));
+});
+
+document.getElementById('btn-logout').addEventListener('click', () => {
+    auth.signOut().then(() => {
+        location.reload();
+    });
 });
 
 // --- 3. SAVE SYSTEM ---
@@ -197,6 +216,7 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         reputation: 0,
         hardware: [{ typeId: 'gtx_cluster', count: 1 }],
         products: [],
+        reviews: [], // New reviews array
         unlockedTechs: [],
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -219,6 +239,7 @@ document.getElementById('btn-cancel-create').addEventListener('click', () => {
 function startGame(id, data) {
     activeSaveId = id;
     gameState = data;
+    if(!gameState.reviews) gameState.reviews = []; // Backwards compatibility
     
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -302,6 +323,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
         const passiveResearch = Math.floor(gameState.reputation / 5) + Math.floor(getCompute() * 0.05) + 5;
         gameState.researchPts += passiveResearch;
 
+        // Process Products
         gameState.products.forEach(p => {
             if((!p.released || p.isUpdating) && p.weeksLeft > 0) {
                 p.weeksLeft--;
@@ -321,17 +343,20 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         p.hype = 100;
                         gameState.reputation += 10;
                         showToast(`🚀 ${p.name} Launched!`, 'success');
+                        generateReview(p);
                     }
                 }
             }
 
             if(p.released && !p.isUpdating) {
                 let weeklyRev = 0;
+                // B2B Revenue
                 p.contracts.forEach(cName => {
                     const comp = COMPANIES.find(c => c.name === cName);
                     if(comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
                 });
                 
+                // Hype Decay
                 p.hype = Math.max(0, p.hype - 2);
 
                 if(p.isOpenSource) {
@@ -340,8 +365,20 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                     gameState.cash += weeklyRev;
                     p.revenue += weeklyRev;
                 }
+
+                // Random Review Chance
+                if(Math.random() > 0.95) generateReview(p);
             }
         });
+
+        // Market Flux (Simulate economy changes)
+        if(gameState.week % 4 === 0) {
+           // Every 4 weeks, budgets shift slightly
+           COMPANIES.forEach(c => {
+               const shift = Math.floor(Math.random() * 200) - 100;
+               c.budget = Math.max(500, c.budget + shift);
+           });
+        }
 
         updateHUD();
         const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
@@ -352,6 +389,25 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
         lucide.createIcons();
     }, 400); 
 });
+
+function generateReview(product) {
+    const sentiment = product.quality > 80 ? 'good' : (product.quality < 40 ? 'bad' : 'mid');
+    const texts = REVIEW_TEXTS[sentiment];
+    const text = texts[Math.floor(Math.random() * texts.length)];
+    const users = ['User', 'Anon', 'Dev', 'AI_Fan', 'TechBro'];
+    const user = users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random()*100);
+    
+    gameState.reviews.unshift({
+        product: product.name,
+        user: user,
+        rating: sentiment === 'good' ? 5 : (sentiment === 'mid' ? 3 : 1),
+        text: text,
+        week: gameState.week
+    });
+    
+    // Keep list clean
+    if(gameState.reviews.length > 20) gameState.reviews.pop();
+}
 
 // --- UI RENDERING ---
 
@@ -731,6 +787,86 @@ function renderTab(tab) {
                     updateHUD();
                     renderTab('pr');
                     showToast(`Sponsored video with ${inf.name}!`, 'success');
+                } else showToast('Insufficient Funds!', 'error');
+            };
+            grid.appendChild(el);
+        });
+    }
+
+    // REVIEWS TAB
+    if(tab === 'reviews') {
+        content.innerHTML = `
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">PUBLIC SENTIMENT</h2>
+            ${!gameState.reviews || gameState.reviews.length === 0 ? 
+                '<div class="text-slate-500 italic">No reviews yet. Release products to get feedback!</div>' : 
+                '<div class="space-y-4" id="reviews-list"></div>'}
+        `;
+        
+        if(gameState.reviews) {
+            const list = document.getElementById('reviews-list');
+            gameState.reviews.forEach(r => {
+                const el = document.createElement('div');
+                el.className = 'glass-panel p-4 rounded-xl flex gap-4';
+                const color = r.rating >= 4 ? 'bg-green-500' : (r.rating <= 2 ? 'bg-red-500' : 'bg-yellow-500');
+                el.innerHTML = `
+                    <div class="w-2 rounded-full ${color}"></div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-bold text-white text-sm">@${r.user}</span>
+                            <span class="text-xs text-slate-500">on ${r.product}</span>
+                        </div>
+                        <p class="text-slate-300 text-sm">"${r.text}"</p>
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        }
+    }
+
+    // SHOP TAB
+    if(tab === 'shop') {
+        content.innerHTML = `
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">CORPORATE ASSETS</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
+        `;
+        const grid = document.getElementById('shop-grid');
+        
+        // Mock Stripe Product
+        const stripeEl = document.createElement('div');
+        stripeEl.className = 'glass-panel p-6 rounded-2xl border border-yellow-500/30 bg-yellow-900/10';
+        stripeEl.innerHTML = `
+            <div class="flex justify-between items-start mb-4">
+                <h3 class="font-bold text-white text-xl">PRO LICENSE</h3>
+                <span class="bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">PREMIUM</span>
+            </div>
+            <p class="text-xs text-slate-400 mb-6">Support development and get a cool badge.</p>
+            <button class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
+                <span>$4.99 (Stripe)</span>
+            </button>
+        `;
+        stripeEl.querySelector('button').onclick = () => {
+            alert("This is where Stripe Checkout would open! 💳 (Thanks for the $19.69 lol)");
+        };
+        grid.appendChild(stripeEl);
+
+        SHOP_ITEMS.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-6 rounded-2xl hover:border-cyan-500/50 transition-colors';
+            el.innerHTML = `
+                <h3 class="font-bold text-white text-lg mb-1">${item.name}</h3>
+                <div class="text-xs text-cyan-400 mb-4 font-mono">${item.effect}</div>
+                <button class="w-full border border-slate-700 text-white font-bold py-3 rounded-xl hover:bg-white hover:text-black transition-colors">
+                    BUY $${item.cost.toLocaleString()}
+                </button>
+            `;
+            el.querySelector('button').onclick = () => {
+                if(gameState.cash >= item.cost) {
+                    gameState.cash -= item.cost;
+                    if(item.type === 'research') gameState.researchPts += item.amount;
+                    if(item.type === 'cosmetic') showToast('Coffee machine installed. ☕', 'success');
+                    // Add other effects here
+                    updateHUD();
+                    showToast('Purchased!', 'success');
                 } else showToast('Insufficient Funds!', 'error');
             };
             grid.appendChild(el);
