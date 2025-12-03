@@ -12,14 +12,6 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icon.png" />
-    <style>
-        /* Quick toast animation override */
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
-    </style>
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
 
@@ -159,11 +151,12 @@
 
         <div class="flex flex-1 overflow-hidden">
             <!-- SIDEBAR -->
-            <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-6 gap-3 z-10 backdrop-blur-md overflow-y-auto custom-scrollbar">
+            <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-8 gap-3 z-10 backdrop-blur-md overflow-y-auto custom-scrollbar">
                 <button class="nav-btn active" data-tab="dash"><i data-lucide="layout-dashboard"></i><span>Home</span></button>
-                <button class="nav-btn" data-tab="rivals"><i data-lucide="swords"></i><span>Rivals</span></button> <!-- NEW RIVALS TAB -->
-                <button class="nav-btn" data-tab="lab"><i data-lucide="flask-conical"></i><span>Lab</span></button>
+                <button class="nav-btn" data-tab="rivals"><i data-lucide="swords"></i><span>Rivals</span></button>
                 <button class="nav-btn" data-tab="dev"><i data-lucide="plus-square"></i><span>Create</span></button>
+                <button class="nav-btn" data-tab="market"><i data-lucide="server"></i><span>Market</span></button>
+                <button class="nav-btn" data-tab="lab"><i data-lucide="flask-conical"></i><span>Lab</span></button>
                 <button class="nav-btn" data-tab="biz"><i data-lucide="trending-up"></i><span>Growth</span></button>
                 <button class="nav-btn" data-tab="shop"><i data-lucide="shopping-cart"></i><span>Shop</span></button>
                 <div class="flex-1"></div>
