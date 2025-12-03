@@ -1,102 +1,20 @@
 /* Base overrides */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #050505; /* Default Dark (OLED) */
+    background-color: #050505; /* Deep OLED Black */
     color: #e2e8f0;
-    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
 }
 .font-mono {
     font-family: 'JetBrains Mono', monospace;
 }
 
-/* --- THEME ENGINE --- */
-
-/* 1. Light Mode (Free) */
-body.theme-light {
-    background-color: #f1f5f9;
-    color: #0f172a;
-}
-body.theme-light .glass-panel {
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-}
-body.theme-light .text-slate-500 { color: #64748b; }
-body.theme-light .text-white { color: #0f172a; }
-body.theme-light .border-slate-700 { border-color: #cbd5e1; }
-body.theme-light .border-slate-800 { border-color: #e2e8f0; }
-body.theme-light .bg-slate-900 { background-color: rgba(255, 255, 255, 0.5); }
-body.theme-light .bg-black { background-color: #f8fafc; }
-body.theme-light .nav-btn:hover { background-color: rgba(0, 0, 0, 0.05); color: #000; }
-
-/* 2. Hacker Mode (Premium) */
-body.theme-hacker {
-    background-color: #000000;
-    color: #00ff00;
-    font-family: 'JetBrains Mono', monospace; /* Force monospace everywhere */
-}
-body.theme-hacker * {
-    border-radius: 0 !important; /* Brutalist / Terminal style */
-    font-family: 'JetBrains Mono', monospace;
-}
-body.theme-hacker .glass-panel {
-    background: #000000;
-    border: 1px solid #003300;
-    box-shadow: none;
-}
-body.theme-hacker .text-white { color: #00ff00; }
-body.theme-hacker .text-slate-500 { color: #005500; }
-body.theme-hacker .text-slate-400 { color: #004400; }
-body.theme-hacker .bg-slate-900 { background-color: #001100; border: 1px solid #00ff00; }
-body.theme-hacker button {
-    background: #000;
-    border: 1px solid #00ff00;
-    color: #00ff00;
-    text-transform: uppercase;
-}
-body.theme-hacker button:hover {
-    background: #00ff00;
-    color: #000;
-}
-body.theme-hacker .nav-btn.active {
-    border: 1px solid #00ff00;
-    color: #00ff00;
-    box-shadow: 0 0 10px #00ff00;
-    background: #001100;
-}
-
-/* 3. Liquid Glass Mode (Premium) */
-body.theme-liquid {
-    background: linear-gradient(135deg, #0f172a, #312e81, #1e1b4b, #000000);
-    background-size: 400% 400%;
-    animation: gradientBG 15s ease infinite;
-    color: #e0e7ff;
-}
-body.theme-liquid .glass-panel {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(25px);
-    -webkit-backdrop-filter: blur(25px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-}
-body.theme-liquid button {
-    backdrop-filter: blur(5px);
-    border: 1px solid rgba(255,255,255,0.1);
-}
-
-@keyframes gradientBG {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* --- SCROLLBAR --- */
+/* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
 
-/* --- COMPONENTS --- */
+/* Nav Button Styles */
 .nav-btn {
     width: 56px; height: 56px; display: flex; flex-direction: column; alignItems: center; justifyContent: center;
     gap: 4px; border-radius: 14px; color: #525252; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -107,21 +25,27 @@ body.theme-liquid button {
     background-color: rgba(34, 211, 238, 0.1); color: #22d3ee;
     border: 1px solid rgba(34, 211, 238, 0.2); box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
 }
+.nav-btn span {
+    font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+}
 
+/* Glass Panel */
 .glass-panel {
     background: rgba(15, 15, 15, 0.6);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Gold Glow for VIPs */
+/* Premium Glow (Kept for the code redemption success effect) */
 .premium-glow {
     box-shadow: 0 0 30px rgba(234, 179, 8, 0.15);
     border: 1px solid rgba(234, 179, 8, 0.4);
     background: linear-gradient(145deg, rgba(234, 179, 8, 0.05) 0%, rgba(0,0,0,0) 100%);
 }
 
+/* Background Grid */
 .bg-grid-white {
     background-size: 40px 40px;
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
