@@ -13,18 +13,10 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icon.png" />
 
-    <!-- DISCORD & SOCIAL EMBEDS -->
+    <!-- META TAGS -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://softworks-tycoon.xyz/">
     <meta property="og:title" content="Softworks Tycoon">
-    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market in this real-time strategy game.">
-    <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png">
     <meta name="theme-color" content="#06b6d4">
-    
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Softworks Tycoon">
-    <meta name="twitter:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
-    <meta name="twitter:image" content="https://softworks-tycoon.xyz/banner.png">
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
 
@@ -189,9 +181,10 @@
     </div>
 
     <!-- AI CHAT WIDGET -->
-    <div id="ai-widget-container" class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
+    <!-- Z-Index 100 ensures it is ABOVE everything -->
+    <div id="ai-widget-container" class="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-4 pointer-events-none">
         
-        <!-- Chat Window (Hidden by default) -->
+        <!-- Chat Window -->
         <div id="ai-chat-window" class="hidden w-[350px] h-[500px] glass-panel rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-cyan-500/30 animate-in origin-bottom-right pointer-events-auto">
             <!-- Header -->
             <div class="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center backdrop-blur-md">
@@ -201,7 +194,7 @@
                     </div>
                     <div>
                         <div class="font-bold text-white text-sm">System AI</div>
-                        <div class="text-[10px] text-cyan-400 font-mono" id="ai-limit-counter">40/40 MSGS LEFT</div>
+                        <div class="text-[10px] text-cyan-400 font-mono" id="ai-limit-counter">...</div>
                     </div>
                 </div>
                 <button id="btn-close-chat" class="text-slate-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -236,7 +229,7 @@
         developed by anymousxe
     </div>
 
-    <!-- Firebase SDKs (Compat version is safest for local index.html) -->
+    <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
