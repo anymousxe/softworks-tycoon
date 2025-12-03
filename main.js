@@ -97,9 +97,9 @@ const SHOP_ITEMS = [
 
 // Fallback reviews only (API is primary now)
 const FALLBACK_REVIEWS = {
-    good: ["Literally cracked. 🔥", "Best AI I've used.", "W release."],
-    mid: ["It's mid but okay.", "Does the job i guess."],
-    bad: ["Bro what is this? 💀", "Refunded."]
+    good: ["Literally cracked. 🔥", "Best AI I've used.", "W release.", "Game changer fr.", "Take my money 💰"],
+    mid: ["It's mid but okay.", "Does the job i guess.", "Waiting for updates.", "Kinda buggy."],
+    bad: ["Bro what is this? 💀", "Refunded.", "Laggier than my grandma's PC.", "This ain't it chief."]
 };
 
 // --- 4. AI SYSTEM ASSISTANT CONFIG ---
@@ -290,7 +290,7 @@ function runTutorial(step) {
     if(step === 0) {
         positionHighlight(null);
         tutorialText.textContent = "Welcome, CEO. I am your onboard guidance system. Let's get your AI empire started. First, we need compute power.";
-        // IMPORTANT: Update state locally and re-run immediately
+        // IMPORTANT: Update state locally and re-run immediately, then save
         btnNextTut.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); saveGame(); };
     }
     else if(step === 1) {
