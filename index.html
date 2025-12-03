@@ -21,6 +21,46 @@
 
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
+    <div id="changelog-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black border-2 border-cyan-500/30 animate-in">
+            <div class="absolute -top-3 -right-3 bg-cyan-500 text-black font-black text-xs px-3 py-1 rounded-full animate-bounce shadow-[0_0_15px_cyan]">
+                V2.0 LIVE
+            </div>
+            <h3 class="text-3xl font-black text-white mb-2 tracking-tighter">PATCH NOTES</h3>
+            <p class="text-slate-400 text-xs font-mono mb-6">System Update: 2025.12.03</p>
+            
+            <div class="space-y-4 mb-8">
+                <div class="flex gap-4 items-start">
+                    <div class="bg-red-500/20 p-2 rounded-lg text-red-500"><i data-lucide="bug"></i></div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">Critical Bug Fix</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">Fixed a massive database error that was corrupting save files. Your empire is safe now.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <div class="bg-purple-500/20 p-2 rounded-lg text-purple-500"><i data-lucide="zap"></i></div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">AI Limit Buffed</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">Neural Link upgraded. Usage limit raised to <span class="text-cyan-400 font-bold">40 messages per 5 minutes</span>. Spam away.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-4 items-start">
+                    <div class="bg-green-500/20 p-2 rounded-lg text-green-500"><i data-lucide="git-branch"></i></div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">Model Versioning</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">You can now iterate on your models. Release Patch (v1.1) or Major (v2.0) updates to boost quality and hype.</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-close-changelog" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl text-sm transition-all tracking-widest shadow-lg shadow-white/5">
+                LET'S WORK
+            </button>
+        </div>
+    </div>
+
     <div id="tutorial-overlay" class="hidden fixed inset-0 z-[90] pointer-events-none">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
         <div id="tutorial-highlight" class="absolute border-4 border-cyan-400 rounded-xl shadow-[0_0_50px_rgba(34,211,238,0.5)] transition-all duration-300"></div>
