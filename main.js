@@ -105,8 +105,9 @@ const FALLBACK_REVIEWS = {
 // --- 4. AI SYSTEM ASSISTANT CONFIG ---
 const AI_CONFIG = {
     msgLimit: 20, // 20 Messages per window
-    storageKeyTimestamps: 'softworks_ai_timestamps_v4', // Version 4 for fresh start
-    storageKeyHistory: 'softworks_ai_history_v4'
+    windowMinutes: 20, // 20 Minute sliding window
+    storageKeyTimestamps: 'softworks_ai_timestamps_v5', 
+    // Chat history is now stored in DB, not localStorage
 };
 
 // --- SYSTEM PROMPT ---
@@ -224,12 +225,13 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         week: 1, year: 2025,
         researchPts: isSandbox ? 5000 : 0,
         reputation: 0,
-        hardware: [], // Start with nothing to force tutorial usage
+        hardware: [], 
         products: [],
         reviews: [],
         unlockedTechs: [],
         purchasedItems: [], 
-        tutorialStep: 0, // 0 = Not started, 99 = Done
+        chatHistory: [], // NEW: Chat persistence in DB
+        tutorialStep: 0,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').add(newSave);
@@ -244,7 +246,8 @@ function startGame(id, data) {
     gameState = data;
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
-    if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; // Assume old saves are experts
+    if(!gameState.chatHistory) gameState.chatHistory = []; // Ensure chat history exists
+    if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
     
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -253,6 +256,7 @@ function startGame(id, data) {
 
     updateHUD();
     renderTab('dash');
+    loadChatHistory(); // Load chat from gameState
     lucide.createIcons();
     
     // Check Tutorial on Start
@@ -262,7 +266,7 @@ function startGame(id, data) {
     saveInterval = setInterval(saveGame, 5000);
 }
 
-// --- TUTORIAL SYSTEM (FIXED) ---
+// --- TUTORIAL SYSTEM ---
 const tutorialOverlay = document.getElementById('tutorial-overlay');
 const tutorialBox = document.getElementById('tutorial-box');
 const tutorialHighlight = document.getElementById('tutorial-highlight');
@@ -284,7 +288,6 @@ function runTutorial(step) {
     if(step === 0) {
         positionHighlight(null);
         tutorialText.textContent = "Welcome, CEO. I am your onboard guidance system. Let's get your AI empire started. First, we need compute power.";
-        // IMPORTANT: Directly update state and re-run, no saving needed yet
         btnNextTut.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); };
     }
     else if(step === 1) {
@@ -302,7 +305,7 @@ function runTutorial(step) {
                 tutorialText.textContent = "The 'Consumer GPU Cluster' is cheap but effective for starting out. Buy one now.";
                 btnNextTut.style.display = 'none';
             }
-        }, 300);
+        }, 500);
     }
     else if(step === 3) {
         const btn = document.getElementById('nav-dev');
@@ -311,14 +314,11 @@ function runTutorial(step) {
         btnNextTut.style.display = 'none';
     }
     else if(step === 4) {
-        positionHighlight(null);
-        tutorialText.textContent = "You're ready. Use the Sidebar to manage your empire, and click 'AI Help' if you need strategy advice. Good luck.";
-        btnNextTut.textContent = "Finish";
-        btnNextTut.onclick = () => { 
-            gameState.tutorialStep = 99; 
-            saveGame(); 
-            tutorialOverlay.classList.add('hidden'); 
-        };
+        // We highlight the Sidebar AI button
+        const btn = document.getElementById('btn-toggle-chat-sidebar');
+        positionHighlight(btn);
+        tutorialText.textContent = "You're ready. Click 'AI Help' if you need strategy advice. Good luck.";
+        btnNextTut.style.display = 'none'; // Force click AI button
     }
 }
 
@@ -366,8 +366,10 @@ document.getElementById('btn-restart-tutorial').addEventListener('click', () => 
 });
 
 document.getElementById('btn-wipe-ai').addEventListener('click', () => {
-    localStorage.removeItem(AI_CONFIG.storageKeyHistory);
+    gameState.chatHistory = [];
     localStorage.removeItem(AI_CONFIG.storageKeyTimestamps);
+    loadChatHistory();
+    saveGame();
     alert("AI Memory Wiped.");
 });
 
@@ -380,7 +382,7 @@ function setupRealtimeListener(saveId) {
         .onSnapshot(doc => {
             if (doc.exists) {
                 const newData = doc.data();
-                // Merge carefully
+                // Merge without overwriting local typing state
                 gameState = newData;
                 updateHUD();
                 
@@ -591,15 +593,6 @@ function generateFallbackReview(product) {
     if(gameState.reviews.length > 20) gameState.reviews.pop();
 }
 
-function updateHUD() {
-    document.getElementById('hud-company-name').textContent = gameState.companyName;
-    document.getElementById('hud-cash').textContent = `$${gameState.cash.toLocaleString()}`;
-    document.getElementById('hud-cash').className = gameState.cash < 0 ? 'text-red-500 text-lg font-bold' : 'text-green-400 text-lg font-bold';
-    document.getElementById('hud-compute').textContent = `${getCompute()} TF`;
-    document.getElementById('hud-research').textContent = `${Math.floor(gameState.researchPts)} PTS`;
-    document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`;
-}
-
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         if(btn.id === 'btn-exit-game') {
@@ -614,14 +607,10 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         if(btn.id === 'btn-toggle-chat-sidebar') {
             toggleChat();
             // Tutorial Step 4 Trigger (Finish)
-            if(gameState.tutorialStep === 3) {
-                // The nav to 'dev' was step 3, clicking AI help is step 4
-                // We actually need to fix logic here: 
-                // Step 0: Welcome -> Next
-                // Step 1: Nav Market -> Click
-                // Step 2: Buy GPU -> Click
-                // Step 3: Nav Dev -> Click (This happens in click handler below)
-                // Step 4: Finish -> Click AI Help
+            if(gameState.tutorialStep === 4) {
+               gameState.tutorialStep = 99;
+               saveGame();
+               tutorialOverlay.classList.add('hidden');
             }
             return;
         }
@@ -1046,14 +1035,13 @@ function toggleChat() {
     if(!chatWindow.classList.contains('hidden')) {
         chatMessages.scrollTop = chatMessages.scrollHeight;
         updateLimitDisplay();
-        loadChatHistory();
+        // Removed loadChatHistory() here, it's already loaded on startup.
     }
 }
 
 if(chatCloseBtn) chatCloseBtn.addEventListener('click', toggleChat);
 
 // --- DYNAMIC RATE LIMIT LOGIC ---
-// Timestamps are stored as an array of epoch numbers [12312312, 12312323, ...]
 function getTimestamps() {
     const data = localStorage.getItem(AI_CONFIG.storageKeyTimestamps);
     return data ? JSON.parse(data) : [];
@@ -1072,9 +1060,9 @@ function checkRateLimit() {
     
     // Dynamic Window Logic:
     // If user sent > 15 messages in last 15 mins (spamming), window is 25 mins.
-    // Else window is 15 mins.
+    // Else window is 20 mins (updated per user request).
     const recentCount = stamps.filter(t => (now - t) < 15 * 60 * 1000).length;
-    const windowMinutes = recentCount > 15 ? 25 : 15; 
+    const windowMinutes = recentCount > 15 ? 25 : 20; 
     const windowMs = windowMinutes * 60 * 1000;
 
     // Filter stamps to only keep those within current window
@@ -1094,7 +1082,6 @@ function updateLimitDisplay() {
     const status = checkRateLimit();
     if(limitLabel) {
         limitLabel.textContent = `${status.remaining}/${AI_CONFIG.msgLimit} MSGS (${status.windowMinutes}m Window)`;
-        // Visual indicator if throttled
         limitLabel.className = status.remaining === 0 ? "text-[10px] text-red-500 font-mono animate-pulse" : "text-[10px] text-cyan-400 font-mono";
     }
     
@@ -1109,26 +1096,19 @@ function updateLimitDisplay() {
     }
 }
 
-// Chat History Persistence
-function saveMessageToHistory(role, text) {
-    const history = JSON.parse(localStorage.getItem(AI_CONFIG.storageKeyHistory)) || [];
-    history.push({ role, text });
-    if(history.length > 50) history.shift(); // Keep last 50 messages
-    localStorage.setItem(AI_CONFIG.storageKeyHistory, JSON.stringify(history));
-}
-
+// Chat History Loading from DB
 function loadChatHistory() {
-    // Prevent duplicates if loaded multiple times
     chatMessages.innerHTML = `
         <div class="bg-slate-800/50 p-3 rounded-xl rounded-tl-none text-xs text-slate-300 border border-white/5">
             Greetings, Operator. I have full access to your company metrics. Need help with names, strategy, or market analysis?
         </div>
     `;
-    const history = JSON.parse(localStorage.getItem(AI_CONFIG.storageKeyHistory)) || [];
-    history.forEach(msg => appendMessage(msg.role, msg.text, false)); // false = don't save again
+    if(gameState.chatHistory && gameState.chatHistory.length > 0) {
+        gameState.chatHistory.forEach(msg => appendMessage(msg.role, msg.text, false)); 
+    }
 }
 
-// Add Message to UI
+// Add Message to UI & Save to DB
 function appendMessage(role, text, save = true) {
     const div = document.createElement('div');
     if (role === 'user') {
@@ -1136,12 +1116,16 @@ function appendMessage(role, text, save = true) {
         div.innerHTML = text; 
     } else {
         div.className = "bg-slate-800/50 p-3 rounded-xl rounded-tl-none text-xs text-slate-300 border border-white/5 mr-8";
-        div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); // Basic Markdown Bold
+        div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); 
     }
     chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
-    if (save) saveMessageToHistory(role, text);
+    if (save) {
+        gameState.chatHistory.push({ role, text });
+        if(gameState.chatHistory.length > 50) gameState.chatHistory.shift(); // Keep DB size reasonable
+        saveGame();
+    }
 }
 
 // AI Interaction
@@ -1181,7 +1165,6 @@ async function askGemini(prompt) {
             throw new Error("API Key missing in secrets.js");
         }
 
-        // Updated Model to gemini-2.5-flash-preview-09-2025
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${SECRETS.GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1201,7 +1184,7 @@ async function askGemini(prompt) {
         } else {
             const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "System Error: No response data.";
             appendMessage('system', aiText);
-            recordMessage(); // Only record successful hits
+            recordMessage(); 
         }
 
     } catch (e) {
@@ -1224,10 +1207,7 @@ if(chatForm) {
 }
 
 // Initial Load
-// updateLimitDisplay is called inside loadChatHistory effectively via checkRateLimit check
-setInterval(updateLimitDisplay, 60000); // Check limit every minute to refresh UI
+setInterval(updateLimitDisplay, 60000); 
 updateLimitDisplay();
-loadChatHistory();
 
-// Initialize Icons at the very end to ensure Chat Button has an icon
 lucide.createIcons();
