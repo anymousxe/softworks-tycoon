@@ -13,48 +13,23 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icon.png" />
 
-    <!-- DISCORD EMBED -->
+    <!-- DISCORD & SOCIAL EMBEDS -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://softworks-tycoon.xyz/">
     <meta property="og:title" content="Softworks Tycoon">
-    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
+    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market in this real-time strategy game.">
     <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png">
     <meta name="theme-color" content="#06b6d4">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Softworks Tycoon">
+    <meta name="twitter:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
+    <meta name="twitter:image" content="https://softworks-tycoon.xyz/banner.png">
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
 
     <!-- NOTIFICATION CONTAINER -->
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
-
-    <!-- CHAT BOT WIDGET -->
-    <div id="ai-chat-widget" class="hidden fixed bottom-6 right-6 z-[60] flex flex-col items-end pointer-events-auto">
-        <!-- Chat Window -->
-        <div id="chat-window" class="hidden glass-panel w-80 h-96 mb-4 rounded-2xl flex flex-col border border-cyan-500/30 shadow-2xl bg-black/90 backdrop-blur-xl transform transition-all origin-bottom-right">
-            <div class="p-4 border-b border-white/10 flex justify-between items-center bg-slate-900/50 rounded-t-2xl">
-                <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span class="font-bold text-xs tracking-widest text-cyan-400">SysAdmin AI</span>
-                </div>
-                <button id="btn-close-chat" class="hover:text-white text-slate-500"><i data-lucide="x" class="w-4 h-4"></i></button>
-            </div>
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 text-xs font-mono custom-scrollbar">
-                <div class="bg-slate-800/50 p-3 rounded-lg rounded-tl-none border border-white/5 text-slate-300">
-                    System Online. I have access to your company metrics. How can I assist?
-                    <div class="mt-2 text-[9px] text-slate-500" id="chat-limit-display">Daily Limit: 25/25</div>
-                </div>
-            </div>
-            <div class="p-3 border-t border-white/10">
-                <form id="chat-form" class="flex gap-2">
-                    <input id="chat-input" type="text" placeholder="Ask for advice..." class="flex-1 bg-black border border-slate-700 rounded-lg px-3 py-2 text-xs focus:border-cyan-500 outline-none text-white">
-                    <button type="submit" class="bg-cyan-500 hover:bg-cyan-400 text-black p-2 rounded-lg transition-colors"><i data-lucide="send" class="w-4 h-4"></i></button>
-                </form>
-            </div>
-        </div>
-        <!-- Toggle Button -->
-        <button id="btn-toggle-chat" class="w-14 h-14 bg-gradient-to-br from-cyan-600 to-blue-700 rounded-full shadow-lg shadow-cyan-500/20 flex items-center justify-center hover:scale-110 transition-transform border border-white/10 group">
-            <i data-lucide="bot" class="w-6 h-6 text-white group-hover:rotate-12 transition-transform"></i>
-        </button>
-    </div>
 
     <!-- RENAME MODAL -->
     <div id="rename-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -97,6 +72,7 @@
                 <div class="text-cyan-500 font-mono tracking-widest text-lg">SELECT SAVE FILE</div>
             </div>
             
+            <!-- User Profile Section -->
             <div class="flex items-center gap-4 bg-slate-900/50 p-2 pr-4 pl-2 rounded-full border border-slate-800 backdrop-blur-sm">
                 <img id="user-photo" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest" class="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-700" alt="Profile">
                 <div class="text-left mr-2">
@@ -110,7 +86,9 @@
             </div>
         </div>
 
-        <div id="save-slots" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        <div id="save-slots" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Saves injected here by JS -->
+        </div>
     </div>
 
     <!-- CREATE SCREEN -->
@@ -141,6 +119,7 @@
 
     <!-- GAME UI -->
     <div id="game-screen" class="hidden flex flex-col h-screen bg-[#050505]">
+        <!-- TOP HUD -->
         <header class="h-20 border-b border-white/5 bg-black/40 flex items-center justify-between px-6 z-10 backdrop-blur-xl">
             <div class="flex items-center gap-5">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
@@ -184,6 +163,7 @@
         </header>
 
         <div class="flex flex-1 overflow-hidden">
+            <!-- SIDEBAR -->
             <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-8 gap-3 z-10 backdrop-blur-md overflow-y-auto custom-scrollbar">
                 <button class="nav-btn active" data-tab="dash"><i data-lucide="layout-dashboard"></i><span>Home</span></button>
                 <button class="nav-btn" data-tab="rivals"><i data-lucide="swords"></i><span>Rivals</span></button>
@@ -192,14 +172,18 @@
                 <button class="nav-btn" data-tab="lab"><i data-lucide="flask-conical"></i><span>Lab</span></button>
                 <button class="nav-btn" data-tab="biz"><i data-lucide="trending-up"></i><span>Growth</span></button>
                 <button class="nav-btn" data-tab="shop"><i data-lucide="shopping-cart"></i><span>Shop</span></button>
-                <button class="nav-btn" data-tab="reviews"><i data-lucide="message-square"></i><span>Reviews</span></button>
                 <div class="flex-1"></div>
                 <button id="btn-exit-game" class="nav-btn text-red-500 hover:text-red-400 hover:bg-red-900/10 mt-2"><i data-lucide="log-out"></i><span>Exit</span></button>
             </aside>
 
+            <!-- MAIN CONTENT AREA -->
             <main id="main-view" class="flex-1 overflow-y-auto bg-[#050505] p-8 relative">
+                <!-- Background ambient glow -->
                 <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none"></div>
-                <div class="max-w-7xl mx-auto relative z-10" id="content-area"></div>
+                
+                <div class="max-w-7xl mx-auto relative z-10" id="content-area">
+                    <!-- Content injected by JS -->
+                </div>
             </main>
         </div>
     </div>
@@ -208,12 +192,12 @@
         developed by anymousxe
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs (Compat version is safest for local index.html) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
-    <!-- Main Logic (MODULE type required now) -->
-    <script type="module" src="main.js"></script>
+    <!-- Main Logic -->
+    <script src="main.js"></script>
 </body>
 </html>
