@@ -1,5 +1,0 @@
-// secrets.js
-// DO NOT COMMIT THIS FILE TO GITHUB
-const SECRETS = {
-    GEMINI_API_KEY: "AIzaSyDUHypM32O_DNkWls9UT69AIas6B8sUsrU"
-};
