@@ -3,7 +3,7 @@
 /* Base overrides */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #050505;
+    background-color: #050505; /* Deep OLED Black */
     color: #e2e8f0;
 }
 .font-mono {
@@ -24,8 +24,8 @@ body {
     height: 56px;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: center;     /* Fixed: centers icons horizontally */
+    justify-content: center; /* Fixed: centers icons vertically */
     gap: 4px;
     border-radius: 14px;
     color: #525252;
@@ -43,13 +43,20 @@ body {
     font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
 }
 
-/* Glass Panel */
+/* Glass Panel - Used for Rivals, Dashboard & Popups */
 .glass-panel {
     background: rgba(15, 15, 15, 0.6);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Background Grid */
+.bg-grid-white {
+    background-size: 40px 40px;
+    background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
 /* Animations */
