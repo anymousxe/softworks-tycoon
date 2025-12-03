@@ -20,8 +20,6 @@ let gameState = null;
 let saveInterval = null;
 
 const APP_ID = 'softworks-tycoon';
-const ADMIN_EMAIL = "anymousxe.info@gmail.com";
-const SECRET_CODES = ['xavsf', 'tasik', 'uhgsa', 'kaidg']; // Valid for 30 real days
 
 // --- DATA POOLS ---
 const HARDWARE = [
@@ -93,13 +91,6 @@ const REVIEW_TEXTS = {
     bad: ["Bro what is this? 💀", "Refunded.", "Laggier than my grandma's PC.", "This ain't it chief."]
 };
 
-const THEMES = [
-    { id: 'dark', name: 'OLED Dark', premium: false },
-    { id: 'light', name: 'Polar White', premium: false },
-    { id: 'liquid', name: 'Liquid Glass', premium: true },
-    { id: 'hacker', name: 'Matrix Terminal', premium: true }
-];
-
 // --- AUTH & SETUP ---
 
 auth.onAuthStateChanged(user => {
@@ -114,28 +105,12 @@ auth.onAuthStateChanged(user => {
         document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0,8);
         document.getElementById('user-photo').src = photo;
 
-        if (user.email === ADMIN_EMAIL) {
-            injectAdminButton();
-        }
-
         loadSaves();
     } else {
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('menu-screen').classList.add('hidden');
     }
 });
-
-function injectAdminButton() {
-    if(document.getElementById('admin-keys-btn')) return;
-    const header = document.querySelector('#menu-screen .flex');
-    const btn = document.createElement('button');
-    btn.id = 'admin-keys-btn';
-    btn.className = 'ml-4 bg-red-900/50 border border-red-500 text-red-200 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-red-800 transition';
-    btn.innerHTML = `<i data-lucide="shield-alert" class="inline w-3 h-3 mr-1"></i> Admin Keys`;
-    btn.onclick = () => { alert(`-- CLASSIFIED CODES --\n\n${SECRET_CODES.join('\n')}\n\n(Each valid for 30 Days)`); };
-    header.appendChild(btn);
-    lucide.createIcons();
-}
 
 document.getElementById('btn-login-google').addEventListener('click', () => {
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert(e.message));
@@ -156,30 +131,14 @@ function loadSaves() {
         container.innerHTML = '';
         snapshot.forEach(doc => {
             const data = doc.data();
-            
-            // Check Premium Status based on Real Time
-            let isPremiumActive = false;
-            if (data.premiumExpiry) {
-                const now = Date.now();
-                if (data.premiumExpiry > now) {
-                    isPremiumActive = true;
-                }
-            }
-
             const el = document.createElement('div');
-            // Premium Glow Effect
-            const glowClass = isPremiumActive ? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.15)] bg-yellow-900/5' : 'hover:border-cyan-500';
-            
-            el.className = `glass-panel p-8 rounded-2xl cursor-pointer transition-all group relative hover:-translate-y-1 ${glowClass}`;
+            el.className = `glass-panel p-8 rounded-2xl cursor-pointer hover:border-cyan-500 transition-all group relative hover:-translate-y-1`;
             el.innerHTML = `
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <h3 class="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors tracking-tight">${data.companyName}</h3>
-                        <div class="mt-2 flex gap-2">
-                            <span class="inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-800 text-slate-400'}">
-                                ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
-                            </span>
-                            ${isPremiumActive ? '<span class="inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest bg-yellow-500 text-black">VIP</span>' : ''}
+                        <div class="mt-2 inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-800 text-slate-400'}">
+                            ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
                         </div>
                     </div>
                     <button class="text-slate-600 hover:text-red-500 delete-btn p-2" data-id="${doc.id}"><i data-lucide="trash-2"></i></button>
@@ -226,9 +185,6 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         week: 1, year: 2025,
         researchPts: isSandbox ? 5000 : 0,
         reputation: 0,
-        premiumExpiry: null,
-        lastDailyReward: 0, // NEW: Track daily reward
-        currentTheme: 'dark', // NEW: Default theme
         hardware: [{ typeId: 'gtx_cluster', count: 1 }],
         products: [],
         reviews: [],
@@ -248,19 +204,7 @@ function startGame(id, data) {
     gameState = data;
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.shopStock) refreshShop(); 
-    if(!gameState.currentTheme) gameState.currentTheme = 'dark';
     
-    // Apply Theme Immediately
-    applyTheme(gameState.currentTheme);
-
-    // Check Premium Status
-    checkPremiumStatus();
-    
-    // Check Daily Reward (IRL 24 Hour Check)
-    if (gameState.isPremium) {
-        checkDailyReward();
-    }
-
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
@@ -272,56 +216,10 @@ function startGame(id, data) {
     saveInterval = setInterval(saveGame, 5000);
 }
 
-function checkPremiumStatus() {
-    if (gameState.premiumExpiry) {
-        const now = Date.now();
-        if (now < gameState.premiumExpiry) {
-            gameState.isPremium = true; 
-        } else {
-            gameState.isPremium = false;
-            gameState.premiumExpiry = null;
-            // Revert theme if premium expired
-            if (['liquid', 'hacker'].includes(gameState.currentTheme)) {
-                gameState.currentTheme = 'dark';
-                applyTheme('dark');
-                showToast("Premium Expired. Theme reverted.", "error");
-            }
-        }
-    } else {
-        gameState.isPremium = false;
-    }
-}
-
-function checkDailyReward() {
-    const now = Date.now();
-    const lastClaim = gameState.lastDailyReward || 0;
-    const oneDayMs = 24 * 60 * 60 * 1000;
-
-    if (now - lastClaim > oneDayMs) {
-        gameState.cash += 50000;
-        gameState.lastDailyReward = now;
-        showToast("DAILY VIP BONUS: +$50,000 💸", "success");
-        saveGame();
-    }
-}
-
-function applyTheme(themeId) {
-    // Correctly remove all theme classes before adding new one
-    const themes = ['theme-light', 'theme-hacker', 'theme-liquid'];
-    document.body.classList.remove(...themes);
-    
-    if(themeId !== 'dark') {
-        document.body.classList.add(`theme-${themeId}`);
-    }
-}
-
 function saveGame() {
     if(!activeSaveId || !gameState) return;
-    const saveState = { ...gameState };
-    delete saveState.isPremium; // Don't save the temp flag, rely on timestamp
-    
     db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
-      .doc(activeSaveId).update(saveState).catch(console.error);
+      .doc(activeSaveId).update(gameState).catch(console.error);
 }
 
 // Rename
@@ -442,6 +340,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             }
         });
 
+        // Market Flux
         if(gameState.week % 4 === 0) {
            COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*200)-100)));
         }
@@ -587,46 +486,6 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    if(tab === 'settings') {
-        content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">SYSTEM SETTINGS</h2>
-            
-            <div class="glass-panel p-8 rounded-2xl mb-8">
-                <h3 class="font-bold text-white text-xl mb-4">Appearance</h3>
-                <p class="text-xs text-slate-400 mb-6">Select your interface theme.</p>
-                
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="theme-grid"></div>
-            </div>
-        `;
-        
-        const grid = document.getElementById('theme-grid');
-        THEMES.forEach(t => {
-            const isActive = gameState.currentTheme === t.id;
-            const isLocked = t.premium && !gameState.isPremium;
-            
-            const btn = document.createElement('button');
-            btn.className = `p-4 rounded-xl border text-sm font-bold transition-all relative overflow-hidden ${isActive ? 'border-cyan-500 bg-cyan-900/20 text-cyan-400' : 'border-slate-700 bg-slate-900/30 hover:bg-slate-800 text-slate-300'}`;
-            btn.innerHTML = `
-                ${t.name}
-                ${isLocked ? '<div class="absolute inset-0 bg-black/60 flex items-center justify-center text-xs text-yellow-500 font-mono"><i data-lucide="lock" class="w-3 h-3 mr-1"></i> VIP</div>' : ''}
-            `;
-            
-            if (!isLocked) {
-                btn.onclick = () => {
-                    gameState.currentTheme = t.id;
-                    applyTheme(t.id);
-                    saveGame();
-                    renderTab('settings');
-                };
-            } else {
-                btn.onclick = () => showToast("Upgrade to VIP to unlock!", "error");
-            }
-            grid.appendChild(btn);
-        });
-        lucide.createIcons();
-    }
-
-    // SERVER, RESEARCH, DEV, MARKET, PR, REVIEWS (Same as before, removed for brevity but assume they exist)
     if(tab === 'server') {
         content.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>`;
         const grid = document.getElementById('server-grid');
@@ -770,61 +629,6 @@ function renderTab(tab) {
         `;
         const grid = document.getElementById('shop-grid');
         
-        // --- REDEMPTION BOX ---
-        const redeemEl = document.createElement('div');
-        redeemEl.className = 'glass-panel p-6 rounded-2xl border border-yellow-500/30 bg-yellow-900/10';
-        
-        let daysLeft = 0;
-        if(gameState.premiumExpiry) {
-            daysLeft = Math.ceil((gameState.premiumExpiry - Date.now()) / (1000 * 60 * 60 * 24));
-        }
-
-        if(gameState.isPremium) {
-             redeemEl.innerHTML = `
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="font-bold text-white text-xl">VIP STATUS</h3>
-                    <span class="bg-green-500 text-black text-xs font-bold px-2 py-1 rounded">ACTIVE</span>
-                </div>
-                <p class="text-xs text-slate-400 mb-6 font-mono">Time Remaining: ${daysLeft > 0 ? daysLeft : 0} Days</p>
-                <div class="text-xs text-yellow-400 font-bold">Perk: +$50,000 / 24hrs (IRL)</div>
-            `;
-        } else {
-            redeemEl.innerHTML = `
-                <div class="flex justify-between items-start mb-4">
-                    <h3 class="font-bold text-white text-xl">REDEEM CODE</h3>
-                    <span class="bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">PRO</span>
-                </div>
-                <p class="text-xs text-slate-400 mb-4">Enter a valid code to unlock VIP status for 30 Days.</p>
-                <input id="code-input" class="w-full bg-black/50 border border-yellow-500/30 text-white p-3 rounded-lg mb-3 text-xs font-mono" placeholder="Enter Code...">
-                <button id="btn-redeem" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl transition-colors">ACTIVATE</button>
-            `;
-        }
-        
-        grid.appendChild(redeemEl);
-        
-        // Logic for Redeem button
-        if(!gameState.isPremium && redeemEl.querySelector('#btn-redeem')) {
-            redeemEl.querySelector('#btn-redeem').onclick = () => {
-                const code = document.getElementById('code-input').value.toLowerCase().trim();
-                if(SECRET_CODES.includes(code)) {
-                    const now = Date.now();
-                    // Add 30 days in milliseconds
-                    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-                    
-                    gameState.premiumExpiry = now + thirtyDays;
-                    gameState.isPremium = true;
-                    gameState.cash += 50000; // Immediate bonus
-                    
-                    saveGame();
-                    showToast("Code Redeemed! VIP Active for 30 Days.", "success");
-                    updateHUD();
-                    renderTab('shop');
-                } else {
-                    showToast("Invalid Code.", "error");
-                }
-            };
-        }
-
         // Render Dynamic Stock
         if(gameState.shopStock) {
             gameState.shopStock.forEach(item => {
