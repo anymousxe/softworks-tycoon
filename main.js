@@ -18,6 +18,7 @@ let currentUser = null;
 let activeSaveId = null;
 let gameState = null;
 let saveInterval = null;
+let realtimeUnsubscribe = null; // <--- NEW: To stop listening when we exit
 
 const APP_ID = 'softworks-tycoon';
 
@@ -215,12 +216,52 @@ function startGame(id, data) {
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
+    // --- START REALTIME LISTENER ---
+    setupRealtimeListener(id);
+    // ------------------------------
+
     updateHUD();
     renderTab('dash');
     lucide.createIcons();
     
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(saveGame, 5000);
+}
+
+// --- NEW FUNCTION: Real-Time Listener ---
+function setupRealtimeListener(saveId) {
+    // If we were already listening to another save, stop listening
+    if (realtimeUnsubscribe) {
+        realtimeUnsubscribe();
+    }
+
+    // Start listening to the active save
+    realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
+        .doc(saveId)
+        .onSnapshot(doc => {
+            if (doc.exists) {
+                // IMPORTANT: Overwrite the local gameState with the fresh data from the server
+                gameState = doc.data();
+                
+                // Immediately update the HUD so the user sees the changes
+                updateHUD();
+                
+                // Also refresh the current tab (in case you bought hardware on another tab)
+                const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
+                // Only re-render if we are NOT typing in a form (like naming a project)
+                if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) {
+                    renderTab(activeTab);
+                }
+
+                // Crisis Check
+                if (gameState.cash < 0) {
+                    // Optional: You could make the cash turn red or show a warning here
+                    document.getElementById('hud-cash').classList.add('animate-pulse');
+                }
+            }
+        }, error => {
+            console.error("Realtime update error:", error);
+        });
 }
 
 function saveGame() {
@@ -355,7 +396,9 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
            COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*200)-100)));
         }
 
-        updateHUD();
+        // We SAVE the game, which triggers the realtime listener to update the UI
+        saveGame();
+        
         const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
         renderTab(activeTab);
 
@@ -396,6 +439,7 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         if(btn.id === 'btn-exit-game') {
             saveGame();
             if(saveInterval) clearInterval(saveInterval);
+            if(realtimeUnsubscribe) realtimeUnsubscribe(); // Stop listening
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('menu-screen').classList.remove('hidden');
             loadSaves(); 
@@ -655,12 +699,10 @@ function renderTab(tab) {
         content.innerHTML = `
             <h2 class="text-3xl font-black text-white mb-6 tracking-tight">BUSINESS GROWTH</h2>
             <div class="grid grid-cols-1 gap-8">
-                <!-- B2B -->
                 <div>
                     <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="briefcase" class="text-green-500"></i> CONTRACTS</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="market-grid"></div>
                 </div>
-                <!-- Ads -->
                 <div>
                     <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-yellow-500"></i> CAMPAIGNS</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="ads-grid"></div>
