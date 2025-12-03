@@ -306,11 +306,13 @@ function checkDailyReward() {
 }
 
 function applyTheme(themeId) {
-    document.body.className = ''; // Clear all
-    document.body.classList.add('text-slate-200', 'font-sans', 'selection:bg-cyan-500', 'selection:text-black', 'overflow-hidden'); // Base classes
+    // Correctly remove all theme classes before adding new one
+    const themes = ['theme-light', 'theme-hacker', 'theme-liquid'];
+    document.body.classList.remove(...themes);
     
-    // Add theme specific class defined in style.css
-    document.body.classList.add(`theme-${themeId}`);
+    if(themeId !== 'dark') {
+        document.body.classList.add(`theme-${themeId}`);
+    }
 }
 
 function saveGame() {
@@ -730,6 +732,7 @@ function renderTab(tab) {
             el.querySelector('button').onclick = () => {
                 if(gameState.cash >= ad.cost) {
                     gameState.cash -= ad.cost;
+                    // Boost hype of all released products
                     gameState.products.forEach(p => { if(p.released) p.hype = Math.min(100, p.hype + ad.hype); });
                     updateHUD();
                     showToast('Campaign Launched! 📈', 'success');
@@ -767,6 +770,7 @@ function renderTab(tab) {
         `;
         const grid = document.getElementById('shop-grid');
         
+        // --- REDEMPTION BOX ---
         const redeemEl = document.createElement('div');
         redeemEl.className = 'glass-panel p-6 rounded-2xl border border-yellow-500/30 bg-yellow-900/10';
         
@@ -798,15 +802,19 @@ function renderTab(tab) {
         
         grid.appendChild(redeemEl);
         
+        // Logic for Redeem button
         if(!gameState.isPremium && redeemEl.querySelector('#btn-redeem')) {
             redeemEl.querySelector('#btn-redeem').onclick = () => {
                 const code = document.getElementById('code-input').value.toLowerCase().trim();
                 if(SECRET_CODES.includes(code)) {
                     const now = Date.now();
+                    // Add 30 days in milliseconds
                     const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+                    
                     gameState.premiumExpiry = now + thirtyDays;
                     gameState.isPremium = true;
-                    gameState.cash += 50000; 
+                    gameState.cash += 50000; // Immediate bonus
+                    
                     saveGame();
                     showToast("Code Redeemed! VIP Active for 30 Days.", "success");
                     updateHUD();
@@ -817,6 +825,7 @@ function renderTab(tab) {
             };
         }
 
+        // Render Dynamic Stock
         if(gameState.shopStock) {
             gameState.shopStock.forEach(item => {
                 const el = document.createElement('div');
@@ -827,8 +836,10 @@ function renderTab(tab) {
                         gameState.cash -= item.cost;
                         if(item.type === 'research') gameState.researchPts += item.amount;
                         if(item.type === 'cosmetic') showToast('Cosmetic Purchased!', 'success');
+                        // Add buff logic here if needed
                         updateHUD();
                         showToast('Purchased!', 'success');
+                        // Remove from stock to simulate single stock
                         gameState.shopStock = gameState.shopStock.filter(x => x !== item);
                         renderTab('shop');
                     } else showToast('Insufficient Funds!', 'error');
