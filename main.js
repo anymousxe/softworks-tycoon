@@ -24,12 +24,12 @@ const APP_ID = 'softworks-tycoon';
 // --- DATA POOLS ---
 const HARDWARE = [
     { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 2, upkeep: 50 },
-    { id: 'rtx_4090_farm', name: 'RTX 4090 Farm', cost: 5500, compute: 6, upkeep: 120 }, // NEW
+    { id: 'rtx_4090_farm', name: 'RTX 4090 Farm', cost: 5500, compute: 6, upkeep: 120 },
     { id: 'a100', name: 'A100 Rack', cost: 8000, compute: 8, upkeep: 150 },
-    { id: 'v100_legacy', name: 'V100 Legacy Rack', cost: 12000, compute: 12, upkeep: 200 }, // NEW
+    { id: 'v100_legacy', name: 'V100 Legacy Rack', cost: 12000, compute: 12, upkeep: 200 },
     { id: 'h100', name: 'H100 Cluster', cost: 15000, compute: 15, upkeep: 250 },
     { id: 'h200', name: 'Nvidia H200', cost: 35000, compute: 40, upkeep: 500, reqTech: 'h200_unlock' },
-    { id: 'gh200_super', name: 'GH200 Superchip', cost: 48000, compute: 60, upkeep: 650, reqTech: 'blackwell_arch' }, // NEW
+    { id: 'gh200_super', name: 'GH200 Superchip', cost: 48000, compute: 60, upkeep: 650, reqTech: 'blackwell_arch' },
     { id: 'b200', name: 'Blackwell B200', cost: 60000, compute: 75, upkeep: 800, reqTech: 'blackwell_arch' },
     { id: 'dojo', name: 'Dojo Supercomputer', cost: 120000, compute: 150, upkeep: 1200 },
     { id: 'tpu_pod', name: 'Google TPU Pod', cost: 250000, compute: 350, upkeep: 2500, reqTech: 'tpu_opt' },
@@ -201,6 +201,8 @@ function loadSaves() {
             const btn = document.createElement('button');
             btn.className = 'border-2 border-dashed border-slate-800 text-slate-600 p-8 rounded-2xl hover:text-cyan-400 hover:border-cyan-500 hover:bg-slate-900/50 transition flex flex-col items-center justify-center gap-3 min-h-[200px] group';
             btn.innerHTML = `<i data-lucide="plus" class="w-10 h-10 group-hover:scale-110 transition-transform"></i><span class="font-bold tracking-widest">NEW SAVE</span>`;
+            
+            // This button now triggers the 'create-screen' which we added to HTML
             btn.onclick = () => document.getElementById('create-screen').classList.remove('hidden');
             container.appendChild(btn);
             lucide.createIcons();
@@ -215,6 +217,7 @@ document.getElementById('btn-toggle-sandbox').addEventListener('click', () => {
     div.classList.toggle('border-yellow-500', isSandbox);
     div.classList.toggle('bg-yellow-500/10', isSandbox);
 });
+
 document.getElementById('btn-confirm-create').addEventListener('click', async () => {
     const name = document.getElementById('inp-comp-name').value;
     if(!name) return;
@@ -237,6 +240,7 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
     await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').add(newSave);
     document.getElementById('create-screen').classList.add('hidden');
 });
+
 document.getElementById('btn-cancel-create').addEventListener('click', () => document.getElementById('create-screen').classList.add('hidden'));
 
 // --- GAME LOGIC ---
@@ -245,7 +249,7 @@ function startGame(id, data) {
     activeSaveId = id;
     gameState = data;
     
-    // SAFEGUARDS: Handle missing fields from old saves
+    // SAFEGUARDS: Handle missing fields from old saves (Database Protection)
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
     if(!gameState.chatHistory) gameState.chatHistory = []; 
@@ -268,7 +272,7 @@ function startGame(id, data) {
     saveInterval = setInterval(saveGame, 5000);
 }
 
-// --- TUTORIAL SYSTEM (FIXED) ---
+// --- TUTORIAL SYSTEM ---
 const tutorialOverlay = document.getElementById('tutorial-overlay');
 const tutorialBox = document.getElementById('tutorial-box');
 const tutorialHighlight = document.getElementById('tutorial-highlight');
@@ -370,13 +374,17 @@ document.getElementById('btn-restart-tutorial').addEventListener('click', () => 
     runTutorial(0);
 });
 
-document.getElementById('btn-wipe-ai').addEventListener('click', () => {
-    gameState.chatHistory = [];
-    localStorage.removeItem(AI_CONFIG.storageKeyTimestamps);
-    loadChatHistory();
-    saveGame();
-    alert("AI Memory Wiped.");
-});
+// Fixed: Added check to make sure button exists
+const wipeBtn = document.getElementById('btn-wipe-ai');
+if(wipeBtn) {
+    wipeBtn.addEventListener('click', () => {
+        gameState.chatHistory = [];
+        localStorage.removeItem(AI_CONFIG.storageKeyTimestamps);
+        loadChatHistory();
+        saveGame();
+        alert("AI Memory Wiped.");
+    });
+}
 
 // --- REAL-TIME SAVE LISTENER ---
 function setupRealtimeListener(saveId) {
@@ -409,6 +417,14 @@ function saveGame() {
     if(!activeSaveId || !gameState) return;
     db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
       .doc(activeSaveId).update(gameState).catch(console.error);
+}
+
+function updateHUD() {
+    document.getElementById('hud-company-name').textContent = gameState.companyName;
+    document.getElementById('hud-cash').textContent = '$' + gameState.cash.toLocaleString();
+    document.getElementById('hud-compute').textContent = getCompute() + ' TF';
+    document.getElementById('hud-research').textContent = Math.floor(gameState.researchPts) + ' PTS';
+    document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`;
 }
 
 document.getElementById('trigger-rename').addEventListener('click', () => {
