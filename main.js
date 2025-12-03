@@ -244,9 +244,11 @@ document.getElementById('btn-cancel-create').addEventListener('click', () => doc
 function startGame(id, data) {
     activeSaveId = id;
     gameState = data;
+    
+    // SAFEGUARDS: Handle missing fields from old saves
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
-    if(!gameState.chatHistory) gameState.chatHistory = []; // Ensure chat history exists
+    if(!gameState.chatHistory) gameState.chatHistory = []; 
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
     
     document.getElementById('menu-screen').classList.add('hidden');
@@ -266,7 +268,7 @@ function startGame(id, data) {
     saveInterval = setInterval(saveGame, 5000);
 }
 
-// --- TUTORIAL SYSTEM ---
+// --- TUTORIAL SYSTEM (FIXED) ---
 const tutorialOverlay = document.getElementById('tutorial-overlay');
 const tutorialBox = document.getElementById('tutorial-box');
 const tutorialHighlight = document.getElementById('tutorial-highlight');
@@ -288,7 +290,8 @@ function runTutorial(step) {
     if(step === 0) {
         positionHighlight(null);
         tutorialText.textContent = "Welcome, CEO. I am your onboard guidance system. Let's get your AI empire started. First, we need compute power.";
-        btnNextTut.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); };
+        // IMPORTANT: Update state locally and re-run immediately
+        btnNextTut.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); saveGame(); };
     }
     else if(step === 1) {
         const btn = document.getElementById('nav-market');
@@ -337,9 +340,11 @@ function positionHighlight(element) {
 }
 
 // Skip Logic
-btnTriggerSkip.addEventListener('click', () => {
-    skipModal.classList.remove('hidden');
-});
+if(btnTriggerSkip) {
+    btnTriggerSkip.addEventListener('click', () => {
+        skipModal.classList.remove('hidden');
+    });
+}
 
 document.getElementById('btn-cancel-skip').addEventListener('click', () => {
     skipModal.classList.add('hidden');
@@ -382,8 +387,12 @@ function setupRealtimeListener(saveId) {
         .onSnapshot(doc => {
             if (doc.exists) {
                 const newData = doc.data();
-                // Merge without overwriting local typing state
                 gameState = newData;
+                
+                // SAFEGUARDS ON RELOAD
+                if(!gameState.chatHistory) gameState.chatHistory = [];
+                if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99;
+
                 updateHUD();
                 
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
@@ -1035,7 +1044,7 @@ function toggleChat() {
     if(!chatWindow.classList.contains('hidden')) {
         chatMessages.scrollTop = chatMessages.scrollHeight;
         updateLimitDisplay();
-        // Removed loadChatHistory() here, it's already loaded on startup.
+        loadChatHistory();
     }
 }
 
