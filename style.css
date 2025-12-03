@@ -10,7 +10,7 @@ body {
     font-family: 'JetBrains Mono', monospace;
 }
 
-/* Custom Scrollbar - Essential for the chat window */
+/* Custom Scrollbar - Essential for the chat window & sidebar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0a0a0a; }
 ::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; }
@@ -60,8 +60,21 @@ body {
 }
 
 /* Animations */
-@keyframes fadeIn { from { opacity: 0; transform: translateY(15px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(15px) scale(0.98); } 
+    to { opacity: 1; transform: translateY(0) scale(1); } 
+}
 .animate-in { animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 
-@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideInRight { 
+    from { transform: translateX(100%); opacity: 0; } 
+    to { transform: translateX(0); opacity: 1; } 
+}
 .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
+
+/* Tutorial Highlight Pulse */
+@keyframes pulse-ring {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 211, 238, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+}
