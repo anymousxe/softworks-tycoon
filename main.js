@@ -1,4 +1,4 @@
-// --- 1. FIREBASE CONFIGURATION ---
+// --- 1. CONFIGURATION ---
 const firebaseConfig = {
     apiKey: "AIzaSyD0FKEuORJd63FPGbM_P3gThpZknVsytsU",
     authDomain: "softworks-tycoon.firebaseapp.com",
@@ -8,12 +8,8 @@ const firebaseConfig = {
     appId: "1:591489940224:web:9e355e8a43dc06446a91e5"
 };
 
-// Initialize Firebase
-try {
-    firebase.initializeApp(firebaseConfig);
-} catch (e) {
-    console.error("Firebase Init Error:", e);
-}
+// Initialize Services
+try { firebase.initializeApp(firebaseConfig); } catch (e) { console.error("Firebase Init Error:", e); }
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -23,9 +19,11 @@ let activeSaveId = null;
 let gameState = null;
 let saveInterval = null;
 
-// --- GAME DATA ---
 const APP_ID = 'softworks-tycoon';
+const ADMIN_EMAIL = "anymousxe.info@gmail.com";
+const SECRET_CODES = ['xavsf', 'tasik', 'uhgsa', 'kaidg']; // Valid for 30 real days
 
+// --- DATA POOLS ---
 const HARDWARE = [
     { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 2, upkeep: 50 },
     { id: 'a100', name: 'A100 Rack', cost: 8000, compute: 8, upkeep: 150 },
@@ -109,12 +107,36 @@ auth.onAuthStateChanged(user => {
         document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0,8);
         document.getElementById('user-photo').src = photo;
 
+        // --- ADMIN CHECK ---
+        if (user.email === ADMIN_EMAIL) {
+            injectAdminButton();
+        }
+
         loadSaves();
     } else {
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('menu-screen').classList.add('hidden');
     }
 });
+
+function injectAdminButton() {
+    // Only inject if not already there
+    if(document.getElementById('admin-keys-btn')) return;
+
+    const header = document.querySelector('#menu-screen .flex');
+    const btn = document.createElement('button');
+    btn.id = 'admin-keys-btn';
+    btn.className = 'ml-4 bg-red-900/50 border border-red-500 text-red-200 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-red-800 transition';
+    btn.innerHTML = `<i data-lucide="shield-alert" class="inline w-3 h-3 mr-1"></i> Admin Keys`;
+    
+    btn.onclick = () => {
+        alert(`-- CLASSIFIED CODES --\n\n${SECRET_CODES.join('\n')}\n\n(Each valid for 30 Days)`);
+    };
+    
+    // Insert before profile
+    header.appendChild(btn);
+    lucide.createIcons();
+}
 
 document.getElementById('btn-login-google').addEventListener('click', () => {
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert(e.message));
@@ -135,14 +157,30 @@ function loadSaves() {
         container.innerHTML = '';
         snapshot.forEach(doc => {
             const data = doc.data();
+            
+            // Check Premium Status based on Real Time
+            let isPremiumActive = false;
+            if (data.premiumExpiry) {
+                const now = Date.now();
+                if (data.premiumExpiry > now) {
+                    isPremiumActive = true;
+                }
+            }
+
             const el = document.createElement('div');
-            el.className = 'glass-panel p-8 rounded-2xl cursor-pointer hover:border-cyan-500 transition-all group relative hover:-translate-y-1';
+            // Premium Glow Effect
+            const glowClass = isPremiumActive ? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.15)] bg-yellow-900/5' : 'hover:border-cyan-500';
+            
+            el.className = `glass-panel p-8 rounded-2xl cursor-pointer transition-all group relative hover:-translate-y-1 ${glowClass}`;
             el.innerHTML = `
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <h3 class="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors tracking-tight">${data.companyName}</h3>
-                        <div class="mt-2 inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-800 text-slate-400'}">
-                            ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
+                        <div class="mt-2 flex gap-2">
+                            <span class="inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-800 text-slate-400'}">
+                                ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
+                            </span>
+                            ${isPremiumActive ? '<span class="inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest bg-yellow-500 text-black">VIP</span>' : ''}
                         </div>
                     </div>
                     <button class="text-slate-600 hover:text-red-500 delete-btn p-2" data-id="${doc.id}"><i data-lucide="trash-2"></i></button>
@@ -171,7 +209,7 @@ function loadSaves() {
     });
 }
 
-// Create Save
+// Create Save Logic
 let isSandbox = false;
 document.getElementById('btn-toggle-sandbox').addEventListener('click', () => {
     isSandbox = !isSandbox;
@@ -189,11 +227,12 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         week: 1, year: 2025,
         researchPts: isSandbox ? 5000 : 0,
         reputation: 0,
+        premiumExpiry: null, // Timestamp for when premium ends
         hardware: [{ typeId: 'gtx_cluster', count: 1 }],
         products: [],
         reviews: [],
         unlockedTechs: [],
-        shopStock: [], // Store active shop items
+        shopStock: [],
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').add(newSave);
@@ -207,8 +246,11 @@ function startGame(id, data) {
     activeSaveId = id;
     gameState = data;
     if(!gameState.reviews) gameState.reviews = [];
-    if(!gameState.shopStock) refreshShop(); // Initialize shop if empty
+    if(!gameState.shopStock) refreshShop(); 
     
+    // Check Premium Status
+    checkPremiumStatus();
+
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
@@ -220,10 +262,28 @@ function startGame(id, data) {
     saveInterval = setInterval(saveGame, 5000);
 }
 
+function checkPremiumStatus() {
+    if (gameState.premiumExpiry) {
+        const now = Date.now();
+        if (now < gameState.premiumExpiry) {
+            gameState.isPremium = true; // Temporary flag for UI logic
+        } else {
+            gameState.isPremium = false;
+            gameState.premiumExpiry = null; // Clean up
+        }
+    } else {
+        gameState.isPremium = false;
+    }
+}
+
 function saveGame() {
     if(!activeSaveId || !gameState) return;
+    // We don't save 'isPremium' boolean, only the expiry timestamp
+    const saveState = { ...gameState };
+    delete saveState.isPremium; 
+    
     db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
-      .doc(activeSaveId).update(gameState).catch(console.error);
+      .doc(activeSaveId).update(saveState).catch(console.error);
 }
 
 // Rename
@@ -263,9 +323,8 @@ function showToast(msg, type = 'info') {
 }
 
 function refreshShop() {
-    // Pick 4 random items from the pool
     gameState.shopStock = [];
-    const pool = [...SHOP_POOL]; // Copy
+    const pool = [...SHOP_POOL]; 
     for(let i=0; i<4; i++) {
         if(pool.length === 0) break;
         const idx = Math.floor(Math.random() * pool.length);
@@ -285,10 +344,17 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
         gameState.week++;
         if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
 
-        // Shop Refresh Logic (Every 4 weeks)
+        // Shop Refresh
         if(gameState.week % 4 === 0) {
             refreshShop();
             showToast("New Shop Inventory Available!");
+        }
+
+        // Sub Logic - Real Time Check
+        checkPremiumStatus();
+        if(gameState.isPremium) {
+            gameState.cash += 50000; // THE PERK
+            showToast("VIP Bonus: +$50,000", "success");
         }
 
         const upkeep = gameState.hardware.reduce((sum, hw) => sum + (HARDWARE.find(x => x.id === hw.typeId).upkeep * hw.count), 0);
@@ -299,7 +365,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
         // Process Products
         gameState.products.forEach(p => {
-            // Dev Logic
             if((!p.released || p.isUpdating) && p.weeksLeft > 0) {
                 p.weeksLeft--;
                 if(p.weeksLeft <= 0) {
@@ -323,16 +388,12 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                 }
             }
 
-            // Revenue Logic
             if(p.released && !p.isUpdating) {
                 let weeklyRev = 0;
-                
-                // 1. Organic Revenue (Based on Hype + Quality)
                 const organicUsers = Math.floor((p.quality * p.hype * 10));
                 const organicRev = Math.floor(organicUsers * 0.1); 
                 weeklyRev += organicRev;
 
-                // 2. B2B Revenue
                 p.contracts.forEach(cName => {
                     const comp = COMPANIES.find(c => c.name === cName);
                     if(comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
@@ -642,12 +703,60 @@ function renderTab(tab) {
         `;
         const grid = document.getElementById('shop-grid');
         
-        // Mock Stripe Product
-        const stripeEl = document.createElement('div');
-        stripeEl.className = 'glass-panel p-6 rounded-2xl border border-yellow-500/30 bg-yellow-900/10';
-        stripeEl.innerHTML = `<div class="flex justify-between items-start mb-4"><h3 class="font-bold text-white text-xl">PRO LICENSE</h3><span class="bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">PREMIUM</span></div><p class="text-xs text-slate-400 mb-6">Support development & get gold badge.</p><button class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"><span>$4.99 (Stripe)</span></button>`;
-        stripeEl.querySelector('button').onclick = () => alert("Stripe Integration coming soon! (Next Prompt)");
-        grid.appendChild(stripeEl);
+        // --- REDEMPTION BOX ---
+        const redeemEl = document.createElement('div');
+        redeemEl.className = 'glass-panel p-6 rounded-2xl border border-yellow-500/30 bg-yellow-900/10';
+        
+        let daysLeft = 0;
+        if(gameState.premiumExpiry) {
+            daysLeft = Math.ceil((gameState.premiumExpiry - Date.now()) / (1000 * 60 * 60 * 24));
+        }
+
+        if(gameState.isPremium) {
+             redeemEl.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="font-bold text-white text-xl">VIP STATUS</h3>
+                    <span class="bg-green-500 text-black text-xs font-bold px-2 py-1 rounded">ACTIVE</span>
+                </div>
+                <p class="text-xs text-slate-400 mb-6 font-mono">Time Remaining: ${daysLeft > 0 ? daysLeft : 0} Days</p>
+                <div class="text-xs text-yellow-400 font-bold">Perk: +$50,000 / week</div>
+            `;
+        } else {
+            redeemEl.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="font-bold text-white text-xl">REDEEM CODE</h3>
+                    <span class="bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">PRO</span>
+                </div>
+                <p class="text-xs text-slate-400 mb-4">Enter a valid code to unlock VIP status for 30 Days.</p>
+                <input id="code-input" class="w-full bg-black/50 border border-yellow-500/30 text-white p-3 rounded-lg mb-3 text-xs font-mono" placeholder="Enter Code...">
+                <button id="btn-redeem" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl transition-colors">ACTIVATE</button>
+            `;
+        }
+        
+        grid.appendChild(redeemEl);
+        
+        // Logic for Redeem button
+        if(!gameState.isPremium && redeemEl.querySelector('#btn-redeem')) {
+            redeemEl.querySelector('#btn-redeem').onclick = () => {
+                const code = document.getElementById('code-input').value.toLowerCase().trim();
+                if(SECRET_CODES.includes(code)) {
+                    const now = Date.now();
+                    // Add 30 days in milliseconds
+                    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+                    
+                    gameState.premiumExpiry = now + thirtyDays;
+                    gameState.isPremium = true;
+                    gameState.cash += 50000; // Immediate bonus
+                    
+                    saveGame();
+                    showToast("Code Redeemed! VIP Active for 30 Days.", "success");
+                    updateHUD();
+                    renderTab('shop');
+                } else {
+                    showToast("Invalid Code.", "error");
+                }
+            };
+        }
 
         // Render Dynamic Stock
         if(gameState.shopStock) {
