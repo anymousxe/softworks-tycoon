@@ -162,19 +162,24 @@
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <!-- SIDEBAR -->
-            <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-8 gap-3 z-10 backdrop-blur-md transition-colors duration-500">
-                <button class="nav-btn active" data-tab="dash"><i data-lucide="layout-dashboard"></i><span>Dash</span></button>
-                <button class="nav-btn" data-tab="server"><i data-lucide="server"></i><span>Nodes</span></button>
-                <button class="nav-btn" data-tab="research"><i data-lucide="flask-conical"></i><span>R&D</span></button>
-                <button class="nav-btn" data-tab="dev"><i data-lucide="plus-square"></i><span>Dev</span></button>
-                <button class="nav-btn" data-tab="market"><i data-lucide="briefcase"></i><span>B2B</span></button>
-                <button class="nav-btn" data-tab="ads"><i data-lucide="megaphone"></i><span>Ads</span></button>
-                <button class="nav-btn" data-tab="reviews"><i data-lucide="message-square"></i><span>Reviews</span></button>
+            <!-- SIDEBAR (CONSOLIDATED) -->
+            <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-6 gap-3 z-10 backdrop-blur-md transition-colors duration-500 overflow-y-auto custom-scrollbar">
+                <!-- 1. Home (Dash + Reviews) -->
+                <button class="nav-btn active" data-tab="dash"><i data-lucide="layout-dashboard"></i><span>Home</span></button>
+                <!-- 2. Lab (Server + Research) -->
+                <button class="nav-btn" data-tab="lab"><i data-lucide="flask-conical"></i><span>Lab</span></button>
+                <!-- 3. Dev (Create) -->
+                <button class="nav-btn" data-tab="dev"><i data-lucide="plus-square"></i><span>Create</span></button>
+                <!-- 4. Biz (Market + Ads) -->
+                <button class="nav-btn" data-tab="biz"><i data-lucide="trending-up"></i><span>Growth</span></button>
+                <!-- 5. Shop -->
                 <button class="nav-btn" data-tab="shop"><i data-lucide="shopping-cart"></i><span>Shop</span></button>
-                <button class="nav-btn" data-tab="settings"><i data-lucide="settings"></i><span>Settings</span></button>
+                
                 <div class="flex-1"></div>
-                <button id="btn-exit-game" class="nav-btn text-red-500 hover:text-red-400 hover:bg-red-900/10"><i data-lucide="log-out"></i><span>Exit</span></button>
+                
+                <!-- 6. Settings -->
+                <button class="nav-btn" data-tab="settings"><i data-lucide="settings"></i><span>System</span></button>
+                <button id="btn-exit-game" class="nav-btn text-red-500 hover:text-red-400 hover:bg-red-900/10 mt-2"><i data-lucide="log-out"></i><span>Exit</span></button>
             </aside>
 
             <!-- MAIN CONTENT AREA -->
