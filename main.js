@@ -20,6 +20,8 @@ let gameState = null;
 let saveInterval = null;
 
 const APP_ID = 'softworks-tycoon';
+const ADMIN_EMAIL = "anymousxe.info@gmail.com";
+const SECRET_CODES = ['xavsf', 'tasik', 'uhgsa', 'kaidg']; // Valid for 30 real days
 
 // --- DATA POOLS ---
 const HARDWARE = [
@@ -54,6 +56,15 @@ const PRODUCTS = [
     { id: 'game_ai', name: 'NPC Brain', cost: 200000, time: 10, compute: 80, specs: ['Gaming', 'Simulation', 'VR'] },
     { id: 'robotics', name: 'Robot OS', cost: 300000, time: 12, compute: 120, specs: ['Industrial', 'Home', 'Military'] },
     { id: 'agi', name: 'Conscious AI', cost: 5000000, time: 24, compute: 2000, specs: ['Sentience'], reqTech: 'agi_theory' }
+];
+
+const RIVALS = [
+    { name: 'OpenAI (Real)', strength: 95, releases: ['GPT-5', 'Sora 2', 'Omni-Brain'], color: 'text-green-400' },
+    { name: 'Anthropic', strength: 85, releases: ['Claude 4', 'Claude Opus X'], color: 'text-yellow-400' },
+    { name: 'Google DeepMind', strength: 90, releases: ['Gemini Ultra 2', 'AlphaCode 3'], color: 'text-blue-400' },
+    { name: 'Meta AI', strength: 80, releases: ['Llama 4', 'MetaVerse Brain'], color: 'text-blue-300' },
+    { name: 'X.AI', strength: 75, releases: ['Grok 3', 'TruthGPT'], color: 'text-slate-200' },
+    { name: 'Stability', strength: 70, releases: ['Stable Video 4', 'Diffusion XL'], color: 'text-purple-400' }
 ];
 
 const COMPANIES = [
@@ -105,12 +116,28 @@ auth.onAuthStateChanged(user => {
         document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0,8);
         document.getElementById('user-photo').src = photo;
 
+        if (user.email === ADMIN_EMAIL) {
+            injectAdminButton();
+        }
+
         loadSaves();
     } else {
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('menu-screen').classList.add('hidden');
     }
 });
+
+function injectAdminButton() {
+    if(document.getElementById('admin-keys-btn')) return;
+    const header = document.querySelector('#menu-screen .flex');
+    const btn = document.createElement('button');
+    btn.id = 'admin-keys-btn';
+    btn.className = 'ml-4 bg-red-900/50 border border-red-500 text-red-200 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest hover:bg-red-800 transition';
+    btn.innerHTML = `<i data-lucide="shield-alert" class="inline w-3 h-3 mr-1"></i> Admin Keys`;
+    btn.onclick = () => { alert(`-- CLASSIFIED CODES --\n\n${SECRET_CODES.join('\n')}\n\n(Each valid for 30 Days)`); };
+    header.appendChild(btn);
+    lucide.createIcons();
+}
 
 document.getElementById('btn-login-google').addEventListener('click', () => {
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert(e.message));
@@ -131,14 +158,30 @@ function loadSaves() {
         container.innerHTML = '';
         snapshot.forEach(doc => {
             const data = doc.data();
+            
+            // Check Premium Status based on Real Time
+            let isPremiumActive = false;
+            if (data.premiumExpiry) {
+                const now = Date.now();
+                if (data.premiumExpiry > now) {
+                    isPremiumActive = true;
+                }
+            }
+
             const el = document.createElement('div');
-            el.className = `glass-panel p-8 rounded-2xl cursor-pointer hover:border-cyan-500 transition-all group relative hover:-translate-y-1`;
+            // Premium Glow Effect
+            const glowClass = isPremiumActive ? 'border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.15)] bg-yellow-900/5' : 'hover:border-cyan-500';
+            
+            el.className = `glass-panel p-8 rounded-2xl cursor-pointer transition-all group relative hover:-translate-y-1 ${glowClass}`;
             el.innerHTML = `
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <h3 class="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors tracking-tight">${data.companyName}</h3>
-                        <div class="mt-2 inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-800 text-slate-400'}">
-                            ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
+                        <div class="mt-2 flex gap-2">
+                            <span class="inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-800 text-slate-400'}">
+                                ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
+                            </span>
+                            ${isPremiumActive ? '<span class="inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest bg-yellow-500 text-black">VIP</span>' : ''}
                         </div>
                     </div>
                     <button class="text-slate-600 hover:text-red-500 delete-btn p-2" data-id="${doc.id}"><i data-lucide="trash-2"></i></button>
@@ -185,6 +228,8 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         week: 1, year: 2025,
         researchPts: isSandbox ? 5000 : 0,
         reputation: 0,
+        premiumExpiry: null,
+        lastDailyReward: 0,
         hardware: [{ typeId: 'gtx_cluster', count: 1 }],
         products: [],
         reviews: [],
@@ -205,6 +250,14 @@ function startGame(id, data) {
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.shopStock) refreshShop(); 
     
+    // Check Premium Status
+    checkPremiumStatus();
+    
+    // Check Daily Reward (IRL 24 Hour Check)
+    if (gameState.isPremium) {
+        checkDailyReward();
+    }
+
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
@@ -216,10 +269,40 @@ function startGame(id, data) {
     saveInterval = setInterval(saveGame, 5000);
 }
 
+function checkPremiumStatus() {
+    if (gameState.premiumExpiry) {
+        const now = Date.now();
+        if (now < gameState.premiumExpiry) {
+            gameState.isPremium = true; 
+        } else {
+            gameState.isPremium = false;
+            gameState.premiumExpiry = null;
+        }
+    } else {
+        gameState.isPremium = false;
+    }
+}
+
+function checkDailyReward() {
+    const now = Date.now();
+    const lastClaim = gameState.lastDailyReward || 0;
+    const oneDayMs = 24 * 60 * 60 * 1000;
+
+    if (now - lastClaim > oneDayMs) {
+        gameState.cash += 50000;
+        gameState.lastDailyReward = now;
+        showToast("DAILY VIP BONUS: +$50,000 💸", "success");
+        saveGame();
+    }
+}
+
 function saveGame() {
     if(!activeSaveId || !gameState) return;
+    const saveState = { ...gameState };
+    delete saveState.isPremium; // Don't save the temp flag, rely on timestamp
+    
     db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
-      .doc(activeSaveId).update(gameState).catch(console.error);
+      .doc(activeSaveId).update(saveState).catch(console.error);
 }
 
 // Rename
@@ -285,6 +368,21 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             showToast("New Shop Inventory Available!");
         }
 
+        // --- RIVAL AI SIMULATION ---
+        if(Math.random() > 0.85) { // 15% chance per week for a rival to drop
+            const rival = RIVALS[Math.floor(Math.random() * RIVALS.length)];
+            const release = rival.releases[Math.floor(Math.random() * rival.releases.length)];
+            showToast(`COMPETITOR ALERT: ${rival.name} released ${release}!`, 'error');
+            
+            // Effect: Your products lose quality/hype
+            gameState.products.forEach(p => {
+                if(p.released) {
+                    p.hype = Math.max(0, p.hype - 10);
+                    p.quality = Math.max(0, p.quality - 2); // Your tech is getting old
+                }
+            });
+        }
+
         const upkeep = gameState.hardware.reduce((sum, hw) => sum + (HARDWARE.find(x => x.id === hw.typeId).upkeep * hw.count), 0);
         gameState.cash -= upkeep;
 
@@ -306,11 +404,16 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         p.updateType = null;
                     } else {
                         p.released = true;
-                        p.quality = Math.floor(Math.random() * 40) + 50;
+                        
+                        // Apply Research Injection Bonus
+                        const bonus = p.researchBonus || 0;
+                        const baseQ = Math.floor(Math.random() * 40) + 50;
+                        p.quality = Math.min(100, baseQ + bonus);
+                        
                         p.version = 1.0;
                         p.hype = 100;
                         gameState.reputation += 10;
-                        showToast(`🚀 ${p.name} Launched!`, 'success');
+                        showToast(`🚀 ${p.name} Launched! Quality: ${p.quality}/100`, 'success');
                         generateReview(p);
                     }
                 }
@@ -340,7 +443,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             }
         });
 
-        // Market Flux
         if(gameState.week % 4 === 0) {
            COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*200)-100)));
         }
@@ -486,6 +588,51 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
+    if(tab === 'rivals') {
+        content.innerHTML = `
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">MARKET LEADERBOARD</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="rivals-grid"></div>
+        `;
+        const grid = document.getElementById('rivals-grid');
+        
+        // Add Player Card
+        const playerCard = document.createElement('div');
+        playerCard.className = 'glass-panel p-6 rounded-2xl border border-cyan-500/50 bg-cyan-900/10';
+        playerCard.innerHTML = `
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center font-bold text-black">YOU</div>
+                <div>
+                    <h3 class="font-bold text-white">${gameState.companyName}</h3>
+                    <div class="text-xs text-cyan-400">Rising Star</div>
+                </div>
+            </div>
+            <div class="text-2xl font-black text-white">${Math.floor(gameState.reputation)} REP</div>
+        `;
+        grid.appendChild(playerCard);
+
+        RIVALS.forEach(r => {
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-6 rounded-2xl';
+            el.innerHTML = `
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-slate-500">${r.name[0]}</div>
+                    <div>
+                        <h3 class="font-bold text-white ${r.color}">${r.name}</h3>
+                        <div class="text-xs text-slate-500">Market Giant</div>
+                    </div>
+                </div>
+                <div class="flex justify-between text-xs font-mono text-slate-400 mb-2">
+                    <span>Dominance</span>
+                    <span>${r.strength}%</span>
+                </div>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div class="h-full bg-white/20" style="width: ${r.strength}%"></div>
+                </div>
+            `;
+            grid.appendChild(el);
+        });
+    }
+
     if(tab === 'server') {
         content.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>`;
         const grid = document.getElementById('server-grid');
@@ -520,13 +667,37 @@ function renderTab(tab) {
                 <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4" id="dev-types"></div>
                 <div class="glass-panel p-8 rounded-2xl h-fit border-l-4 border-cyan-500">
                     <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="Project Name">
+                    
+                    <!-- Research Injection -->
+                    <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
+                        <div class="flex justify-between text-xs font-bold text-purple-300 mb-2">
+                            <span>Research Injection</span>
+                            <span id="inject-val">0 PTS</span>
+                        </div>
+                        <input type="range" id="research-inject" min="0" max="${gameState.researchPts}" value="0" class="w-full accent-purple-500">
+                        <div class="text-[10px] text-slate-400 mt-2 text-right">+<span id="quality-boost">0</span> Quality Boost</div>
+                    </div>
+
                     <div class="flex items-center gap-3 mb-8 cursor-pointer" id="btn-toggle-opensource"><div class="w-5 h-5 border-2 border-slate-500 rounded" id="check-os"></div><span class="text-sm text-white font-bold">Open Source</span></div>
                     <button id="btn-start-dev" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 tracking-widest text-sm">INITIALIZE</button>
                 </div>
             </div>
         `;
-        let selectedType = null, openSource = false;
+        let selectedType = null, openSource = false, injectAmount = 0;
         const typeContainer = document.getElementById('dev-types');
+        
+        // Setup Slider Logic
+        const slider = document.getElementById('research-inject');
+        const valLabel = document.getElementById('inject-val');
+        const boostLabel = document.getElementById('quality-boost');
+        
+        slider.oninput = (e) => {
+            injectAmount = parseInt(e.target.value);
+            valLabel.textContent = `${injectAmount} PTS`;
+            // 100 Points = 1 Quality
+            boostLabel.textContent = Math.floor(injectAmount / 100);
+        };
+
         PRODUCTS.forEach(p => {
             const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
             const btn = document.createElement('div');
@@ -541,8 +712,25 @@ function renderTab(tab) {
             if(!name || !selectedType) return showToast('Invalid Config', 'error');
             if(gameState.cash < selectedType.cost && !gameState.isSandbox) return showToast('No Funds', 'error');
             if(getCompute() < selectedType.compute) return showToast('Need Compute', 'error');
+            
             gameState.cash -= selectedType.cost;
-            gameState.products.push({ id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 0, revenue: 0, hype: 0, released: false, isUpdating: false, isOpenSource: openSource, weeksLeft: selectedType.time, contracts: [] });
+            gameState.researchPts -= injectAmount; // Deduct injected points
+            
+            gameState.products.push({ 
+                id: Date.now().toString(), 
+                name, 
+                type: selectedType.id, 
+                version: 1.0, 
+                quality: 0, 
+                revenue: 0, 
+                hype: 0, 
+                released: false, 
+                isUpdating: false, 
+                isOpenSource: openSource, 
+                weeksLeft: selectedType.time, 
+                researchBonus: Math.floor(injectAmount / 100), // Save bonus for release
+                contracts: [] 
+            });
             updateHUD(); showToast('Started Dev', 'success'); renderTab('dash');
         };
     }
@@ -629,6 +817,61 @@ function renderTab(tab) {
         `;
         const grid = document.getElementById('shop-grid');
         
+        // --- REDEMPTION BOX ---
+        const redeemEl = document.createElement('div');
+        redeemEl.className = 'glass-panel p-6 rounded-2xl border border-yellow-500/30 bg-yellow-900/10';
+        
+        let daysLeft = 0;
+        if(gameState.premiumExpiry) {
+            daysLeft = Math.ceil((gameState.premiumExpiry - Date.now()) / (1000 * 60 * 60 * 24));
+        }
+
+        if(gameState.isPremium) {
+             redeemEl.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="font-bold text-white text-xl">VIP STATUS</h3>
+                    <span class="bg-green-500 text-black text-xs font-bold px-2 py-1 rounded">ACTIVE</span>
+                </div>
+                <p class="text-xs text-slate-400 mb-6 font-mono">Time Remaining: ${daysLeft > 0 ? daysLeft : 0} Days</p>
+                <div class="text-xs text-yellow-400 font-bold">Perk: +$50,000 / 24hrs (IRL)</div>
+            `;
+        } else {
+            redeemEl.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="font-bold text-white text-xl">REDEEM CODE</h3>
+                    <span class="bg-yellow-500 text-black text-xs font-bold px-2 py-1 rounded">PRO</span>
+                </div>
+                <p class="text-xs text-slate-400 mb-4">Enter a valid code to unlock VIP status for 30 Days.</p>
+                <input id="code-input" class="w-full bg-black/50 border border-yellow-500/30 text-white p-3 rounded-lg mb-3 text-xs font-mono" placeholder="Enter Code...">
+                <button id="btn-redeem" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl transition-colors">ACTIVATE</button>
+            `;
+        }
+        
+        grid.appendChild(redeemEl);
+        
+        // Logic for Redeem button
+        if(!gameState.isPremium && redeemEl.querySelector('#btn-redeem')) {
+            redeemEl.querySelector('#btn-redeem').onclick = () => {
+                const code = document.getElementById('code-input').value.toLowerCase().trim();
+                if(SECRET_CODES.includes(code)) {
+                    const now = Date.now();
+                    // Add 30 days in milliseconds
+                    const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+                    
+                    gameState.premiumExpiry = now + thirtyDays;
+                    gameState.isPremium = true;
+                    gameState.cash += 50000; // Immediate bonus
+                    
+                    saveGame();
+                    showToast("Code Redeemed! VIP Active for 30 Days.", "success");
+                    updateHUD();
+                    renderTab('shop');
+                } else {
+                    showToast("Invalid Code.", "error");
+                }
+            };
+        }
+
         // Render Dynamic Stock
         if(gameState.shopStock) {
             gameState.shopStock.forEach(item => {
