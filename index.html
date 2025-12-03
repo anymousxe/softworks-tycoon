@@ -17,7 +17,7 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://softworks-tycoon.xyz/">
     <meta property="og:title" content="Softworks Tycoon">
-    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market in this real-time strategy game.">
+    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
     <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png">
     <meta name="theme-color" content="#06b6d4">
 </head>
@@ -26,14 +26,11 @@
     <!-- NOTIFICATION CONTAINER -->
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- TUTORIAL OVERLAY -->
-    <!-- pointer-events-none ensures clicks pass through the background if needed -->
+    <!-- TUTORIAL OVERLAY (Fixed) -->
     <div id="tutorial-overlay" class="hidden fixed inset-0 z-[90] pointer-events-none">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
-        
-        <!-- Highlight Box (Positioned by JS) -->
+        <!-- Highlight Box -->
         <div id="tutorial-highlight" class="absolute border-4 border-cyan-400 rounded-xl shadow-[0_0_50px_rgba(34,211,238,0.5)] transition-all duration-300"></div>
-        
         <!-- Tutorial Text Box -->
         <div id="tutorial-box" class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#0a0a0a] border border-cyan-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl pointer-events-auto flex flex-col gap-4 animate-in">
             <div class="flex items-center gap-3">
@@ -52,7 +49,7 @@
     <div id="skip-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
         <div class="glass-panel p-8 rounded-2xl max-w-sm w-full relative shadow-2xl bg-black animate-in border border-red-500/30">
             <h3 class="text-xl font-bold text-white mb-2">Abort Training?</h3>
-            <p class="text-slate-400 text-sm mb-6">You will miss out on the initial funding grant and guidance. Are you sure?</p>
+            <p class="text-slate-400 text-sm mb-6">You will miss out on guidance. Are you sure?</p>
             <div class="flex gap-3">
                 <button id="btn-cancel-skip" class="px-4 py-2 text-slate-300 hover:text-white text-sm font-bold">RESUME</button>
                 <button id="btn-confirm-skip" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-lg text-sm transition-colors">SKIP IT</button>
@@ -67,7 +64,6 @@
                 <h3 class="text-xl font-bold text-white">System Settings</h3>
                 <button id="btn-close-settings" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
             </div>
-            
             <div class="space-y-4">
                 <div class="flex items-center justify-between p-4 border border-slate-800 rounded-xl bg-slate-900/50">
                     <div>
@@ -76,18 +72,6 @@
                     </div>
                     <button id="btn-restart-tutorial" class="bg-slate-800 hover:bg-white hover:text-black text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">START</button>
                 </div>
-                
-                <div class="flex items-center justify-between p-4 border border-slate-800 rounded-xl bg-slate-900/50">
-                    <div>
-                        <div class="text-white font-bold text-sm">Clear AI History</div>
-                        <div class="text-xs text-slate-500">Wipe chat memory & cooldowns</div>
-                    </div>
-                    <button id="btn-wipe-ai" class="text-red-400 hover:bg-red-900/20 px-4 py-2 rounded-lg text-xs font-bold transition-colors border border-red-900/30">WIPE</button>
-                </div>
-            </div>
-            
-            <div class="mt-6 pt-6 border-t border-white/10 text-center">
-                <p class="text-[10px] text-slate-600 font-mono">Softworks v2.3 // Build 2025</p>
             </div>
         </div>
     </div>
@@ -152,32 +136,6 @@
         </div>
     </div>
 
-    <!-- CREATE SCREEN -->
-    <div id="create-screen" class="hidden fixed inset-0 z-40 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-[#0a0a0a] border border-slate-800 p-10 max-w-lg w-full rounded-3xl relative shadow-2xl">
-            <h2 class="text-4xl font-black text-white mb-8">NEW SAVE</h2>
-            <div class="space-y-6 mb-10">
-                <div>
-                    <label class="block text-slate-500 text-xs font-bold uppercase mb-2 tracking-wider">Company Name</label>
-                    <input id="inp-comp-name" type="text" placeholder="e.g. Cyberdyne" class="w-full bg-slate-900/50 border border-slate-800 p-4 text-white focus:border-cyan-500 outline-none rounded-xl transition-colors font-bold text-lg">
-                </div>
-                <div id="btn-toggle-sandbox" class="p-4 border border-slate-800 cursor-pointer flex justify-between items-center hover:bg-slate-900 transition rounded-xl group">
-                    <div>
-                        <div class="font-bold text-white group-hover:text-cyan-400 transition-colors">Sandbox Mode</div>
-                        <div class="text-xs text-slate-500">Unlimited Funds. No Stress.</div>
-                    </div>
-                    <i data-lucide="zap" class="text-slate-600 group-hover:text-yellow-400 transition-colors"></i>
-                </div>
-            </div>
-            <div class="flex gap-4">
-                <button id="btn-cancel-create" class="px-6 py-4 text-slate-500 hover:text-white font-bold transition-colors text-sm tracking-widest">CANCEL</button>
-                <button id="btn-confirm-create" class="flex-1 bg-white hover:bg-cyan-400 text-black font-bold py-4 rounded-xl transition-all shadow-lg shadow-white/10 hover:shadow-cyan-400/20 flex items-center justify-center gap-2">
-                    INITIALIZE <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- GAME UI -->
     <div id="game-screen" class="hidden flex flex-col h-screen bg-[#050505]">
         <!-- TOP HUD -->
@@ -235,14 +193,12 @@
                 <button id="nav-reviews" class="nav-btn" data-tab="reviews"><i data-lucide="star"></i><span>Reviews</span></button>
                 <button id="nav-shop" class="nav-btn" data-tab="shop"><i data-lucide="shopping-cart"></i><span>Shop</span></button>
                 
-                <!-- SIDEBAR AI BUTTON -->
                 <div class="w-12 h-px bg-white/10 my-1"></div>
                 <button id="btn-toggle-chat-sidebar" class="nav-btn text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/10">
                     <i data-lucide="bot"></i><span>AI Help</span>
                 </button>
 
                 <div class="flex-1"></div>
-                <!-- SETTINGS BUTTON -->
                 <button id="btn-settings" class="nav-btn hover:text-white"><i data-lucide="settings"></i><span>Settings</span></button>
                 <button id="btn-exit-game" class="nav-btn text-red-500 hover:text-red-400 hover:bg-red-900/10 mt-2"><i data-lucide="log-out"></i><span>Exit</span></button>
             </aside>
@@ -251,7 +207,6 @@
             <main id="main-view" class="flex-1 overflow-y-auto bg-[#050505] p-8 relative">
                 <!-- Background ambient glow -->
                 <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none"></div>
-                
                 <div class="max-w-7xl mx-auto relative z-10" id="content-area">
                     <!-- Content injected by JS -->
                 </div>
@@ -259,11 +214,9 @@
         </div>
     </div>
 
-    <!-- AI CHAT WIDGET (Window Only) -->
+    <!-- AI CHAT WIDGET -->
     <div id="ai-widget-container" class="fixed bottom-6 right-28 z-[100] flex flex-col items-end gap-4 pointer-events-none">
-        <!-- Chat Window -->
         <div id="ai-chat-window" class="hidden w-[350px] h-[500px] glass-panel rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-cyan-500/30 animate-in origin-bottom-left pointer-events-auto bg-black">
-            <!-- Header -->
             <div class="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center backdrop-blur-md">
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center animate-pulse">
@@ -276,13 +229,9 @@
                 </div>
                 <button id="btn-close-chat" class="text-slate-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
-
-            <!-- Messages Area -->
             <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-black/20">
                 <!-- Messages injected here -->
             </div>
-
-            <!-- Input Area -->
             <div class="p-3 bg-black/60 border-t border-white/10 backdrop-blur-md">
                 <form id="chat-form" class="flex gap-2">
                     <input id="chat-input" type="text" placeholder="Ask System AI..." class="flex-1 bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white focus:border-cyan-500 outline-none transition-colors font-mono">
