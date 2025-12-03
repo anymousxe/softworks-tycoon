@@ -39,7 +39,7 @@ body {
     font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
 }
 
-/* Glass Panel - Used for Rivals & Dashboard */
+/* Glass Panel - Used for Rivals, Dashboard & Popups */
 .glass-panel {
     background: rgba(15, 15, 15, 0.6);
     backdrop-filter: blur(12px);
@@ -58,5 +58,6 @@ body {
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(15px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 .animate-in { animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
 @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
