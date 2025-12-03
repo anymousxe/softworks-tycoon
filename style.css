@@ -1,113 +1,135 @@
 /* Base overrides */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #050505; /* Deep OLED Black */
+    background-color: #050505; /* Default Dark (OLED) */
+    color: #e2e8f0;
+    transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
 }
 .font-mono {
     font-family: 'JetBrains Mono', monospace;
 }
 
-/* --- CUSTOM SCROLLBAR (The "Expensive" Look) --- */
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-::-webkit-scrollbar-track {
-    background: #0a0a0a; 
-}
-::-webkit-scrollbar-thumb {
-    background: #262626; 
-    border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: #06b6d4; /* Cyan hover */
-}
+/* --- THEME ENGINE --- */
 
-/* --- NAV BUTTON STYLES --- */
-.nav-btn {
-    width: 56px;
-    height: 56px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    border-radius: 14px;
-    color: #525252; /* Slate-600 ish */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    border: 1px solid transparent;
-    background: transparent;
+/* 1. Light Mode (Free) */
+body.theme-light {
+    background-color: #f1f5f9;
+    color: #0f172a;
 }
-
-.nav-btn:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #e2e8f0;
-    transform: translateY(-2px);
+body.theme-light .glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
+body.theme-light .text-slate-500 { color: #64748b; }
+body.theme-light .text-white { color: #0f172a; }
+body.theme-light .border-slate-700 { border-color: #cbd5e1; }
+body.theme-light .border-slate-800 { border-color: #e2e8f0; }
+body.theme-light .bg-slate-900\/50 { background-color: rgba(255, 255, 255, 0.5); }
+body.theme-light .nav-btn:hover { background-color: rgba(0, 0, 0, 0.05); color: #000; }
 
-.nav-btn.active {
-    background-color: rgba(34, 211, 238, 0.1); /* Cyan bg */
-    color: #22d3ee;
-    border: 1px solid rgba(34, 211, 238, 0.2);
-    box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
+/* 2. Hacker Mode (Premium) */
+body.theme-hacker {
+    background-color: #000000;
+    color: #00ff00;
+    font-family: 'JetBrains Mono', monospace; /* Force monospace everywhere */
 }
-
-.nav-btn span {
-    font-size: 8px;
-    font-weight: 800;
+body.theme-hacker * {
+    border-radius: 0 !important; /* Brutalist / Terminal style */
+    font-family: 'JetBrains Mono', monospace;
+}
+body.theme-hacker .glass-panel {
+    background: #000000;
+    border: 1px solid #003300;
+    box-shadow: none;
+}
+body.theme-hacker .text-white { color: #00ff00; }
+body.theme-hacker .text-slate-500 { color: #005500; }
+body.theme-hacker .text-slate-400 { color: #004400; }
+body.theme-hacker .bg-slate-900\/50 { background-color: #001100; border: 1px solid #00ff00; }
+body.theme-hacker button {
+    background: #000;
+    border: 1px solid #00ff00;
+    color: #00ff00;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+}
+body.theme-hacker button:hover {
+    background: #00ff00;
+    color: #000;
+}
+body.theme-hacker .nav-btn.active {
+    border: 1px solid #00ff00;
+    color: #00ff00;
+    box-shadow: 0 0 10px #00ff00;
+    background: #001100;
 }
 
-/* --- UTILITIES --- */
+/* 3. Liquid Glass Mode (Premium) */
+body.theme-liquid {
+    background: linear-gradient(135deg, #0f172a, #312e81, #1e1b4b, #000000);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    color: #e0e7ff;
+}
+body.theme-liquid .glass-panel {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+body.theme-liquid button {
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.1);
+}
 
-/* Glass Panel - Used heavily in main.js */
+@keyframes gradientBG {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* --- SCROLLBAR --- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+
+/* --- COMPONENTS --- */
+.nav-btn {
+    width: 56px; height: 56px; display: flex; flex-direction: column; alignItems: center; justifyContent: center;
+    gap: 4px; border-radius: 14px; color: #525252; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative; border: 1px solid transparent; background: transparent;
+}
+.nav-btn:hover { background-color: rgba(255, 255, 255, 0.05); color: #e2e8f0; transform: translateY(-2px); }
+.nav-btn.active {
+    background-color: rgba(34, 211, 238, 0.1); color: #22d3ee;
+    border: 1px solid rgba(34, 211, 238, 0.2); box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
+}
+
 .glass-panel {
     background: rgba(15, 15, 15, 0.6);
     backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Premium VIP Glow (Gold) */
+/* Gold Glow for VIPs */
 .premium-glow {
     box-shadow: 0 0 30px rgba(234, 179, 8, 0.15);
     border: 1px solid rgba(234, 179, 8, 0.4);
     background: linear-gradient(145deg, rgba(234, 179, 8, 0.05) 0%, rgba(0,0,0,0) 100%);
 }
 
-/* Grid background pattern */
 .bg-grid-white {
     background-size: 40px 40px;
     background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
                       linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
-/* --- ANIMATIONS --- */
-
-/* Fade In for Tabs */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(15px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.animate-in {
-    animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-
-/* Toast Notification Slide-In */
-@keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-.toast-enter { 
-    animation: slideInRight 0.3s ease-out forwards; 
-}
-
-/* Pulse Glow for HUD elements */
-@keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 10px rgba(6, 182, 212, 0.2); }
-    50% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.5); }
-}
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(15px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.animate-in { animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.toast-enter { animation: slideInRight 0.3s ease-out forwards; }
+@keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 10px rgba(6, 182, 212, 0.2); } 50% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.5); } }
