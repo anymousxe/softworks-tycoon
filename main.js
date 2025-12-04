@@ -198,8 +198,6 @@ function startGame(id, data) {
         });
     }
 
-    // --- FIX FOR BLANK TYPES ---
-    // If we load an old save, rivals might have missing types. Fix them now.
     if(gameState.marketModels.length > 0) {
         const types = ['text', 'image', 'audio', 'video', 'game_ai', 'robotics', 'agi'];
         gameState.marketModels.forEach(m => {
@@ -389,7 +387,7 @@ function generateRivalRelease() {
     const variant = variants[Math.floor(Math.random() * variants.length)];
     const variantSuffix = variant ? ` [${variant}]` : '';
     
-    // Competitor Types (VARIETY FIX)
+    // Competitor Types
     const types = ['text', 'image', 'audio', 'video', 'game_ai', 'robotics', 'agi'];
     const type = types[Math.floor(Math.random() * types.length)];
 
@@ -412,7 +410,7 @@ function generateRivalRelease() {
         company: rival.name,
         color: rival.color,
         quality: quality,
-        modelType: type, // ENSURED
+        modelType: type, 
         type: variant || 'Base',
         isOpenSource: isOpenSource,
         week: gameState.week,
@@ -429,7 +427,14 @@ function generateRivalRelease() {
     if (gameState.products) {
         let hitCount = 0;
         gameState.products.forEach(p => {
-            if(p.released) {
+            // SAFEGUARD: Only released AND not-updating models get hit
+            // If p.released is true AND p.isUpdating is true, it means it's live but being patched.
+            // We can decide to protect it or not. The user said "models still in development".
+            // New products have released: false.
+            // Updates have released: true, isUpdating: true.
+            // Logic: if it's currently being worked on (isUpdating) OR not released yet, it is immune.
+            
+            if(p.released && !p.isUpdating) {
                 // If rival is better, bigger hit. Open Source hits harder.
                 let hit = quality > p.quality ? 5 : 2;
                 if(isOpenSource) hit += 2; // Extra damage from free models
@@ -439,7 +444,7 @@ function generateRivalRelease() {
                 hitCount++;
             }
         });
-        if(hitCount > 0) showToast(`Market shift! Your models lost quality.`, 'info');
+        if(hitCount > 0) showToast(`Market shift! Your live models lost quality.`, 'info');
     }
 }
 
@@ -496,11 +501,21 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                                     p.version = 1.0;
                                     if (p.updateType === 'lite') p.quality = Math.min(80, p.quality * 0.8);
                                     if (p.updateType === 'ultra') p.quality = Math.min(100, p.quality * 1.3);
+                                    
+                                    // Apply Variant Research Bonus
+                                    if(p.researchBonus) p.quality = Math.min(150, p.quality + p.researchBonus);
+                                    p.researchBonus = 0; // Reset
+
                                     p.hype = 100;
                                     showToast(`${p.name} Launched!`, 'success');
                                 } else {
                                     p.version = parseFloat((p.version + (major ? 1.0 : 0.1)).toFixed(1));
                                     p.quality = Math.min(150, p.quality + (major ? 15 : 5));
+                                    
+                                    // Apply Update Research Bonus
+                                    if(p.researchBonus) p.quality = Math.min(150, p.quality + p.researchBonus);
+                                    p.researchBonus = 0; // Reset
+
                                     p.hype = 100;
                                     showToast(`${p.name} updated to v${p.version}!`, 'success');
                                 }
@@ -683,8 +698,9 @@ function renderTab(tab) {
                     </div>
                     <button class="w-full mt-2 text-slate-500 hover:text-red-500 text-[10px] font-bold py-2 btn-delete transition-colors">DISCONTINUE PRODUCT</button>
                 `;
-                card.querySelector('.btn-patch').onclick = () => startUpdate(p.id, 'minor');
-                card.querySelector('.btn-major').onclick = () => startUpdate(p.id, 'major');
+                // NEW: Use the UPDATE MODAL for patches
+                card.querySelector('.btn-patch').onclick = () => openUpdateModal(p.id, 'minor');
+                card.querySelector('.btn-major').onclick = () => openUpdateModal(p.id, 'major');
                 card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id);
                 card.querySelector('.btn-api').onclick = () => openApiModal(p.id); 
                 card.querySelector('.btn-delete').onclick = () => {
@@ -963,7 +979,7 @@ function renderTab(tab) {
             gameState.products.push({ 
                 id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 0, revenue: 0, hype: 0, 
                 released: false, isUpdating: false, isOpenSource: openSource, weeksLeft: selectedType.time, 
-                researchBonus: injectAmount, // 1:1 RATIO FIX
+                researchBonus: injectAmount, 
                 contracts: [],
                 apiConfig: { active: false, price: 0, limit: 100 }
             });
@@ -1085,7 +1101,7 @@ function renderTab(tab) {
                          let count = 0;
                          if(gameState.products) {
                              gameState.products.forEach(p => { 
-                                 if(p.released) { p.hype = Math.min(250, p.hype + ad.hype); count++; } // CAP RAISED TO 250
+                                 if(p.released) { p.hype = Math.min(250, p.hype + ad.hype); count++; }
                              });
                          }
                          if(count > 0) {
@@ -1163,6 +1179,7 @@ function renderTab(tab) {
 // VARIANT LOGIC
 let selectedVariantId = null;
 let selectedVariantType = null;
+let variantInjectAmount = 0;
 const variantModal = document.getElementById('variant-modal');
 
 function openVariantModal(productId) {
@@ -1171,6 +1188,11 @@ function openVariantModal(productId) {
     
     selectedVariantId = productId;
     selectedVariantType = null;
+    variantInjectAmount = 0;
+    document.getElementById('variant-research-slider').value = 0;
+    document.getElementById('variant-inject-val').textContent = "0 PTS";
+    document.getElementById('variant-quality-boost').textContent = "0";
+    
     document.getElementById('variant-base-name').textContent = p.name;
     document.getElementById('custom-variant-input').classList.add('hidden');
     
@@ -1184,6 +1206,13 @@ function openVariantModal(productId) {
     
     variantModal.classList.remove('hidden');
 }
+
+// Variant Slider Logic
+document.getElementById('variant-research-slider').oninput = (e) => {
+    variantInjectAmount = parseInt(e.target.value);
+    document.getElementById('variant-inject-val').textContent = `${variantInjectAmount} PTS`;
+    document.getElementById('variant-quality-boost').textContent = variantInjectAmount;
+};
 
 document.querySelectorAll('.variant-opt').forEach(btn => {
     btn.onclick = () => {
@@ -1237,12 +1266,13 @@ document.getElementById('btn-confirm-variant').onclick = () => {
 
     const cost = Math.floor(50000 * costMult); 
 
-    if(gameState.cash < cost && !gameState.isSandbox) {
-        showToast('Insufficient Funds for Variant', 'error');
+    if((gameState.cash < cost || gameState.researchPts < variantInjectAmount) && !gameState.isSandbox) {
+        showToast('Insufficient Funds/Research', 'error');
         return;
     }
 
     gameState.cash -= cost;
+    gameState.researchPts -= variantInjectAmount;
     
     gameState.products.push({
         id: Date.now().toString(),
@@ -1257,6 +1287,7 @@ document.getElementById('btn-confirm-variant').onclick = () => {
         updateType: selectedVariantType,
         isOpenSource: parent.isOpenSource,
         weeksLeft: time,
+        researchBonus: variantInjectAmount, // Apply Bonus
         contracts: [],
         apiConfig: { active: false, price: 0, limit: 100 }
     });
@@ -1267,7 +1298,61 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     showToast(`Developing variant...`, 'success');
 };
 
-// --- API MODAL LOGIC (UPDATED WITH INPUT SYNC) ---
+// --- UPDATE MODAL LOGIC (NEW) ---
+const updateModal = document.getElementById('update-modal');
+let selectedUpdateId = null;
+let selectedUpdateType = null;
+let updateInjectAmount = 0;
+
+function openUpdateModal(productId, type) {
+    const p = gameState.products.find(x => x.id === productId);
+    if(!p) return;
+    
+    selectedUpdateId = productId;
+    selectedUpdateType = type;
+    updateInjectAmount = 0;
+    
+    document.getElementById('update-target-name').textContent = p.name;
+    document.getElementById('update-research-slider').value = 0;
+    document.getElementById('update-inject-val').textContent = "0 PTS";
+    document.getElementById('update-quality-boost').textContent = "0";
+    
+    // Set max based on current RP
+    document.getElementById('update-research-slider').max = gameState.researchPts;
+    
+    updateModal.classList.remove('hidden');
+}
+
+document.getElementById('update-research-slider').oninput = (e) => {
+    updateInjectAmount = parseInt(e.target.value);
+    document.getElementById('update-inject-val').textContent = `${updateInjectAmount} PTS`;
+    document.getElementById('update-quality-boost').textContent = updateInjectAmount;
+};
+
+document.getElementById('btn-cancel-update').onclick = () => updateModal.classList.add('hidden');
+
+document.getElementById('btn-confirm-update').onclick = () => {
+    if(!selectedUpdateId) return;
+    const p = gameState.products.find(x => x.id === selectedUpdateId);
+    
+    if(gameState.researchPts < updateInjectAmount && !gameState.isSandbox) {
+        showToast('Insufficient Research Points', 'error');
+        return;
+    }
+    
+    gameState.researchPts -= updateInjectAmount;
+    p.isUpdating = true;
+    p.updateType = selectedUpdateType;
+    p.weeksLeft = selectedUpdateType === 'major' ? 6 : 2;
+    p.researchBonus = updateInjectAmount; // Store bonus for later
+    
+    updateModal.classList.add('hidden');
+    renderTab('dash');
+    updateHUD();
+    showToast(`Update started for ${p.name}`);
+};
+
+// --- API MODAL LOGIC ---
 const apiModal = document.getElementById('api-modal');
 let selectedApiId = null;
 
@@ -1352,10 +1437,5 @@ document.getElementById('btn-save-api').onclick = () => {
 };
 
 document.getElementById('btn-close-api').onclick = () => apiModal.classList.add('hidden');
-
-function startUpdate(id, type) {
-    const p = gameState.products.find(x => x.id === id);
-    if(p) { p.isUpdating = true; p.updateType = type; p.weeksLeft = type === 'major' ? 6 : 2; renderTab('dash'); showToast(`Update started for ${p.name}`); }
-}
 
 lucide.createIcons();
