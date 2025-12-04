@@ -40,7 +40,10 @@ body {
     border: 1px solid rgba(34, 211, 238, 0.2); box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
 }
 .nav-btn span {
-    font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+    font-size: 8px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 /* Glass Panel */
