@@ -10,11 +10,52 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icon.png" />
 
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://softworks-tycoon.xyz/">
+    <meta property="og:title" content="Softworks Tycoon">
+    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
+    <meta property="og:image" content="banner.png">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Softworks Tycoon">
+    <meta name="twitter:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
+    <meta name="twitter:image" content="banner.png">
+
     <meta name="theme-color" content="#06b6d4">
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
 
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
+
+    <div id="changelog-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-lg w-full relative shadow-2xl bg-black animate-in border border-cyan-500/30">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-lg text-white">
+                    <i data-lucide="sparkles"></i>
+                </div>
+                <h3 class="text-2xl font-black text-white tracking-tight">SYSTEM UPDATE v2.5</h3>
+            </div>
+            
+            <div class="space-y-4 mb-8">
+                <div class="bg-green-900/20 border border-green-500/30 p-4 rounded-xl">
+                    <h4 class="text-green-400 font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> CRITICAL FIXES</h4>
+                    <p class="text-slate-300 text-xs">Fixed "Next Week" freeze, restored Manage tab, and stabilized data saving.</p>
+                </div>
+
+                <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
+                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-yellow-400"></i> EMPLOYEES & CONTRACTS</h4>
+                    <p class="text-slate-300 text-xs">You can now Hire/Fire staff and pitch your models to companies like "Lmsite" and "Facebooc".</p>
+                </div>
+
+                <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
+                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="globe" class="w-4 h-4 text-purple-400"></i> API ECONOMY</h4>
+                    <p class="text-slate-300 text-xs">Release APIs for your models. Set prices for revenue or make them free for massive Hype.</p>
+                </div>
+            </div>
+
+            <button id="btn-close-changelog" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl text-sm transition-all shadow-lg shadow-white/5 tracking-widest">ACKNOWLEDGE</button>
+        </div>
+    </div>
 
     <div id="tutorial-overlay" class="hidden fixed inset-0 z-[90]">
         <div id="tutorial-highlight" class="absolute rounded-xl transition-all duration-300 pointer-events-none"></div>
