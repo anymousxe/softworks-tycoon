@@ -14,11 +14,13 @@
     <meta property="og:url" content="https://softworks-tycoon.xyz/">
     <meta property="og:title" content="Softworks Tycoon">
     <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
-    <meta property="og:image" content="banner.png">
+    <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png">
+    
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Softworks Tycoon">
     <meta name="twitter:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
-    <meta name="twitter:image" content="banner.png">
+    <meta name="twitter:image" content="https://softworks-tycoon.xyz/banner.png">
+
     <meta name="theme-color" content="#06b6d4">
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
@@ -33,16 +35,24 @@
                 </div>
                 <h3 class="text-2xl font-black text-white tracking-tight">SYSTEM UPDATE v2.8</h3>
             </div>
+            
             <div class="space-y-4 mb-8">
                 <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
                     <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i> DISCONTINUE RESTORED</h4>
                     <p class="text-slate-300 text-xs">You can now delete old products from the dashboard to clean up your portfolio.</p>
                 </div>
+
                 <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
                     <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="briefcase" class="w-4 h-4 text-green-400"></i> CONTRACT GRID</h4>
                     <p class="text-slate-300 text-xs">Visual B2B interface. Toggle model access for companies instantly.</p>
                 </div>
+
+                <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
+                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="globe" class="w-4 h-4 text-purple-400"></i> API PRECISION</h4>
+                    <p class="text-slate-300 text-xs">Set exact decimal pricing (e.g. $0.002) and custom rate limits.</p>
+                </div>
             </div>
+
             <button id="btn-close-changelog" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl text-sm transition-all shadow-lg shadow-white/5 tracking-widest">ACKNOWLEDGE</button>
         </div>
     </div>
@@ -71,6 +81,7 @@
                 </div>
                 <button id="btn-close-variant" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
             </div>
+
             <div class="grid grid-cols-5 gap-4 mb-6">
                 <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-green-500 rounded-xl text-left transition-all" data-type="lite">
                     <span class="font-bold text-white block mb-1">Lite</span>
@@ -93,10 +104,12 @@
                     <span class="text-[10px] text-slate-400">You Name It</span>
                 </button>
             </div>
+
             <div id="custom-variant-input" class="hidden mb-6">
                  <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">Custom Variant Name</label>
                  <input id="inp-custom-variant" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="e.g. Turbo Edition">
             </div>
+
             <button id="btn-confirm-variant" class="w-full bg-slate-800 text-slate-500 font-bold py-4 rounded-xl transition-all tracking-widest text-sm cursor-not-allowed" disabled>SELECT A VARIANT</button>
         </div>
     </div>
@@ -151,7 +164,9 @@
     <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
         <div class="relative bg-black/40 border border-white/10 p-12 rounded-3xl shadow-2xl max-w-md w-full text-center backdrop-blur-xl">
-            <img src="banner.png" class="w-full max-w-[200px] mx-auto mb-6 rounded-lg shadow-lg border border-white/10" alt="Softworks Banner">
+            <div class="mb-6 inline-block p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
+                <i data-lucide="cpu" class="w-10 h-10 text-white"></i>
+            </div>
             
             <h1 class="text-5xl font-black text-white mb-2 tracking-tighter">SOFTWORKS</h1>
             <p class="text-cyan-400 font-mono mb-10 text-sm tracking-[0.2em] uppercase opacity-80">Tycoon Edition</p>
@@ -170,7 +185,6 @@
     <div id="menu-screen" class="hidden min-h-screen p-8 pt-20 max-w-7xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
             <div>
-                <img src="banner.png" class="w-64 mb-6 rounded-xl shadow-2xl border border-white/10" alt="Softworks Banner">
                 <h1 class="text-6xl md:text-8xl font-black text-white mb-2 tracking-tighter">SOFTWORKS</h1>
                 <div class="text-cyan-500 font-mono tracking-widest text-lg">SELECT SAVE FILE</div>
             </div>
