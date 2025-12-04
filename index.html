@@ -9,12 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icon.png" />
-
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://softworks-tycoon.xyz/">
-    <meta property="og:title" content="Softworks Tycoon">
-    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
-    <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png">
     <meta name="theme-color" content="#06b6d4">
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
@@ -24,33 +18,33 @@
     <div id="changelog-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
         <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black border-2 border-cyan-500/30 animate-in">
             <div class="absolute -top-3 -right-3 bg-cyan-500 text-black font-black text-xs px-3 py-1 rounded-full animate-bounce shadow-[0_0_15px_cyan]">
-                V2.0 LIVE
+                V2.1 LIVE
             </div>
             <h3 class="text-3xl font-black text-white mb-2 tracking-tighter">PATCH NOTES</h3>
-            <p class="text-slate-400 text-xs font-mono mb-6">System Update: 2025.12.03</p>
+            <p class="text-slate-400 text-xs font-mono mb-6">System Update: 2025.12.04</p>
             
             <div class="space-y-4 mb-8">
                 <div class="flex gap-4 items-start">
                     <div class="bg-red-500/20 p-2 rounded-lg text-red-500"><i data-lucide="bug"></i></div>
                     <div>
-                        <h4 class="font-bold text-white text-sm">Critical Bug Fix</h4>
-                        <p class="text-xs text-slate-400 leading-relaxed">Fixed a massive database error that was corrupting save files. Your empire is safe now.</p>
+                        <h4 class="font-bold text-white text-sm">API Core Fixed</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">Switched backend to Gemini 2.0 Flash. No more crashes.</p>
                     </div>
                 </div>
 
                 <div class="flex gap-4 items-start">
-                    <div class="bg-purple-500/20 p-2 rounded-lg text-purple-500"><i data-lucide="zap"></i></div>
+                    <div class="bg-purple-500/20 p-2 rounded-lg text-purple-500"><i data-lucide="layers"></i></div>
                     <div>
-                        <h4 class="font-bold text-white text-sm">AI Limit Buffed</h4>
-                        <p class="text-xs text-slate-400 leading-relaxed">Neural Link upgraded. Usage limit raised to <span class="text-cyan-400 font-bold">40 messages per 5 minutes</span>. Spam away.</p>
+                        <h4 class="font-bold text-white text-sm">Product Editions</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">Release <span class="text-green-400">Lite</span>, <span class="text-cyan-400">Standard</span>, or <span class="text-purple-400">Pro</span> versions of your AI models.</p>
                     </div>
                 </div>
 
                 <div class="flex gap-4 items-start">
-                    <div class="bg-green-500/20 p-2 rounded-lg text-green-500"><i data-lucide="git-branch"></i></div>
+                    <div class="bg-green-500/20 p-2 rounded-lg text-green-500"><i data-lucide="zap"></i></div>
                     <div>
-                        <h4 class="font-bold text-white text-sm">Model Versioning</h4>
-                        <p class="text-xs text-slate-400 leading-relaxed">You can now iterate on your models. Release Patch (v1.1) or Major (v2.0) updates to boost quality and hype.</p>
+                        <h4 class="font-bold text-white text-sm">Limits Buffed</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">AI Usage: 40 msgs / 5 mins. Go crazy.</p>
                     </div>
                 </div>
             </div>
@@ -296,8 +290,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
-    <script src="secrets.js"></script>
     
     <script src="main.js"></script>
 </body>
