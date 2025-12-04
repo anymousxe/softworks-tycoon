@@ -150,9 +150,15 @@ auth.onAuthStateChanged(user => {
     }
 });
 
-document.getElementById('btn-login-google').addEventListener('click', () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert(e.message)));
-document.getElementById('btn-login-guest').addEventListener('click', () => auth.signInAnonymously().catch(e => alert(e.message)));
-document.getElementById('btn-logout').addEventListener('click', () => auth.signOut().then(() => location.reload()));
+document.getElementById('btn-login-google').addEventListener('click', () => {
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert(e.message));
+});
+document.getElementById('btn-login-guest').addEventListener('click', () => {
+    auth.signInAnonymously().catch(e => alert(e.message));
+});
+document.getElementById('btn-logout').addEventListener('click', () => {
+    auth.signOut().then(() => location.reload());
+});
 
 // --- SAVE SYSTEM ---
 function loadSaves() {
@@ -180,7 +186,10 @@ function loadSaves() {
                 </div>
             `;
             el.addEventListener('click', (e) => { if(!e.target.closest('.delete-btn')) startGame(doc.id, data); });
-            el.querySelector('.delete-btn').addEventListener('click', (e) => { e.stopPropagation(); if(confirm('Delete save?')) savesRef.doc(doc.id).delete(); });
+            el.querySelector('.delete-btn').addEventListener('click', (e) => { 
+                e.stopPropagation(); 
+                if(confirm('Delete save?')) savesRef.doc(doc.id).delete(); 
+            });
             container.appendChild(el);
         });
         lucide.createIcons();
@@ -207,20 +216,33 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
     const name = document.getElementById('inp-comp-name').value;
     if(!name) return;
     const newSave = {
-        companyName: name, isSandbox, cash: isSandbox ? 100000000 : 25000,
-        week: 1, year: 2025, researchPts: isSandbox ? 5000 : 0, reputation: 0,
-        hardware: [], products: [], reviews: [], unlockedTechs: [], purchasedItems: [], chatHistory: [], tutorialStep: 0,
+        companyName: name, 
+        isSandbox, 
+        cash: isSandbox ? 100000000 : 25000,
+        week: 1, year: 2025, 
+        researchPts: isSandbox ? 5000 : 0, 
+        reputation: 0,
+        hardware: [], 
+        products: [], 
+        reviews: [], 
+        unlockedTechs: [], 
+        purchasedItems: [], 
+        chatHistory: [], 
+        tutorialStep: 0,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').add(newSave);
     document.getElementById('create-screen').classList.add('hidden');
 });
+
 document.getElementById('btn-cancel-create').addEventListener('click', () => document.getElementById('create-screen').classList.add('hidden'));
 
 // --- GAME LOGIC ---
 function startGame(id, data) {
     activeSaveId = id;
     gameState = data;
+    
+    // Safety checks for new features on old saves
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
     if(!gameState.chatHistory) gameState.chatHistory = []; 
@@ -251,30 +273,66 @@ document.getElementById('btn-close-changelog').addEventListener('click', () => {
     localStorage.setItem('patch_notes_v2.1_seen', 'true');
 });
 
-// --- TUTORIAL & SETTINGS (Condensed) ---
+// --- TUTORIAL & SETTINGS ---
 function runTutorial(step) {
     const overlay = document.getElementById('tutorial-overlay');
-    if(step >= 99) { overlay.classList.add('hidden'); return; }
-    overlay.classList.remove('hidden'); document.getElementById('tutorial-highlight').style.opacity = '1';
+    
+    if(step >= 99) { 
+        overlay.classList.add('hidden'); 
+        return; 
+    }
+    
+    overlay.classList.remove('hidden'); 
+    document.getElementById('tutorial-highlight').style.opacity = '1';
     const box = document.getElementById('tutorial-text');
-    if(step === 0) { positionHighlight(null); box.textContent = "Welcome, CEO. Guidance system active. First, we need compute."; document.getElementById('btn-next-tutorial').onclick = () => { gameState.tutorialStep = 1; runTutorial(1); saveGame(); }; }
-    else if(step === 1) { positionHighlight(document.getElementById('nav-market')); box.textContent = "Navigate to the MARKET tab."; document.getElementById('btn-next-tutorial').style.display = 'none'; }
-    else if(step === 2) { setTimeout(() => { positionHighlight(document.querySelector('#server-grid button')); box.textContent = "Buy a GPU Cluster."; }, 500); }
-    else if(step === 3) { positionHighlight(document.getElementById('nav-dev')); box.textContent = "Go to CREATE tab."; }
-    else if(step === 4) { positionHighlight(document.getElementById('btn-toggle-chat-sidebar')); box.textContent = "Click AI Help if you're stuck."; }
+    const btnNext = document.getElementById('btn-next-tutorial');
+    
+    btnNext.style.display = 'block';
+
+    if(step === 0) { 
+        positionHighlight(null); 
+        box.textContent = "Welcome, CEO. Guidance system active. First, we need compute."; 
+        btnNext.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); saveGame(); }; 
+    }
+    else if(step === 1) { 
+        positionHighlight(document.getElementById('nav-market')); 
+        box.textContent = "Navigate to the MARKET tab."; 
+        btnNext.style.display = 'none'; 
+    }
+    else if(step === 2) { 
+        setTimeout(() => { 
+            positionHighlight(document.querySelector('#server-grid button')); 
+            box.textContent = "Buy a GPU Cluster."; 
+        }, 500); 
+    }
+    else if(step === 3) { 
+        positionHighlight(document.getElementById('nav-dev')); 
+        box.textContent = "Go to CREATE tab."; 
+    }
+    else if(step === 4) { 
+        positionHighlight(document.getElementById('btn-toggle-chat-sidebar')); 
+        box.textContent = "Click AI Help if you're stuck."; 
+    }
 }
+
 function positionHighlight(el) {
     const h = document.getElementById('tutorial-highlight');
     if(!el) { h.style.opacity = '0'; return; }
     const r = el.getBoundingClientRect();
-    h.style.top = `${r.top-5}px`; h.style.left = `${r.left-5}px`; h.style.width = `${r.width+10}px`; h.style.height = `${r.height+10}px`;
+    h.style.top = `${r.top-5}px`; 
+    h.style.left = `${r.left-5}px`; 
+    h.style.width = `${r.width+10}px`; 
+    h.style.height = `${r.height+10}px`;
     h.style.animation = 'pulse-ring 2s infinite';
 }
 
 // --- CORE GAME LOOP ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
     const btn = document.getElementById('btn-next-week');
-    btn.disabled = true; btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i>`; lucide.createIcons();
+    btn.disabled = true; 
+    btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i>`; 
+    lucide.createIcons();
+    
     setTimeout(() => {
         gameState.week++;
         if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
@@ -284,7 +342,10 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             const rival = RIVALS[Math.floor(Math.random() * RIVALS.length)];
             const release = rival.releases[Math.floor(Math.random() * rival.releases.length)];
             showToast(`COMPETITOR ALERT: ${rival.name} released ${release}!`, 'error');
-            gameState.products.filter(p => p.released).forEach(p => { p.hype = Math.max(0, p.hype - 10); p.quality = Math.max(0, p.quality - 2); });
+            gameState.products.filter(p => p.released).forEach(p => { 
+                p.hype = Math.max(0, p.hype - 10); 
+                p.quality = Math.max(0, p.quality - 2); 
+            });
         }
 
         // Upkeep & Research
@@ -309,12 +370,14 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         p.released = true;
                         const bonus = p.researchBonus || 0;
                         const baseQ = Math.floor(Math.random() * 40) + 50;
+                        
                         // Edition Bonus
                         const editionMult = p.edition === 'pro' ? 1.2 : (p.edition === 'lite' ? 0.8 : 1.0);
                         p.quality = Math.min(100, Math.floor((baseQ + bonus) * editionMult));
                         p.version = 1.0;
                         p.hype = 100 * (p.edition === 'pro' ? 1.5 : 1);
                         gameState.reputation += 10;
+                        
                         showToast(`🚀 ${p.name} (${p.edition}) Launched!`, 'success');
                         generateDynamicReview(p);
                     }
@@ -329,24 +392,34 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                     if(comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
                 });
                 p.hype = Math.max(0, p.hype - 2);
-                if(p.isOpenSource) { if(p.hype > 0) gameState.reputation += 0.5; } 
-                else { gameState.cash += weeklyRev; p.revenue += weeklyRev; }
+                if(p.isOpenSource) { 
+                    if(p.hype > 0) gameState.reputation += 0.5; 
+                } else { 
+                    gameState.cash += weeklyRev; 
+                    p.revenue += weeklyRev; 
+                }
                 if(Math.random() > 0.98) generateDynamicReview(p);
             }
         });
 
-        if(gameState.week % 4 === 0) COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*200)-100)));
+        if(gameState.week % 4 === 0) {
+            COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*200)-100)));
+        }
 
         saveGame();
         renderTab(document.querySelector('.nav-btn.active')?.dataset.tab || 'dash');
-        btn.disabled = false; btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Next`; lucide.createIcons();
+        
+        btn.disabled = false; 
+        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Next`; 
+        lucide.createIcons();
     }, 400); 
 });
 
 // --- RENDER TABS ---
 function renderTab(tab) {
     const content = document.getElementById('content-area');
-    content.innerHTML = ''; content.className = 'animate-in';
+    content.innerHTML = ''; 
+    content.className = 'animate-in';
 
     if(tab === 'dash') {
         const liveProducts = gameState.products.filter(p => p.released).length;
@@ -458,7 +531,10 @@ function renderTab(tab) {
 
         // Inject Logic
         const slider = document.getElementById('research-inject');
-        slider.oninput = (e) => { injectAmount = parseInt(e.target.value); document.getElementById('inject-val').textContent = `${injectAmount} PTS`; };
+        slider.oninput = (e) => { 
+            injectAmount = parseInt(e.target.value); 
+            document.getElementById('inject-val').textContent = `${injectAmount} PTS`; 
+        };
 
         // Render Types
         PRODUCTS.forEach(p => {
@@ -517,7 +593,7 @@ function renderTab(tab) {
     if(tab === 'rivals') { renderRivals(); }
 }
 
-// (Helper render functions condensed for brevity but functionally identical to previous versions)
+// (Helper render functions Expanded)
 function renderMarket() {
     document.getElementById('content-area').innerHTML = `<h2 class="text-3xl font-black text-white mb-6 tracking-tight">HARDWARE MARKET</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>`;
     const grid = document.getElementById('server-grid');
@@ -594,92 +670,262 @@ function renderRivals() {
 }
 
 // --- UTILS ---
-function startUpdate(id, type) { const p = gameState.products.find(x => x.id === id); if(p) { p.isUpdating = true; p.updateType = type; p.weeksLeft = type === 'major' ? 6 : 2; renderTab('dash'); showToast(`Update started for ${p.name}`); } }
-function getCompute() { return gameState.hardware.reduce((total, hw) => { const tier = HARDWARE.find(h => h.id === hw.typeId); return total + (tier ? tier.compute * hw.count : 0); }, 0); }
+function startUpdate(id, type) { 
+    const p = gameState.products.find(x => x.id === id); 
+    if(p) { 
+        p.isUpdating = true; 
+        p.updateType = type; 
+        p.weeksLeft = type === 'major' ? 6 : 2; 
+        renderTab('dash'); 
+        showToast(`Update started for ${p.name}`); 
+    } 
+}
+
+function getCompute() { 
+    return gameState.hardware.reduce((total, hw) => { 
+        const tier = HARDWARE.find(h => h.id === hw.typeId); 
+        return total + (tier ? tier.compute * hw.count : 0); 
+    }, 0); 
+}
+
 function showToast(msg, type = 'info') {
-    const container = document.getElementById('toast-container'); const el = document.createElement('div');
+    const container = document.getElementById('toast-container'); 
+    const el = document.createElement('div');
     const colors = type === 'success' ? 'border-green-500 bg-green-900/90 text-green-100' : (type === 'error' ? 'border-red-500 bg-red-900/90 text-red-100' : 'border-cyan-500 bg-slate-900/90 text-cyan-400');
     el.className = `toast-enter p-4 rounded-xl border-l-4 shadow-2xl backdrop-blur-md font-bold text-sm max-w-sm flex items-center gap-3 ${colors}`;
     el.innerHTML = type === 'success' ? `<i data-lucide="check-circle" class="w-5 h-5"></i> ${msg}` : `<i data-lucide="info" class="w-5 h-5"></i> ${msg}`;
-    container.appendChild(el); lucide.createIcons(); setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }, 4000);
+    container.appendChild(el); 
+    lucide.createIcons(); 
+    setTimeout(() => { 
+        el.style.opacity = '0'; 
+        setTimeout(() => el.remove(), 500); 
+    }, 4000);
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
+
 function setupRealtimeListener(saveId) {
     if (realtimeUnsubscribe) realtimeUnsubscribe();
     realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(saveId).onSnapshot(doc => {
-        if (doc.exists) { const newData = doc.data(); gameState = newData; if(!gameState.chatHistory) gameState.chatHistory = []; if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; updateHUD(); const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash'; if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) { renderTab(activeTab); } if (gameState.cash < 0) document.getElementById('hud-cash').classList.add('animate-pulse'); }
+        if (doc.exists) { 
+            const newData = doc.data(); 
+            gameState = newData; 
+            if(!gameState.chatHistory) gameState.chatHistory = []; 
+            if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
+            updateHUD(); 
+            const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash'; 
+            if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) { 
+                renderTab(activeTab); 
+            } 
+            if (gameState.cash < 0) document.getElementById('hud-cash').classList.add('animate-pulse'); 
+        }
     });
 }
-function saveGame() { if(!activeSaveId || !gameState) return; db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).update(gameState).catch(console.error); }
-function updateHUD() { document.getElementById('hud-company-name').textContent = gameState.companyName; document.getElementById('hud-cash').textContent = '$' + gameState.cash.toLocaleString(); document.getElementById('hud-compute').textContent = getCompute() + ' TF'; document.getElementById('hud-research').textContent = Math.floor(gameState.researchPts) + ' PTS'; document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`; }
+
+function saveGame() { 
+    if(!activeSaveId || !gameState) return; 
+    db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).update(gameState).catch(console.error); 
+}
 
 // --- AI & CHAT ---
-const chatWindow = document.getElementById('ai-chat-window'); const chatMessages = document.getElementById('chat-messages'); const chatForm = document.getElementById('chat-form'); const chatInput = document.getElementById('chat-input');
+const chatWindow = document.getElementById('ai-chat-window'); 
+const chatMessages = document.getElementById('chat-messages'); 
+const chatForm = document.getElementById('chat-form'); 
+const chatInput = document.getElementById('chat-input');
 document.getElementById('btn-close-chat').addEventListener('click', toggleChat);
-document.getElementById('btn-toggle-chat-sidebar').addEventListener('click', () => { toggleChat(); if(gameState.tutorialStep === 4) { gameState.tutorialStep = 99; saveGame(); document.getElementById('tutorial-overlay').classList.add('hidden'); } });
-document.getElementById('trigger-rename').addEventListener('click', () => { document.getElementById('rename-modal').classList.remove('hidden'); document.getElementById('inp-rename-company').value = gameState.companyName; });
+document.getElementById('btn-toggle-chat-sidebar').addEventListener('click', () => { 
+    toggleChat(); 
+    if(gameState.tutorialStep === 4) { 
+        gameState.tutorialStep = 99; 
+        saveGame(); 
+        document.getElementById('tutorial-overlay').classList.add('hidden'); 
+    } 
+});
+document.getElementById('trigger-rename').addEventListener('click', () => { 
+    document.getElementById('rename-modal').classList.remove('hidden'); 
+    document.getElementById('inp-rename-company').value = gameState.companyName; 
+});
 document.getElementById('btn-cancel-rename').onclick = () => document.getElementById('rename-modal').classList.add('hidden');
-document.getElementById('btn-confirm-rename').onclick = () => { const newName = document.getElementById('inp-rename-company').value; if(newName) { gameState.companyName = newName; updateHUD(); saveGame(); document.getElementById('rename-modal').classList.add('hidden'); showToast('Company Rebranded!', 'success'); } };
+document.getElementById('btn-confirm-rename').onclick = () => { 
+    const newName = document.getElementById('inp-rename-company').value; 
+    if(newName) { 
+        gameState.companyName = newName; 
+        updateHUD(); 
+        saveGame(); 
+        document.getElementById('rename-modal').classList.add('hidden'); 
+        showToast('Company Rebranded!', 'success'); 
+    } 
+};
 
-function toggleChat() { chatWindow.classList.toggle('hidden'); if(!chatWindow.classList.contains('hidden')) { chatMessages.scrollTop = chatMessages.scrollHeight; updateLimitDisplay(); loadChatHistory(); } }
-function getTimestamps() { const data = localStorage.getItem(AI_CONFIG.storageKeyTimestamps); return data ? JSON.parse(data) : []; }
-function recordMessage() { const stamps = getTimestamps(); stamps.push(Date.now()); localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps)); updateLimitDisplay(); }
+function toggleChat() { 
+    chatWindow.classList.toggle('hidden'); 
+    if(!chatWindow.classList.contains('hidden')) { 
+        chatMessages.scrollTop = chatMessages.scrollHeight; 
+        updateLimitDisplay(); 
+        loadChatHistory(); 
+    } 
+}
+
+function getTimestamps() { 
+    const data = localStorage.getItem(AI_CONFIG.storageKeyTimestamps); 
+    return data ? JSON.parse(data) : []; 
+}
+
+function recordMessage() { 
+    const stamps = getTimestamps(); 
+    stamps.push(Date.now()); 
+    localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps)); 
+    updateLimitDisplay(); 
+}
+
 function checkRateLimit() {
-    let stamps = getTimestamps(); const now = Date.now();
+    let stamps = getTimestamps(); 
+    const now = Date.now();
     const recentCount = stamps.filter(t => (now - t) < 15 * 60 * 1000).length;
     const windowMinutes = recentCount > 25 ? 25 : AI_CONFIG.windowMinutes; 
     stamps = stamps.filter(t => (now - t) < windowMinutes * 60 * 1000);
     localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps));
-    return { allowed: stamps.length < AI_CONFIG.msgLimit, remaining: Math.max(0, AI_CONFIG.msgLimit - stamps.length), windowMinutes: windowMinutes };
+    return { 
+        allowed: stamps.length < AI_CONFIG.msgLimit, 
+        remaining: Math.max(0, AI_CONFIG.msgLimit - stamps.length), 
+        windowMinutes: windowMinutes 
+    };
 }
+
 function updateLimitDisplay() {
-    const status = checkRateLimit(); const limitLabel = document.getElementById('ai-limit-counter');
-    if(limitLabel) { limitLabel.textContent = `${status.remaining}/${AI_CONFIG.msgLimit} MSGS (${status.windowMinutes}m Window)`; limitLabel.className = status.remaining === 0 ? "text-[10px] text-red-500 font-mono animate-pulse" : "text-[10px] text-cyan-400 font-mono"; }
-    if (status.remaining <= 0 && chatInput) { chatInput.placeholder = `Cooldown active (${status.windowMinutes}m)...`; chatInput.disabled = true; chatForm.querySelector('button').disabled = true; } else if (chatInput) { chatInput.placeholder = "Ask System AI..."; chatInput.disabled = false; chatForm.querySelector('button').disabled = false; }
+    const status = checkRateLimit(); 
+    const limitLabel = document.getElementById('ai-limit-counter');
+    if(limitLabel) { 
+        limitLabel.textContent = `${status.remaining}/${AI_CONFIG.msgLimit} MSGS (${status.windowMinutes}m Window)`; 
+        limitLabel.className = status.remaining === 0 ? "text-[10px] text-red-500 font-mono animate-pulse" : "text-[10px] text-cyan-400 font-mono"; 
+    }
+    if (status.remaining <= 0 && chatInput) { 
+        chatInput.placeholder = `Cooldown active (${status.windowMinutes}m)...`; 
+        chatInput.disabled = true; 
+        chatForm.querySelector('button').disabled = true; 
+    } else if (chatInput) { 
+        chatInput.placeholder = "Ask System AI..."; 
+        chatInput.disabled = false; 
+        chatForm.querySelector('button').disabled = false; 
+    }
 }
 
 function loadChatHistory() {
     chatMessages.innerHTML = `<div class="bg-slate-800/50 p-3 rounded-xl rounded-tl-none text-xs text-slate-300 border border-white/5">Greetings, Operator. I have full access to your company metrics. Need help with names, strategy, or market analysis?</div>`;
     if(gameState.chatHistory) gameState.chatHistory.forEach(msg => appendMessage(msg.role, msg.text, false));
 }
+
 function appendMessage(role, text, save = true) {
     const div = document.createElement('div');
     div.className = role === 'user' ? "bg-cyan-900/30 p-3 rounded-xl rounded-tr-none text-xs text-cyan-100 border border-cyan-500/20 self-end ml-8" : "bg-slate-800/50 p-3 rounded-xl rounded-tl-none text-xs text-slate-300 border border-white/5 mr-8";
     div.innerHTML = role === 'user' ? text : text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    chatMessages.appendChild(div); chatMessages.scrollTop = chatMessages.scrollHeight;
-    if (save) { gameState.chatHistory.push({ role, text }); if(gameState.chatHistory.length > 50) gameState.chatHistory.shift(); saveGame(); }
+    chatMessages.appendChild(div); 
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (save) { 
+        gameState.chatHistory.push({ role, text }); 
+        if(gameState.chatHistory.length > 50) gameState.chatHistory.shift(); 
+        saveGame(); 
+    }
 }
+
 function createContext(userQuery) {
-     return { company: gameState.companyName, funds: gameState.cash, week: gameState.week, year: gameState.year, reputation: gameState.reputation, compute: getCompute(), products: gameState.products.map(p => `${p.name} (v${p.version})`), rivals: RIVALS.map(r => `${r.name} (${r.strength}%)`), unlockedTech: gameState.unlockedTechs, userQuery: userQuery };
+     return { 
+         company: gameState.companyName, 
+         funds: gameState.cash, 
+         week: gameState.week, 
+         year: gameState.year, 
+         reputation: gameState.reputation, 
+         compute: getCompute(), 
+         products: gameState.products.map(p => `${p.name} (v${p.version})`), 
+         rivals: RIVALS.map(r => `${r.name} (${r.strength}%)`), 
+         unlockedTech: gameState.unlockedTechs, 
+         userQuery: userQuery 
+    };
 }
 
 async function askGemini(prompt) {
-    const status = checkRateLimit(); if (!status.allowed) { appendMessage('system', `❌ <b>System Alert:</b> Neural link overheated. Cooldown active.`, false); return; }
-    const loadingDiv = document.createElement('div'); loadingDiv.className = "text-xs text-slate-500 italic ml-2 animate-pulse"; loadingDiv.id = "ai-loading"; loadingDiv.innerText = "Analyzing..."; chatMessages.appendChild(loadingDiv); chatMessages.scrollTop = chatMessages.scrollHeight;
+    const status = checkRateLimit(); 
+    if (!status.allowed) { 
+        appendMessage('system', `❌ <b>System Alert:</b> Neural link overheated. Cooldown active.`, false); 
+        return; 
+    }
+    const loadingDiv = document.createElement('div'); 
+    loadingDiv.className = "text-xs text-slate-500 italic ml-2 animate-pulse"; 
+    loadingDiv.id = "ai-loading"; 
+    loadingDiv.innerText = "Analyzing..."; 
+    chatMessages.appendChild(loadingDiv); 
+    chatMessages.scrollTop = chatMessages.scrollHeight;
     try {
         const fullPrompt = getSystemPrompt(createContext(prompt));
-        const response = await fetch('/api/proxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: fullPrompt }) });
-        const data = await response.json(); document.getElementById('ai-loading')?.remove();
-        if (data.error) { appendMessage('system', `❌ Error: ${data.error.message || data.error}`, false); } else { appendMessage('system', data.candidates?.[0]?.content?.parts?.[0]?.text || "System Error: No response data."); recordMessage(); }
-    } catch (e) { document.getElementById('ai-loading')?.remove(); appendMessage('system', `❌ Connection Error: ${e.message}`, false); }
+        const response = await fetch('/api/proxy', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ prompt: fullPrompt }) 
+        });
+        const data = await response.json(); 
+        document.getElementById('ai-loading')?.remove();
+        if (data.error) { 
+            appendMessage('system', `❌ Error: ${data.error.message || data.error}`, false); 
+        } else { 
+            appendMessage('system', data.candidates?.[0]?.content?.parts?.[0]?.text || "System Error: No response data."); 
+            recordMessage(); 
+        }
+    } catch (e) { 
+        document.getElementById('ai-loading')?.remove(); 
+        appendMessage('system', `❌ Connection Error: ${e.message}`, false); 
+    }
 }
 
 async function generateDynamicReview(product) {
-    const status = checkRateLimit(); if (!status.allowed) { generateFallbackReview(product); return; }
+    const status = checkRateLimit(); 
+    if (!status.allowed) { 
+        generateFallbackReview(product); 
+        return; 
+    }
     const prompt = `Generate a very short (max 10 words) game review for an AI product named "${product.name}" (${product.edition || 'standard'} edition). Quality is ${product.quality}/100. If Quality > 80: Enthusiastic. If < 40: Angry. Format: "Review Text"`;
     try {
-        const response = await fetch('/api/proxy', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt }) });
+        const response = await fetch('/api/proxy', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ prompt: prompt }) 
+        });
         const data = await response.json();
-        let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Interesting release."; text = text.replace(/"/g, '');
-        const users = ['User', 'Anon', 'Dev', 'AI_Fan', 'TechBro']; const user = users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random()*100);
-        gameState.reviews.unshift({ product: product.name, user: user, rating: product.quality > 80 ? 5 : (product.quality < 40 ? 1 : 3), text: text, week: gameState.week });
-        if(gameState.reviews.length > 20) gameState.reviews.pop(); recordMessage();
-    } catch (e) { generateFallbackReview(product); }
+        let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Interesting release."; 
+        text = text.replace(/"/g, '');
+        const users = ['User', 'Anon', 'Dev', 'AI_Fan', 'TechBro']; 
+        const user = users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random()*100);
+        gameState.reviews.unshift({ 
+            product: product.name, 
+            user: user, 
+            rating: product.quality > 80 ? 5 : (product.quality < 40 ? 1 : 3), 
+            text: text, 
+            week: gameState.week 
+        });
+        if(gameState.reviews.length > 20) gameState.reviews.pop(); 
+        recordMessage();
+    } catch (e) { 
+        generateFallbackReview(product); 
+    }
 }
 
-if(chatForm) { chatForm.addEventListener('submit', (e) => { e.preventDefault(); const text = chatInput.value.trim(); if (!text) return; appendMessage('user', text); chatInput.value = ''; askGemini(text); }); }
+if(chatForm) { 
+    chatForm.addEventListener('submit', (e) => { 
+        e.preventDefault(); 
+        const text = chatInput.value.trim(); 
+        if (!text) return; 
+        appendMessage('user', text); 
+        chatInput.value = ''; 
+        askGemini(text); 
+    }); 
+}
 
 // Kill Switch
-db.collection('artifacts').doc(APP_ID).collection('system').doc('config').onSnapshot(doc => { if (doc.exists && doc.data().maintenanceMode === true) { if (!window.location.href.includes('maintenance.html')) { window.location.href = 'maintenance.html'; } } });
+db.collection('artifacts').doc(APP_ID).collection('system').doc('config').onSnapshot(doc => { 
+    if (doc.exists && doc.data().maintenanceMode === true) { 
+        if (!window.location.href.includes('maintenance.html')) { 
+            window.location.href = 'maintenance.html'; 
+        } 
+    } 
+});
 
-setInterval(updateLimitDisplay, 60000); updateLimitDisplay();
+setInterval(updateLimitDisplay, 60000); 
+updateLimitDisplay();
