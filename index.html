@@ -10,57 +10,16 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icon.png" />
 
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://softworks-tycoon.xyz/">
-    <meta property="og:title" content="Softworks Tycoon">
-    <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
-    <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png">
-    
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Softworks Tycoon">
-    <meta name="twitter:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
-    <meta name="twitter:image" content="https://softworks-tycoon.xyz/banner.png">
-    
     <meta name="theme-color" content="#06b6d4">
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
 
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
-    <div id="changelog-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-        <div class="glass-panel p-8 rounded-2xl max-w-lg w-full relative shadow-2xl bg-black animate-in border border-cyan-500/30">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-lg text-white">
-                    <i data-lucide="sparkles"></i>
-                </div>
-                <h3 class="text-2xl font-black text-white tracking-tight">SYSTEM UPDATE v2.4</h3>
-            </div>
-            
-            <div class="space-y-4 mb-8">
-                <div class="bg-green-900/20 border border-green-500/30 p-4 rounded-xl">
-                    <h4 class="text-green-400 font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> CRITICAL FIX</h4>
-                    <p class="text-slate-300 text-xs">Patched a major database corruption bug. Your save files are now stable and secure.</p>
-                </div>
-
-                <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
-                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4 text-yellow-400"></i> AI NEURAL LINK</h4>
-                    <p class="text-slate-300 text-xs">Upgraded to <strong>Gemini 3 Flash</strong> pipeline via Proxy. Rate limits effectively removed (50 msgs / 5 mins). Go crazy.</p>
-                </div>
-
-                <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
-                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="layers" class="w-4 h-4 text-purple-400"></i> PRODUCT VARIANTS</h4>
-                    <p class="text-slate-300 text-xs">You can now expand your product lines. Release <strong>Lite, Flash, Pro, and Ultra</strong> versions of your successful models.</p>
-                </div>
-            </div>
-
-            <button id="btn-close-changelog" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl text-sm transition-all shadow-lg shadow-white/5 tracking-widest">ACKNOWLEDGE</button>
-        </div>
-    </div>
-
-    <div id="tutorial-overlay" class="hidden fixed inset-0 z-[90] pointer-events-none">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px]"></div>
-        <div id="tutorial-highlight" class="absolute border-4 border-cyan-400 rounded-xl shadow-[0_0_50px_rgba(34,211,238,0.5)] transition-all duration-300"></div>
-        <div id="tutorial-box" class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#0a0a0a] border border-cyan-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl pointer-events-auto flex flex-col gap-4 animate-in">
+    <div id="tutorial-overlay" class="hidden fixed inset-0 z-[90]">
+        <div id="tutorial-highlight" class="absolute rounded-xl transition-all duration-300 pointer-events-none"></div>
+        
+        <div id="tutorial-box" class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#0a0a0a] border border-cyan-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl pointer-events-auto flex flex-col gap-4 animate-in z-[100]">
             <div class="flex items-center gap-3">
                 <div class="bg-cyan-500/20 p-2 rounded-lg"><i data-lucide="graduation-cap" class="text-cyan-400 w-6 h-6"></i></div>
                 <h3 class="font-bold text-white text-lg">Onboarding</h3>
@@ -73,114 +32,45 @@
         </div>
     </div>
 
-    <div id="skip-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="glass-panel p-8 rounded-2xl max-w-sm w-full relative shadow-2xl bg-black animate-in border border-red-500/30">
-            <h3 class="text-xl font-bold text-white mb-2">Abort Training?</h3>
-            <p class="text-slate-400 text-sm mb-6">You will miss out on guidance. Are you sure?</p>
-            <div class="flex gap-3">
-                <button id="btn-cancel-skip" class="px-4 py-2 text-slate-300 hover:text-white text-sm font-bold">RESUME</button>
-                <button id="btn-confirm-skip" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 rounded-lg text-sm transition-colors">SKIP IT</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="settings-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black animate-in">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-white">System Settings</h3>
-                <button id="btn-close-settings" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
-            </div>
-            <div class="space-y-4">
-                <div class="flex items-center justify-between p-4 border border-slate-800 rounded-xl bg-slate-900/50">
-                    <div>
-                        <div class="text-white font-bold text-sm">Replay Tutorial</div>
-                        <div class="text-xs text-slate-500">Restart the onboarding guide</div>
-                    </div>
-                    <button id="btn-restart-tutorial" class="bg-slate-800 hover:bg-white hover:text-black text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">START</button>
-                </div>
-                <div class="flex items-center justify-between p-4 border border-red-900/30 rounded-xl bg-red-900/10">
-                    <div>
-                        <div class="text-white font-bold text-sm">Wipe AI Memory</div>
-                        <div class="text-xs text-slate-500">Clear chat history cache</div>
-                    </div>
-                    <button id="btn-wipe-ai" class="bg-red-900/50 hover:bg-red-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors">WIPE</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="variant-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-        <div class="glass-panel p-8 rounded-2xl max-w-2xl w-full relative shadow-2xl bg-black border border-cyan-500/20">
+        <div class="glass-panel p-8 rounded-2xl max-w-3xl w-full relative shadow-2xl bg-black border border-cyan-500/20">
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h2 class="text-2xl font-black text-white tracking-tight">EXPAND PRODUCT LINE</h2>
-                    <p class="text-xs text-slate-500 font-mono mt-1">Base Model: <span id="variant-base-name" class="text-cyan-400">...</span></p>
+                    <p class="text-xs text-slate-500 font-mono mt-1">Base: <span id="variant-base-name" class="text-cyan-400">...</span></p>
                 </div>
                 <button id="btn-close-variant" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <button class="variant-opt group p-4 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-green-500 rounded-xl text-left transition-all" data-type="lite">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold text-white text-lg">Lite</span>
-                        <span class="text-[10px] bg-green-500/20 text-green-400 px-2 py-1 rounded font-mono">CHEAP</span>
-                    </div>
-                    <div class="text-xs text-slate-400 space-y-1">
-                        <div>⏱️ Speed: Fast Dev</div>
-                        <div>📉 Cost: Low</div>
-                        <div>⚡ Usage: Low Compute</div>
-                    </div>
+            <div class="grid grid-cols-5 gap-4 mb-6">
+                <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-green-500 rounded-xl text-left transition-all" data-type="lite">
+                    <span class="font-bold text-white block mb-1">Lite</span>
+                    <span class="text-[10px] text-slate-400">Low Cost/Perf</span>
                 </button>
+                <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-yellow-500 rounded-xl text-left transition-all" data-type="flash">
+                    <span class="font-bold text-white block mb-1">Flash</span>
+                    <span class="text-[10px] text-slate-400">High Speed</span>
+                </button>
+                <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-cyan-500 rounded-xl text-left transition-all" data-type="pro">
+                    <span class="font-bold text-white block mb-1">Pro</span>
+                    <span class="text-[10px] text-slate-400">Balanced</span>
+                </button>
+                <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-purple-500 rounded-xl text-left transition-all" data-type="ultra">
+                    <span class="font-bold text-white block mb-1">Ultra</span>
+                    <span class="text-[10px] text-slate-400">Max Compute</span>
+                </button>
+                <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-pink-500 rounded-xl text-left transition-all" data-type="custom">
+                    <span class="font-bold text-white block mb-1">Custom</span>
+                    <span class="text-[10px] text-slate-400">You Name It</span>
+                </button>
+            </div>
 
-                <button class="variant-opt group p-4 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-yellow-500 rounded-xl text-left transition-all" data-type="flash">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold text-white text-lg">Flash</span>
-                        <span class="text-[10px] bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded font-mono">FAST</span>
-                    </div>
-                    <div class="text-xs text-slate-400 space-y-1">
-                        <div>⏱️ Speed: Instant</div>
-                        <div>📉 Cost: Medium</div>
-                        <div>⚡ Usage: Optimized</div>
-                    </div>
-                </button>
-
-                <button class="variant-opt group p-4 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-cyan-500 rounded-xl text-left transition-all" data-type="pro">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold text-white text-lg">Pro</span>
-                        <span class="text-[10px] bg-cyan-500/20 text-cyan-400 px-2 py-1 rounded font-mono">BALANCED</span>
-                    </div>
-                    <div class="text-xs text-slate-400 space-y-1">
-                        <div>⏱️ Speed: Standard</div>
-                        <div>📉 Cost: Standard</div>
-                        <div>⚡ Usage: High Perf</div>
-                    </div>
-                </button>
-
-                <button class="variant-opt group p-4 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-purple-500 rounded-xl text-left transition-all" data-type="ultra">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="font-bold text-white text-lg">Ultra</span>
-                        <span class="text-[10px] bg-purple-500/20 text-purple-400 px-2 py-1 rounded font-mono">MAXIMUM</span>
-                    </div>
-                    <div class="text-xs text-slate-400 space-y-1">
-                        <div>⏱️ Speed: Very Slow</div>
-                        <div>📉 Cost: Expensive</div>
-                        <div>⚡ Usage: Massive</div>
-                    </div>
-                </button>
+            <div id="custom-variant-input" class="hidden mb-6">
+                 <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">Custom Variant Name</label>
+                 <input id="inp-custom-variant" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="e.g. Turbo Edition">
             </div>
 
             <button id="btn-confirm-variant" class="w-full bg-slate-800 text-slate-500 font-bold py-4 rounded-xl transition-all tracking-widest text-sm cursor-not-allowed" disabled>SELECT A VARIANT</button>
-        </div>
-    </div>
-
-    <div id="rename-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div class="glass-panel p-8 rounded-2xl max-w-sm w-full relative shadow-2xl bg-black">
-            <h3 class="text-xl font-bold text-white mb-4">Rebrand Company</h3>
-            <input id="inp-rename-company" class="w-full bg-slate-900 border border-slate-700 p-3 text-white mb-4 rounded focus:border-cyan-500 outline-none" placeholder="New Name...">
-            <div class="flex gap-3">
-                <button id="btn-cancel-rename" class="px-4 py-2 text-slate-500 hover:text-white text-sm font-bold">CANCEL</button>
-                <button id="btn-confirm-rename" class="flex-1 bg-white text-black font-bold py-2 rounded text-sm hover:bg-cyan-400">CONFIRM</button>
-            </div>
         </div>
     </div>
 
@@ -200,7 +90,6 @@
             <button id="btn-login-guest" class="w-full bg-transparent hover:bg-white/5 text-slate-300 font-bold py-4 rounded-xl transition-all border border-white/10 hover:border-cyan-500/50 flex items-center justify-center gap-2">
                 <i data-lucide="user" class="w-4 h-4"></i> Guest Access
             </button>
-            <p class="mt-6 text-[10px] text-slate-600 uppercase tracking-widest">developed by anymousxe</p>
         </div>
     </div>
 
@@ -224,8 +113,7 @@
             </div>
         </div>
 
-        <div id="save-slots" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            </div>
+        <div id="save-slots" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </div>
 
     <div id="create-screen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
@@ -239,7 +127,7 @@
                 <div class="p-2 bg-yellow-500/10 rounded-lg text-yellow-500"><i data-lucide="infinity"></i></div>
                 <div>
                     <div class="text-white font-bold text-sm">Sandbox Mode</div>
-                    <div class="text-[10px] text-slate-500">Unlimited money & research. No achievements.</div>
+                    <div class="text-[10px] text-slate-500">Unlimited money. No achievements.</div>
                 </div>
             </div>
 
@@ -300,63 +188,41 @@
                 <button id="nav-dev" class="nav-btn" data-tab="dev"><i data-lucide="plus-square"></i><span>Create</span></button>
                 <button id="nav-market" class="nav-btn" data-tab="market"><i data-lucide="server"></i><span>Market</span></button>
                 <button id="nav-lab" class="nav-btn" data-tab="lab"><i data-lucide="flask-conical"></i><span>Lab</span></button>
-                <button id="nav-biz" class="nav-btn" data-tab="biz"><i data-lucide="trending-up"></i><span>Growth</span></button>
+                <button id="nav-biz" class="nav-btn" data-tab="biz"><i data-lucide="briefcase"></i><span>Manage</span></button>
                 <button id="nav-reviews" class="nav-btn" data-tab="reviews"><i data-lucide="star"></i><span>Reviews</span></button>
                 <button id="nav-shop" class="nav-btn" data-tab="shop"><i data-lucide="shopping-cart"></i><span>Shop</span></button>
                 
-                <div class="w-12 h-px bg-white/10 my-1"></div>
-                <button id="btn-toggle-chat-sidebar" class="nav-btn text-cyan-400 hover:text-cyan-300 hover:bg-cyan-900/10">
-                    <i data-lucide="bot"></i><span>AI Help</span>
-                </button>
-
                 <div class="flex-1"></div>
-                <button id="btn-settings" class="nav-btn hover:text-white"><i data-lucide="settings"></i><span>Settings</span></button>
                 <button id="btn-exit-game" class="nav-btn text-red-500 hover:text-red-400 hover:bg-red-900/10 mt-2"><i data-lucide="log-out"></i><span>Exit</span></button>
             </aside>
 
             <main id="main-view" class="flex-1 overflow-y-auto bg-[#050505] p-8 relative">
                 <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none"></div>
                 <div class="max-w-7xl mx-auto relative z-10" id="content-area">
-                    </div>
+                </div>
             </main>
-        </div>
-    </div>
-
-    <div id="ai-widget-container" class="fixed bottom-6 right-28 z-[100] flex flex-col items-end gap-4 pointer-events-none">
-        <div id="ai-chat-window" class="hidden w-[350px] h-[500px] glass-panel rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-cyan-500/30 animate-in origin-bottom-left pointer-events-auto bg-black">
-            <div class="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center backdrop-blur-md">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center animate-pulse">
-                        <i data-lucide="bot" class="text-white w-5 h-5"></i>
-                    </div>
-                    <div>
-                        <div class="font-bold text-white text-sm">Gemini 3 Flash</div>
-                        <div class="text-[10px] text-cyan-400 font-mono" id="ai-limit-counter">...</div>
-                    </div>
-                </div>
-                <button id="btn-close-chat" class="text-slate-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-            </div>
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-black/20">
-                </div>
-            <div class="p-3 bg-black/60 border-t border-white/10 backdrop-blur-md">
-                <form id="chat-form" class="flex gap-2">
-                    <input id="chat-input" type="text" placeholder="Ask System AI..." class="flex-1 bg-slate-900/50 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white focus:border-cyan-500 outline-none transition-colors font-mono">
-                    <button type="submit" class="bg-cyan-500 hover:bg-cyan-400 text-black p-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        <i data-lucide="send" class="w-4 h-4"></i>
-                    </button>
-                </form>
-            </div>
         </div>
     </div>
 
     <div class="fixed bottom-4 right-6 text-[10px] text-slate-800 font-mono z-40 pointer-events-none select-none font-bold">
         developed by anymousxe
     </div>
+    
+    <div id="rename-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-sm w-full relative shadow-2xl bg-black">
+            <h3 class="text-xl font-bold text-white mb-4">Rebrand Company</h3>
+            <input id="inp-rename-company" class="w-full bg-slate-900 border border-slate-700 p-3 text-white mb-4 rounded focus:border-cyan-500 outline-none" placeholder="New Name...">
+            <div class="flex gap-3">
+                <button id="btn-cancel-rename" class="px-4 py-2 text-slate-500 hover:text-white text-sm font-bold">CANCEL</button>
+                <button id="btn-confirm-rename" class="flex-1 bg-white text-black font-bold py-2 rounded text-sm hover:bg-cyan-400">CONFIRM</button>
+            </div>
+        </div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     
-    <script src="main.js"></script>
+    <script src="data.js"></script> <script src="main.js"></script>
 </body>
 </html>
