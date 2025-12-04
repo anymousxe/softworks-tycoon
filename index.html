@@ -15,12 +15,10 @@
     <meta property="og:title" content="Softworks Tycoon">
     <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
     <meta property="og:image" content="banner.png">
-    
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Softworks Tycoon">
     <meta name="twitter:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
     <meta name="twitter:image" content="banner.png">
-
     <meta name="theme-color" content="#06b6d4">
 </head>
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
@@ -33,26 +31,18 @@
                 <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-lg text-white">
                     <i data-lucide="sparkles"></i>
                 </div>
-                <h3 class="text-2xl font-black text-white tracking-tight">SYSTEM UPDATE v2.5</h3>
+                <h3 class="text-2xl font-black text-white tracking-tight">SYSTEM UPDATE v2.8</h3>
             </div>
-            
             <div class="space-y-4 mb-8">
-                <div class="bg-green-900/20 border border-green-500/30 p-4 rounded-xl">
-                    <h4 class="text-green-400 font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="check-circle" class="w-4 h-4"></i> CRITICAL FIXES</h4>
-                    <p class="text-slate-300 text-xs">Fixed "Next Week" freeze, restored Manage tab, and stabilized data saving.</p>
-                </div>
-
                 <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
-                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-yellow-400"></i> EMPLOYEES & CONTRACTS</h4>
-                    <p class="text-slate-300 text-xs">You can now Hire/Fire staff and pitch your models to companies like "Lmsite" and "Facebooc".</p>
+                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i> DISCONTINUE RESTORED</h4>
+                    <p class="text-slate-300 text-xs">You can now delete old products from the dashboard to clean up your portfolio.</p>
                 </div>
-
                 <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
-                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="globe" class="w-4 h-4 text-purple-400"></i> API ECONOMY</h4>
-                    <p class="text-slate-300 text-xs">Release APIs for your models. Set prices for revenue or make them free for massive Hype.</p>
+                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="briefcase" class="w-4 h-4 text-green-400"></i> CONTRACT GRID</h4>
+                    <p class="text-slate-300 text-xs">Visual B2B interface. Toggle model access for companies instantly.</p>
                 </div>
             </div>
-
             <button id="btn-close-changelog" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl text-sm transition-all shadow-lg shadow-white/5 tracking-widest">ACKNOWLEDGE</button>
         </div>
     </div>
@@ -81,7 +71,6 @@
                 </div>
                 <button id="btn-close-variant" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
             </div>
-
             <div class="grid grid-cols-5 gap-4 mb-6">
                 <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-green-500 rounded-xl text-left transition-all" data-type="lite">
                     <span class="font-bold text-white block mb-1">Lite</span>
@@ -104,12 +93,10 @@
                     <span class="text-[10px] text-slate-400">You Name It</span>
                 </button>
             </div>
-
             <div id="custom-variant-input" class="hidden mb-6">
                  <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">Custom Variant Name</label>
                  <input id="inp-custom-variant" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="e.g. Turbo Edition">
             </div>
-
             <button id="btn-confirm-variant" class="w-full bg-slate-800 text-slate-500 font-bold py-4 rounded-xl transition-all tracking-widest text-sm cursor-not-allowed" disabled>SELECT A VARIANT</button>
         </div>
     </div>
@@ -127,30 +114,33 @@
             <div class="space-y-6">
                 <div class="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-800">
                     <div>
-                        <div class="text-sm font-bold text-white">Public Access</div>
-                        <div class="text-[10px] text-slate-500">Allow devs to use this model</div>
+                        <div class="text-sm font-bold text-white">Public API Status</div>
+                        <div id="api-status-text" class="text-[10px] text-slate-500">Currently Offline</div>
                     </div>
-                    <button id="btn-toggle-api-status" class="w-12 h-6 rounded-full bg-slate-700 relative transition-colors">
-                        <div class="w-4 h-4 bg-white rounded-full absolute top-1 left-1 transition-all"></div>
+                    <button id="btn-toggle-api-status" class="w-14 h-8 rounded-full bg-slate-700 relative transition-all shadow-inner">
+                        <div class="w-6 h-6 bg-white rounded-full absolute top-1 left-1 transition-all shadow-md"></div>
                     </button>
                 </div>
 
                 <div>
                     <div class="flex justify-between text-xs font-bold text-slate-300 mb-2">
-                        <span>Cost per 1k Tokens</span>
-                        <span id="api-price-display" class="text-green-400">$0.00 (Free)</span>
+                        <span>Cost per 1k Tokens ($)</span>
                     </div>
-                    <input type="range" id="api-price-slider" min="0" max="100" step="1" value="0" class="w-full accent-green-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
-                    <p class="text-[10px] text-slate-500 mt-2">Free APIs gain massive Hype. Paid APIs earn Revenue but grow slower.</p>
+                    <div class="flex gap-4">
+                        <input type="number" id="api-price-input" min="0" max="1000" step="0.001" class="w-28 bg-black border border-slate-700 rounded p-2 text-white font-mono text-sm focus:border-green-500 outline-none" placeholder="0.00">
+                        <input type="range" id="api-price-slider" min="0" max="10" step="0.1" value="0" class="flex-1 accent-green-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer self-center">
+                    </div>
+                    <div class="text-[10px] text-slate-500 mt-1 text-right">0 = Free (Max Hype)</div>
                 </div>
 
                 <div>
                     <div class="flex justify-between text-xs font-bold text-slate-300 mb-2">
-                        <span>Rate Limit</span>
-                        <span id="api-limit-display" class="text-blue-400">100 RPM</span>
+                        <span>Rate Limit (RPM)</span>
                     </div>
-                    <input type="range" id="api-limit-slider" min="1" max="5000" step="100" value="100" class="w-full accent-blue-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
-                    <p class="text-[10px] text-slate-500 mt-2">Higher limits cost more Compute.</p>
+                    <div class="flex gap-4">
+                        <input type="number" id="api-limit-input" min="1" max="100000" step="1" class="w-28 bg-black border border-slate-700 rounded p-2 text-white font-mono text-sm focus:border-blue-500 outline-none">
+                        <input type="range" id="api-limit-slider" min="1" max="5000" step="100" value="100" class="flex-1 accent-blue-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer self-center">
+                    </div>
                 </div>
             </div>
 
@@ -161,9 +151,8 @@
     <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
         <div class="relative bg-black/40 border border-white/10 p-12 rounded-3xl shadow-2xl max-w-md w-full text-center backdrop-blur-xl">
-            <div class="mb-6 inline-block p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20">
-                <i data-lucide="cpu" class="w-10 h-10 text-white"></i>
-            </div>
+            <img src="banner.png" class="w-full max-w-[200px] mx-auto mb-6 rounded-lg shadow-lg border border-white/10" alt="Softworks Banner">
+            
             <h1 class="text-5xl font-black text-white mb-2 tracking-tighter">SOFTWORKS</h1>
             <p class="text-cyan-400 font-mono mb-10 text-sm tracking-[0.2em] uppercase opacity-80">Tycoon Edition</p>
             
@@ -181,6 +170,7 @@
     <div id="menu-screen" class="hidden min-h-screen p-8 pt-20 max-w-7xl mx-auto">
         <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
             <div>
+                <img src="banner.png" class="w-64 mb-6 rounded-xl shadow-2xl border border-white/10" alt="Softworks Banner">
                 <h1 class="text-6xl md:text-8xl font-black text-white mb-2 tracking-tighter">SOFTWORKS</h1>
                 <div class="text-cyan-500 font-mono tracking-widest text-lg">SELECT SAVE FILE</div>
             </div>
