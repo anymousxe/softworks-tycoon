@@ -178,17 +178,14 @@ function startGame(id, data) {
     gameState = data;
     
     // --- CRITICAL MIGRATION FIXES ---
-    // If these keys are missing in old saves, initialize them to prevent crashes
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
     
-    // Force Employee Object
     if(!gameState.employees || typeof gameState.employees !== 'object') {
         gameState.employees = { count: 1, morale: 100, happiness: 100 };
     }
     
-    // Force API config on products
     if(gameState.products) {
         gameState.products.forEach(p => {
             if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
@@ -207,7 +204,6 @@ function startGame(id, data) {
     
     setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
     
-    // RESTORED CHANGELOG POPUP
     setTimeout(() => {
         document.getElementById('changelog-modal').classList.remove('hidden');
     }, 500);
@@ -366,7 +362,7 @@ function showToast(msg, type = 'info') {
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
-// --- ROBUST NEXT WEEK LOGIC (FIXES FREEZING) ---
+// --- NEXT WEEK LOGIC ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
     const btn = document.getElementById('btn-next-week');
     btn.disabled = true;
@@ -375,7 +371,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
     setTimeout(() => {
         try {
-            // SAFEGUARD: Init employees if missing
+            // SAFEGUARD
             if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
 
             gameState.week++;
@@ -497,7 +493,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             console.error("Next Week Error:", err);
             showToast("System stabilized. Trying again...", 'info');
         } finally {
-            // ALWAYS UNLOCK THE BUTTON
             btn.disabled = false;
             btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Next`;
             lucide.createIcons();
@@ -568,7 +563,6 @@ function renderTab(tab) {
             if(p.isOpenSource) card.innerHTML += `<div class="absolute top-0 right-0 bg-green-500 text-black text-[9px] font-black px-3 py-1 rounded-bl-xl tracking-widest">OPEN SOURCE</div>`;
 
             if(p.released && !p.isUpdating) {
-                // Determine API Status Color
                 const apiActive = p.apiConfig && p.apiConfig.active;
                 const apiStatus = apiActive ? (p.apiConfig.price === 0 ? 'text-purple-400' : 'text-green-400') : 'text-slate-600';
                 
@@ -608,11 +602,23 @@ function renderTab(tab) {
                          <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
                          <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-green-500 btn-api rounded-xl tracking-wider transition-colors" data-id="${p.id}">CONFIG API</button>
                     </div>
+                    <button class="w-full mt-2 text-slate-500 hover:text-red-500 text-[10px] font-bold py-2 btn-delete transition-colors">DISCONTINUE PRODUCT</button>
                 `;
                 card.querySelector('.btn-patch').onclick = () => startUpdate(p.id, 'minor');
                 card.querySelector('.btn-major').onclick = () => startUpdate(p.id, 'major');
                 card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id);
                 card.querySelector('.btn-api').onclick = () => openApiModal(p.id); 
+                
+                // RESTORED DELETE BUTTON LOGIC
+                card.querySelector('.btn-delete').onclick = () => {
+                    if(confirm(`Permanently discontinue ${p.name}? This cannot be undone.`)) {
+                        gameState.products = gameState.products.filter(x => x.id !== p.id);
+                        saveGame();
+                        renderTab('dash');
+                        showToast('Product Discontinued', 'info');
+                    }
+                };
+
             } else {
                 card.innerHTML += `
                     <div class="flex justify-between items-center mb-3">
@@ -812,7 +818,6 @@ function renderTab(tab) {
             });
             updateHUD(); showToast('Development Started', 'success'); 
             
-            // FIX FOR GLITCH: Force switch tab and update UI
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('nav-dash').classList.add('active');
             renderTab('dash');
@@ -821,40 +826,36 @@ function renderTab(tab) {
     }
 
     if(tab === 'biz') {
-        // --- SAFE RENDER ---
         const empCount = (gameState.employees && gameState.employees.count) || 1;
         const morale = (gameState.employees && gameState.employees.morale) || 100;
 
         content.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 gap-8">
                 <div class="glass-panel p-6 rounded-2xl border-l-4 border-yellow-500">
                     <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="users" class="text-yellow-500"></i> HR DEPARTMENT</h3>
-                    
-                    <div class="flex justify-between items-center mb-6 p-4 bg-slate-900/50 rounded-xl">
-                        <div>
-                            <div class="text-[10px] uppercase text-slate-500 font-bold">Employees</div>
-                            <div class="text-2xl font-black text-white">${empCount}</div>
+                    <div class="flex justify-between items-center gap-4">
+                        <div class="flex items-center gap-4 bg-slate-900/50 p-4 rounded-xl flex-1">
+                            <div><div class="text-[10px] uppercase text-slate-500 font-bold">Headcount</div><div class="text-2xl font-black text-white">${empCount}</div></div>
+                            <div class="h-8 w-px bg-white/10"></div>
+                            <div><div class="text-[10px] uppercase text-slate-500 font-bold">Morale</div><div class="text-2xl font-black ${morale > 80 ? 'text-green-400' : 'text-red-500'}">${morale}%</div></div>
                         </div>
-                        <div class="text-right">
-                            <div class="text-[10px] uppercase text-slate-500 font-bold">Team Morale</div>
-                            <div class="text-2xl font-black ${morale > 80 ? 'text-green-400' : 'text-red-500'}">${morale}%</div>
+                        <div class="flex gap-2">
+                            <button id="btn-hire" class="bg-white text-black font-bold px-6 py-2 rounded-lg hover:bg-green-400">HIRE (+1)</button>
+                            <button id="btn-fire" class="border border-slate-700 text-red-500 font-bold px-6 py-2 rounded-lg hover:bg-red-900/20">FIRE (-1)</button>
                         </div>
-                    </div>
-
-                    <div class="flex gap-4 mb-4">
-                        <button id="btn-hire" class="flex-1 bg-white text-black font-bold py-2 rounded-lg hover:bg-green-400">HIRE (+1)</button>
-                        <button id="btn-fire" class="flex-1 border border-slate-700 text-red-500 font-bold py-2 rounded-lg hover:bg-red-900/20">FIRE (-1)</button>
                     </div>
                 </div>
 
-                <div class="glass-panel p-6 rounded-2xl">
+                <div>
                     <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="briefcase" class="text-green-500"></i> B2B CONTRACTS</h3>
-                     <div class="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar" id="contract-list"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="contract-grid"></div>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-bold text-white mt-8 mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-purple-500"></i> CAMPAIGNS & CAMEOS</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ads-grid"></div>
                 </div>
             </div>
-
-            <h3 class="text-xl font-bold text-white mt-8 mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-purple-500"></i> CAMPAIGNS & CAMEOS</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ads-grid"></div>
         `;
 
         // HR Logic
@@ -873,43 +874,48 @@ function renderTab(tab) {
             }
         };
 
-        // Contract Logic (RESTORED)
-        const contractList = document.getElementById('contract-list');
-        if(contractList) {
-            COMPANIES.forEach(c => {
-                const el = document.createElement('div');
-                el.className = 'p-3 bg-slate-900/40 rounded-lg flex justify-between items-center';
-                el.innerHTML = `<div><div class="font-bold text-white">${c.name}</div><div class="text-xs text-slate-500">$${c.budget}/wk</div></div>`;
-                const liveProds = (gameState.products || []).filter(p => p.released && !p.isOpenSource);
+        // NEW GRID LOGIC
+        const contractGrid = document.getElementById('contract-grid');
+        const liveProds = (gameState.products || []).filter(p => p.released && !p.isOpenSource);
+
+        COMPANIES.forEach(c => {
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-5 rounded-xl flex flex-col h-full';
+            el.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h3 class="font-bold text-white text-lg">${c.name}</h3>
+                        <div class="text-xs text-green-400 font-mono">$${c.budget.toLocaleString()}/wk</div>
+                    </div>
+                    <div class="bg-slate-800 p-2 rounded-lg"><i data-lucide="building-2" class="w-4 h-4 text-slate-400"></i></div>
+                </div>
+                <div class="flex-1 space-y-2" id="c-list-${c.name.replace(/\s/g, '')}">
+                    ${liveProds.length === 0 ? '<div class="text-xs text-slate-600 italic">No commercial models.</div>' : ''}
+                </div>
+            `;
+            
+            const list = el.querySelector(`[id^="c-list-"]`);
+            liveProds.forEach(p => {
+                const active = (p.contracts || []).includes(c.name);
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all border ${active ? 'bg-green-500/10 border-green-500 text-green-400' : 'border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'}`;
+                btn.innerHTML = `<div class="flex justify-between items-center"><span>${p.name}</span>${active ? '<i data-lucide="check" class="w-3 h-3"></i>' : ''}</div>`;
                 
-                if(liveProds.length > 0) {
-                     const select = document.createElement('select');
-                     select.className = "bg-black text-xs text-white p-1 rounded border border-slate-700";
-                     select.innerHTML = `<option value="">Pitch To...</option>` + liveProds.map(p => {
-                         const contracts = p.contracts || [];
-                         return `<option value="${p.id}" ${contracts.includes(c.name) ? 'selected' : ''}>${p.name}</option>`;
-                     }).join('');
-                     
-                     select.onchange = (e) => {
-                         const pid = e.target.value;
-                         // Clear this company from all products first
-                         gameState.products.forEach(p => { if(p.contracts) p.contracts = p.contracts.filter(x => x !== c.name); });
-                         if(pid) {
-                             const p = gameState.products.find(x => x.id === pid);
-                             if(p) {
-                                 if(!p.contracts) p.contracts = [];
-                                 p.contracts.push(c.name);
-                                 showToast(`Contract signed with ${c.name}`, 'success');
-                             }
-                         }
-                     };
-                     el.appendChild(select);
-                } else {
-                    el.innerHTML += `<div class="text-[10px] text-slate-600">No Products</div>`;
-                }
-                contractList.appendChild(el);
+                btn.onclick = () => {
+                    if(!p.contracts) p.contracts = [];
+                    if(active) {
+                        p.contracts = p.contracts.filter(x => x !== c.name);
+                        showToast(`Contract ended with ${c.name}`);
+                    } else {
+                        p.contracts.push(c.name);
+                        showToast(`Contract signed with ${c.name}!`, 'success');
+                    }
+                    renderTab('biz'); // Re-render to update UI
+                };
+                list.appendChild(btn);
             });
-        }
+            contractGrid.appendChild(el);
+        });
 
         // Campaigns
         const adsGrid = document.getElementById('ads-grid');
@@ -1113,7 +1119,7 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     showToast(`Developing variant...`, 'success');
 };
 
-// --- API MODAL LOGIC ---
+// --- API MODAL LOGIC (UPDATED WITH INPUT SYNC) ---
 const apiModal = document.getElementById('api-modal');
 let selectedApiId = null;
 
@@ -1124,50 +1130,60 @@ function openApiModal(productId) {
     selectedApiId = productId;
     if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
     
-    // Set UI State
+    // UI State
     const statusBtn = document.getElementById('btn-toggle-api-status');
     const dot = statusBtn.querySelector('div');
+    const statusText = document.getElementById('api-status-text');
+    
     if(p.apiConfig.active) {
         statusBtn.classList.replace('bg-slate-700', 'bg-green-500');
         dot.classList.replace('left-1', 'left-7');
+        statusText.textContent = "API Online";
+        statusText.className = "text-[10px] text-green-400";
     } else {
         statusBtn.classList.replace('bg-green-500', 'bg-slate-700');
         dot.classList.replace('left-7', 'left-1');
+        statusText.textContent = "Currently Offline";
+        statusText.className = "text-[10px] text-slate-500";
     }
 
-    const sliderPrice = document.getElementById('api-price-slider');
-    const displayPrice = document.getElementById('api-price-display');
-    sliderPrice.value = p.apiConfig.price;
-    displayPrice.textContent = p.apiConfig.price === 0 ? '$0.00 (Free)' : `$${p.apiConfig.price}.00`;
-
-    const sliderLimit = document.getElementById('api-limit-slider');
-    const displayLimit = document.getElementById('api-limit-display');
-    sliderLimit.value = p.apiConfig.limit;
-    displayLimit.textContent = `${p.apiConfig.limit} RPM`;
+    // Inputs
+    document.getElementById('api-price-input').value = p.apiConfig.price;
+    document.getElementById('api-price-slider').value = p.apiConfig.price;
+    
+    document.getElementById('api-limit-input').value = p.apiConfig.limit;
+    document.getElementById('api-limit-slider').value = p.apiConfig.limit;
     
     apiModal.classList.remove('hidden');
 }
 
-document.getElementById('api-price-slider').oninput = (e) => {
-    const val = parseInt(e.target.value);
-    document.getElementById('api-price-display').textContent = val === 0 ? '$0.00 (Free)' : `$${val}.00`;
-};
+// SYNC LOGIC
+const priceInput = document.getElementById('api-price-input');
+const priceSlider = document.getElementById('api-price-slider');
+priceInput.oninput = () => { priceSlider.value = priceInput.value; };
+priceSlider.oninput = () => { priceInput.value = priceSlider.value; };
 
-document.getElementById('api-limit-slider').oninput = (e) => {
-    document.getElementById('api-limit-display').textContent = `${e.target.value} RPM`;
-};
+const limitInput = document.getElementById('api-limit-input');
+const limitSlider = document.getElementById('api-limit-slider');
+limitInput.oninput = () => { limitSlider.value = limitInput.value; };
+limitSlider.oninput = () => { limitInput.value = limitSlider.value; };
 
 document.getElementById('btn-toggle-api-status').onclick = (e) => {
     const btn = e.currentTarget;
     const dot = btn.querySelector('div');
     const isActive = btn.classList.contains('bg-green-500');
+    const statusText = document.getElementById('api-status-text');
     
     if(isActive) {
         btn.classList.replace('bg-green-500', 'bg-slate-700');
         dot.classList.replace('left-7', 'left-1');
+        statusText.textContent = "Currently Offline";
+        statusText.className = "text-[10px] text-slate-500";
     } else {
         btn.classList.replace('bg-slate-700', 'bg-green-500');
         dot.classList.replace('left-1', 'left-7');
+        statusText.textContent = "API Online";
+        statusText.className = "text-[10px] text-green-400";
     }
 };
 
@@ -1178,8 +1194,8 @@ document.getElementById('btn-save-api').onclick = () => {
         const isActive = document.getElementById('btn-toggle-api-status').classList.contains('bg-green-500');
         p.apiConfig = {
             active: isActive,
-            price: parseInt(document.getElementById('api-price-slider').value),
-            limit: parseInt(document.getElementById('api-limit-slider').value)
+            price: parseFloat(document.getElementById('api-price-input').value),
+            limit: parseInt(document.getElementById('api-limit-input').value)
         };
         showToast('API Configuration Deployed', 'success');
         apiModal.classList.add('hidden');
