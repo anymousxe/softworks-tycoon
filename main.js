@@ -20,8 +20,7 @@ let saveInterval = null;
 let realtimeUnsubscribe = null;
 const APP_ID = 'softworks-tycoon';
 
-// --- DATA IMPORT FROM DATA.JS ---
-// Ensure variables from data.js are loaded
+// --- DATA IMPORT SAFETY ---
 const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
 const COMPANIES = (typeof COMPANIES_DB !== 'undefined') ? COMPANIES_DB : [];
 const CAMPAIGNS = (typeof CAMPAIGNS_DB !== 'undefined') ? CAMPAIGNS_DB : [];
@@ -64,12 +63,6 @@ const SHOP_ITEMS = [
     { id: 'coffee', name: 'Premium Coffee', cost: 2000, effect: 'Employees: +10 Morale', type: 'consumable_emp', amount: 10 },
     { id: 'party', name: 'Office Party', cost: 5000, effect: 'Employees: +30 Morale', type: 'consumable_emp', amount: 30 }
 ];
-
-const FALLBACK_REVIEWS = {
-    good: ["Literally cracked. 🔥", "Best AI I've used.", "W release.", "Game changer fr.", "Take my money 💰"],
-    mid: ["It's mid but okay.", "Does the job i guess.", "Waiting for updates.", "Kinda buggy."],
-    bad: ["Bro what is this? 💀", "Refunded.", "Laggier than my grandma's PC.", "This ain't it chief."]
-};
 
 // --- AUTH & SETUP ---
 auth.onAuthStateChanged(user => {
@@ -184,11 +177,24 @@ function startGame(id, data) {
     activeSaveId = id;
     gameState = data;
     
-    // SAFEGUARDS & MIGRATION
+    // --- CRITICAL MIGRATION FIXES ---
+    // If these keys are missing in old saves, initialize them to prevent crashes
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
-    if(!gameState.employees) gameState.employees = { count: 1, morale: 100, happiness: 100 };
+    
+    // Force Employee Object
+    if(!gameState.employees || typeof gameState.employees !== 'object') {
+        gameState.employees = { count: 1, morale: 100, happiness: 100 };
+    }
+    
+    // Force API config on products
+    if(gameState.products) {
+        gameState.products.forEach(p => {
+            if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+            if(!p.contracts) p.contracts = [];
+        });
+    }
     
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -199,14 +205,22 @@ function startGame(id, data) {
     renderTab('dash');
     lucide.createIcons();
     
-    // Check Tutorial on Start
     setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
+    
+    // RESTORED CHANGELOG POPUP
+    setTimeout(() => {
+        document.getElementById('changelog-modal').classList.remove('hidden');
+    }, 500);
 
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(saveGame, 5000);
 }
 
-// --- TUTORIAL SYSTEM (FIXED BLUR) ---
+document.getElementById('btn-close-changelog').onclick = () => {
+    document.getElementById('changelog-modal').classList.add('hidden');
+};
+
+// --- TUTORIAL SYSTEM ---
 const tutorialOverlay = document.getElementById('tutorial-overlay');
 const tutorialHighlight = document.getElementById('tutorial-highlight');
 const tutorialText = document.getElementById('tutorial-text');
@@ -236,7 +250,7 @@ function runTutorial(step) {
     }
     else if(step === 2) {
         setTimeout(() => {
-            const btn = document.querySelector('#server-grid button'); // First button
+            const btn = document.querySelector('#server-grid button'); 
             if(btn) {
                 positionHighlight(btn);
                 tutorialText.textContent = "The 'Consumer GPU Cluster' is efficient for startups. Buy one now.";
@@ -251,7 +265,7 @@ function runTutorial(step) {
         btnNextTut.style.display = 'none';
     }
     else if(step === 4) {
-        gameState.tutorialStep = 99; // End tutorial
+        gameState.tutorialStep = 99; 
         saveGame();
         tutorialOverlay.classList.add('hidden');
     }
@@ -259,7 +273,6 @@ function runTutorial(step) {
 
 function positionHighlight(element) {
     if(!element) {
-        // If no element, hide the highlight box (shadow) but keep text visible
         tutorialHighlight.style.opacity = '0';
         return;
     }
@@ -290,9 +303,13 @@ function setupRealtimeListener(saveId) {
                 const newData = doc.data();
                 gameState = newData;
                 if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99;
+                
+                // Realtime safeguard
+                if(!gameState.employees) gameState.employees = { count: 1, morale: 100, happiness: 100 };
+
                 updateHUD();
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-                // Don't re-render if typing in dev
+                // Only prevent re-render if typing
                 if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) {
                     renderTab(activeTab);
                 }
@@ -349,6 +366,7 @@ function showToast(msg, type = 'info') {
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
+// --- ROBUST NEXT WEEK LOGIC (FIXES FREEZING) ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
     const btn = document.getElementById('btn-next-week');
     btn.disabled = true;
@@ -356,101 +374,134 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
     lucide.createIcons();
 
     setTimeout(() => {
-        gameState.week++;
-        if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
+        try {
+            // SAFEGUARD: Init employees if missing
+            if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
 
-        // Employees Cost
-        const wages = gameState.employees.count * 800;
-        gameState.cash -= wages;
-        
-        // Morale Decay if no coffee
-        if(Math.random() > 0.8 && gameState.employees.morale > 20) gameState.employees.morale -= 2;
+            gameState.week++;
+            if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
 
-        const upkeep = gameState.hardware.reduce((sum, hw) => sum + (HARDWARE.find(x => x.id === hw.typeId).upkeep * hw.count), 0);
-        gameState.cash -= upkeep;
+            // Wages
+            const wages = (gameState.employees.count || 1) * 800;
+            gameState.cash -= wages;
+            
+            // Morale
+            if(Math.random() > 0.8 && gameState.employees.morale > 20) gameState.employees.morale -= 2;
 
-        gameState.researchPts += Math.floor(gameState.reputation / 5) + Math.floor(getCompute() * 0.05) + 5;
+            // Upkeep
+            const upkeep = gameState.hardware.reduce((sum, hw) => {
+                const tier = HARDWARE.find(x => x.id === hw.typeId);
+                return sum + (tier ? tier.upkeep * hw.count : 0);
+            }, 0);
+            gameState.cash -= upkeep;
 
-        gameState.products.forEach(p => {
-            if((!p.released || p.isUpdating) && p.weeksLeft > 0) {
-                // Morale impacts dev speed
-                const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
-                p.weeksLeft -= (1 * speedMult);
-                
-                if(p.weeksLeft <= 0) {
-                    p.isUpdating = false;
-                    p.weeksLeft = 0;
-                    if(p.updateType) {
-                        const major = p.updateType === 'major';
-                        const variant = ['lite', 'flash', 'pro', 'ultra', 'custom'].includes(p.updateType);
+            // Research
+            gameState.researchPts += Math.floor(gameState.reputation / 5) + Math.floor(getCompute() * 0.05) + 5;
+
+            // Product Logic
+            if (gameState.products && Array.isArray(gameState.products)) {
+                gameState.products.forEach(p => {
+                    // Init missing fields
+                    if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+                    if(!p.contracts) p.contracts = [];
+
+                    if((!p.released || p.isUpdating) && p.weeksLeft > 0) {
+                        const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
+                        p.weeksLeft -= (1 * speedMult);
                         
-                        if (variant) {
-                            p.released = true;
-                            p.version = 1.0;
-                            // Variant stats adjustments
-                            if (p.updateType === 'lite') p.quality = Math.min(80, p.quality * 0.8);
-                            if (p.updateType === 'ultra') p.quality = Math.min(100, p.quality * 1.3);
-                            p.hype = 100;
-                            showToast(`${p.name} Launched!`, 'success');
-                        } else {
-                            p.version = parseFloat((p.version + (major ? 1.0 : 0.1)).toFixed(1));
-                            p.quality = Math.min(100, p.quality + (major ? 15 : 5));
-                            p.hype = 100;
-                            showToast(`${p.name} updated to v${p.version}!`, 'success');
+                        if(p.weeksLeft <= 0) {
+                            p.isUpdating = false;
+                            p.weeksLeft = 0;
+                            if(p.updateType) {
+                                const major = p.updateType === 'major';
+                                const variant = ['lite', 'flash', 'pro', 'ultra', 'custom'].includes(p.updateType);
+                                
+                                if (variant) {
+                                    p.released = true;
+                                    p.version = 1.0;
+                                    if (p.updateType === 'lite') p.quality = Math.min(80, p.quality * 0.8);
+                                    if (p.updateType === 'ultra') p.quality = Math.min(100, p.quality * 1.3);
+                                    p.hype = 100;
+                                    showToast(`${p.name} Launched!`, 'success');
+                                } else {
+                                    p.version = parseFloat((p.version + (major ? 1.0 : 0.1)).toFixed(1));
+                                    p.quality = Math.min(100, p.quality + (major ? 15 : 5));
+                                    p.hype = 100;
+                                    showToast(`${p.name} updated to v${p.version}!`, 'success');
+                                }
+                                p.updateType = null;
+                            } else {
+                                p.released = true;
+                                const bonus = p.researchBonus || 0;
+                                const baseQ = Math.floor(Math.random() * 40) + 50;
+                                p.quality = Math.min(100, baseQ + bonus);
+                                p.version = 1.0;
+                                p.hype = 100;
+                                gameState.reputation += 10;
+                                showToast(`🚀 ${p.name} Launched! Quality: ${p.quality}/100`, 'success');
+                            }
                         }
-                        p.updateType = null;
-                    } else {
-                        p.released = true;
-                        const bonus = p.researchBonus || 0;
-                        const baseQ = Math.floor(Math.random() * 40) + 50;
-                        p.quality = Math.min(100, baseQ + bonus);
-                        p.version = 1.0;
-                        p.hype = 100;
-                        gameState.reputation += 10;
-                        showToast(`🚀 ${p.name} Launched! Quality: ${p.quality}/100`, 'success');
                     }
-                }
-            }
 
-            if(p.released && !p.isUpdating) {
-                // HUGE REVENUE BUFF
-                let weeklyRev = 0;
-                const organicUsers = Math.floor((p.quality * p.hype * 25)); // Multiplied user count
-                let organicRev = Math.floor(organicUsers * 0.5); // Higher rev per user
-                
-                // Variant revenue modifiers
-                if (p.name.includes('[Lite]')) organicRev *= 0.6;
-                if (p.name.includes('[Ultra]')) organicRev *= 1.5;
+                    if(p.released && !p.isUpdating) {
+                        let weeklyRev = 0;
+                        const organicUsers = Math.floor((p.quality * p.hype * 25)); 
+                        let organicRev = Math.floor(organicUsers * 0.5); 
+                        
+                        if (p.name.includes('[Lite]')) organicRev *= 0.6;
+                        if (p.name.includes('[Ultra]')) organicRev *= 1.5;
 
-                weeklyRev += organicRev;
-                p.contracts.forEach(cName => {
-                    const comp = COMPANIES.find(c => c.name === cName);
-                    if(comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
+                        weeklyRev += organicRev;
+                        p.contracts.forEach(cName => {
+                            const comp = COMPANIES.find(c => c.name === cName);
+                            if(comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
+                        });
+                        
+                        // API LOGIC
+                        if(p.apiConfig && p.apiConfig.active) {
+                            if(p.apiConfig.price === 0) {
+                                p.hype = Math.min(200, p.hype + 5); 
+                                const limitMult = p.apiConfig.limit / 100;
+                                gameState.cash -= (200 * limitMult); 
+                            } else {
+                                const apiUsers = Math.floor(organicUsers * 0.1); 
+                                const limitPenalty = p.apiConfig.limit < 500 ? 0.8 : 1.0;
+                                const priceFactor = (100 - p.apiConfig.price) / 100; 
+                                const revenue = Math.floor(apiUsers * p.apiConfig.price * priceFactor * limitPenalty);
+                                weeklyRev += revenue;
+                                p.hype = Math.max(0, p.hype - 1);
+                            }
+                        } else {
+                             p.hype = Math.max(0, p.hype - 2);
+                        }
+                        
+                        if(p.isOpenSource) {
+                            if(p.hype > 0) gameState.reputation += 1.5;
+                        } else {
+                            gameState.cash += weeklyRev;
+                            p.revenue += weeklyRev;
+                        }
+                    }
                 });
-                
-                // Hype decay
-                p.hype = Math.max(0, p.hype - 2);
-                
-                if(p.isOpenSource) {
-                    if(p.hype > 0) gameState.reputation += 1.5;
-                } else {
-                    gameState.cash += weeklyRev;
-                    p.revenue += weeklyRev;
-                }
             }
-        });
 
-        if(gameState.week % 4 === 0) {
-           COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*500)-100)));
+            if(gameState.week % 4 === 0) {
+               COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*500)-100)));
+            }
+
+            saveGame();
+            const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
+            renderTab(activeTab);
+
+        } catch (err) {
+            console.error("Next Week Error:", err);
+            showToast("System stabilized. Trying again...", 'info');
+        } finally {
+            // ALWAYS UNLOCK THE BUTTON
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Next`;
+            lucide.createIcons();
         }
-
-        saveGame();
-        const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-        renderTab(activeTab);
-
-        btn.disabled = false;
-        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Next`;
-        lucide.createIcons();
     }, 400); 
 });
 
@@ -471,7 +522,6 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.add('active');
         renderTab(btn.dataset.tab);
 
-        // Tutorial Triggers
         if(btn.dataset.tab === 'market' && gameState.tutorialStep === 1) {
             gameState.tutorialStep = 2; 
             runTutorial(2);
@@ -518,11 +568,20 @@ function renderTab(tab) {
             if(p.isOpenSource) card.innerHTML += `<div class="absolute top-0 right-0 bg-green-500 text-black text-[9px] font-black px-3 py-1 rounded-bl-xl tracking-widest">OPEN SOURCE</div>`;
 
             if(p.released && !p.isUpdating) {
+                // Determine API Status Color
+                const apiActive = p.apiConfig && p.apiConfig.active;
+                const apiStatus = apiActive ? (p.apiConfig.price === 0 ? 'text-purple-400' : 'text-green-400') : 'text-slate-600';
+                
                 card.innerHTML += `
                     <div class="flex justify-between items-start mb-6">
                         <div>
                             <h3 class="text-2xl font-bold text-white tracking-tight">${p.name} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
-                            <div class="text-xs text-slate-500 font-bold mt-1 bg-slate-800 inline-block px-2 py-0.5 rounded">${p.type.toUpperCase()}</div>
+                            <div class="flex gap-2 mt-1">
+                                <div class="text-xs text-slate-500 font-bold bg-slate-800 inline-block px-2 py-0.5 rounded">${p.type.toUpperCase()}</div>
+                                <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1">
+                                    <i data-lucide="globe" class="w-3 h-3"></i> API
+                                </div>
+                            </div>
                         </div>
                         <div class="text-right mt-2">
                             <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Weekly Rev</div>
@@ -541,15 +600,19 @@ function renderTab(tab) {
                         </div>
                     </div>
 
-                    <div class="flex gap-2">
-                        <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold flex-1 hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH</button>
-                        <button class="bg-white text-black px-3 py-3 text-[10px] font-bold flex-1 hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v2.0</button>
-                         <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold flex-1 hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                         <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH</button>
+                         <button class="bg-white text-black px-3 py-3 text-[10px] font-bold hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v2.0</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                         <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
+                         <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-green-500 btn-api rounded-xl tracking-wider transition-colors" data-id="${p.id}">CONFIG API</button>
                     </div>
                 `;
                 card.querySelector('.btn-patch').onclick = () => startUpdate(p.id, 'minor');
                 card.querySelector('.btn-major').onclick = () => startUpdate(p.id, 'major');
                 card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id);
+                card.querySelector('.btn-api').onclick = () => openApiModal(p.id); 
             } else {
                 card.innerHTML += `
                     <div class="flex justify-between items-center mb-3">
@@ -651,7 +714,7 @@ function renderTab(tab) {
                         const hw = gameState.hardware.find(x => x.typeId === h.id);
                         if(hw && hw.count > 0) {
                             hw.count--;
-                            gameState.cash += Math.floor(h.cost * 0.5); // Sell for half price
+                            gameState.cash += Math.floor(h.cost * 0.5); 
                             updateHUD();
                             renderTab('market');
                             showToast(`Sold ${h.name}`, 'info');
@@ -744,14 +807,24 @@ function renderTab(tab) {
             gameState.products.push({ 
                 id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 0, revenue: 0, hype: 0, 
                 released: false, isUpdating: false, isOpenSource: openSource, weeksLeft: selectedType.time, 
-                researchBonus: Math.floor(injectAmount / 100), contracts: [] 
+                researchBonus: Math.floor(injectAmount / 100), contracts: [],
+                apiConfig: { active: false, price: 0, limit: 100 }
             });
-            updateHUD(); showToast('Development Started', 'success'); renderTab('dash');
+            updateHUD(); showToast('Development Started', 'success'); 
+            
+            // FIX FOR GLITCH: Force switch tab and update UI
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('nav-dash').classList.add('active');
+            renderTab('dash');
         };
         lucide.createIcons();
     }
 
     if(tab === 'biz') {
+        // --- SAFE RENDER ---
+        const empCount = (gameState.employees && gameState.employees.count) || 1;
+        const morale = (gameState.employees && gameState.employees.morale) || 100;
+
         content.innerHTML = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="glass-panel p-6 rounded-2xl border-l-4 border-yellow-500">
@@ -760,11 +833,11 @@ function renderTab(tab) {
                     <div class="flex justify-between items-center mb-6 p-4 bg-slate-900/50 rounded-xl">
                         <div>
                             <div class="text-[10px] uppercase text-slate-500 font-bold">Employees</div>
-                            <div class="text-2xl font-black text-white">${gameState.employees.count}</div>
+                            <div class="text-2xl font-black text-white">${empCount}</div>
                         </div>
                         <div class="text-right">
                             <div class="text-[10px] uppercase text-slate-500 font-bold">Team Morale</div>
-                            <div class="text-2xl font-black ${gameState.employees.morale > 80 ? 'text-green-400' : 'text-red-500'}">${gameState.employees.morale}%</div>
+                            <div class="text-2xl font-black ${morale > 80 ? 'text-green-400' : 'text-red-500'}">${morale}%</div>
                         </div>
                     </div>
 
@@ -786,11 +859,13 @@ function renderTab(tab) {
 
         // HR Logic
         document.getElementById('btn-hire').onclick = () => {
+            if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
             gameState.employees.count++;
-            gameState.cash -= 1000; // Hiring fee
+            gameState.cash -= 1000; 
             updateHUD(); renderTab('biz');
         };
         document.getElementById('btn-fire').onclick = () => {
+            if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
             if(gameState.employees.count > 1) {
                 gameState.employees.count--;
                 gameState.employees.morale -= 10;
@@ -798,67 +873,78 @@ function renderTab(tab) {
             }
         };
 
-        // Contract Logic
+        // Contract Logic (RESTORED)
         const contractList = document.getElementById('contract-list');
-        COMPANIES.forEach(c => {
-            const el = document.createElement('div');
-            el.className = 'p-3 bg-slate-900/40 rounded-lg flex justify-between items-center';
-            el.innerHTML = `<div><div class="font-bold text-white">${c.name}</div><div class="text-xs text-slate-500">$${c.budget}/wk</div></div>`;
-            const liveProds = gameState.products.filter(p => p.released && !p.isOpenSource);
-            
-            if(liveProds.length > 0) {
-                 const select = document.createElement('select');
-                 select.className = "bg-black text-xs text-white p-1 rounded border border-slate-700";
-                 select.innerHTML = `<option value="">Pitch To...</option>` + liveProds.map(p => `<option value="${p.id}" ${p.contracts.includes(c.name) ? 'selected' : ''}>${p.name}</option>`).join('');
-                 
-                 select.onchange = (e) => {
-                     const pid = e.target.value;
-                     // Clear this company from all products first
-                     gameState.products.forEach(p => p.contracts = p.contracts.filter(x => x !== c.name));
-                     if(pid) {
-                         const p = gameState.products.find(x => x.id === pid);
-                         if(p) p.contracts.push(c.name);
-                         showToast(`Contract signed with ${c.name}`, 'success');
-                     }
-                 };
-                 el.appendChild(select);
-            } else {
-                el.innerHTML += `<div class="text-[10px] text-slate-600">No Products</div>`;
-            }
-            contractList.appendChild(el);
-        });
+        if(contractList) {
+            COMPANIES.forEach(c => {
+                const el = document.createElement('div');
+                el.className = 'p-3 bg-slate-900/40 rounded-lg flex justify-between items-center';
+                el.innerHTML = `<div><div class="font-bold text-white">${c.name}</div><div class="text-xs text-slate-500">$${c.budget}/wk</div></div>`;
+                const liveProds = (gameState.products || []).filter(p => p.released && !p.isOpenSource);
+                
+                if(liveProds.length > 0) {
+                     const select = document.createElement('select');
+                     select.className = "bg-black text-xs text-white p-1 rounded border border-slate-700";
+                     select.innerHTML = `<option value="">Pitch To...</option>` + liveProds.map(p => {
+                         const contracts = p.contracts || [];
+                         return `<option value="${p.id}" ${contracts.includes(c.name) ? 'selected' : ''}>${p.name}</option>`;
+                     }).join('');
+                     
+                     select.onchange = (e) => {
+                         const pid = e.target.value;
+                         // Clear this company from all products first
+                         gameState.products.forEach(p => { if(p.contracts) p.contracts = p.contracts.filter(x => x !== c.name); });
+                         if(pid) {
+                             const p = gameState.products.find(x => x.id === pid);
+                             if(p) {
+                                 if(!p.contracts) p.contracts = [];
+                                 p.contracts.push(c.name);
+                                 showToast(`Contract signed with ${c.name}`, 'success');
+                             }
+                         }
+                     };
+                     el.appendChild(select);
+                } else {
+                    el.innerHTML += `<div class="text-[10px] text-slate-600">No Products</div>`;
+                }
+                contractList.appendChild(el);
+            });
+        }
 
         // Campaigns
         const adsGrid = document.getElementById('ads-grid');
-        CAMPAIGNS.forEach(ad => {
-             const el = document.createElement('div');
-             el.className = 'glass-panel p-6 rounded-2xl hover:border-purple-500/50 transition-colors relative overflow-hidden';
-             if(ad.type === 'cameo') el.className += ' border-l-4 border-yellow-500';
-             
-             el.innerHTML = `
-                <h3 class="font-bold text-white text-lg mb-1">${ad.name}</h3>
-                <div class="text-xs text-slate-400 mb-4 font-mono">Cost: $${ad.cost.toLocaleString()} | Hype: +${ad.hype}</div>
-                <button class="w-full bg-slate-800 text-white font-bold py-2 rounded-lg text-xs hover:bg-purple-600 transition-colors">LAUNCH</button>
-             `;
-             
-             el.querySelector('button').onclick = () => {
-                 if(gameState.cash >= ad.cost) {
-                     gameState.cash -= ad.cost;
-                     // Apply hype to all released products
-                     let count = 0;
-                     gameState.products.forEach(p => { 
-                         if(p.released) { p.hype += ad.hype; count++; }
-                     });
-                     if(count > 0) {
-                         updateHUD(); showToast('Campaign Live!', 'success');
-                     } else {
-                         showToast('No live products to advertise!', 'error');
-                         gameState.cash += ad.cost; // Refund
-                     }
-                 } else showToast('Insufficient Funds', 'error');
-             };
-             adsGrid.appendChild(el);
-        });
+        if(adsGrid) {
+            CAMPAIGNS.forEach(ad => {
+                 const el = document.createElement('div');
+                 el.className = 'glass-panel p-6 rounded-2xl hover:border-purple-500/50 transition-colors relative overflow-hidden';
+                 if(ad.type === 'cameo') el.className += ' border-l-4 border-yellow-500';
+                 
+                 el.innerHTML = `
+                    <h3 class="font-bold text-white text-lg mb-1">${ad.name}</h3>
+                    <div class="text-xs text-slate-400 mb-4 font-mono">Cost: $${ad.cost.toLocaleString()} | Hype: +${ad.hype}</div>
+                    <button class="w-full bg-slate-800 text-white font-bold py-2 rounded-lg text-xs hover:bg-purple-600 transition-colors">LAUNCH</button>
+                 `;
+                 
+                 el.querySelector('button').onclick = () => {
+                     if(gameState.cash >= ad.cost) {
+                         gameState.cash -= ad.cost;
+                         let count = 0;
+                         if(gameState.products) {
+                             gameState.products.forEach(p => { 
+                                 if(p.released) { p.hype += ad.hype; count++; }
+                             });
+                         }
+                         if(count > 0) {
+                             updateHUD(); showToast('Campaign Live!', 'success');
+                         } else {
+                             showToast('No live products to advertise!', 'error');
+                             gameState.cash += ad.cost; 
+                         }
+                     } else showToast('Insufficient Funds', 'error');
+                 };
+                 adsGrid.appendChild(el);
+            });
+        }
         lucide.createIcons();
     }
 
@@ -871,10 +957,9 @@ function renderTab(tab) {
         `;
         const grid = document.getElementById('shop-grid');
         
-        // Filter items
         const availableItems = SHOP_ITEMS.filter(item => {
             if(item.type.includes('consumable')) return true;
-            return !gameState.purchasedItems.includes(item.id);
+            return !(gameState.purchasedItems || []).includes(item.id);
         });
 
         availableItems.forEach(item => {
@@ -887,9 +972,11 @@ function renderTab(tab) {
                     if(item.type === 'consumable') {
                         if(item.amount > 0) gameState.researchPts += item.amount;
                     } else if(item.type === 'consumable_emp') {
+                        if(!gameState.employees) gameState.employees = { morale: 100 };
                         gameState.employees.morale = Math.min(100, gameState.employees.morale + item.amount);
                         showToast(`Staff Morale Increased!`, 'success');
                     } else {
+                        if(!gameState.purchasedItems) gameState.purchasedItems = [];
                         gameState.purchasedItems.push(item.id);
                     }
                     updateHUD(); showToast('Purchased!', 'success');
@@ -919,7 +1006,7 @@ function renderTab(tab) {
     }
 }
 
-// VARIANT LOGIC (UPDATED FOR CUSTOM)
+// VARIANT LOGIC
 let selectedVariantId = null;
 let selectedVariantType = null;
 const variantModal = document.getElementById('variant-modal');
@@ -1003,7 +1090,7 @@ document.getElementById('btn-confirm-variant').onclick = () => {
 
     gameState.cash -= cost;
     
-    const newProduct = {
+    gameState.products.push({
         id: Date.now().toString(),
         name: `${parent.name} ${suffix}`,
         type: parent.type,
@@ -1016,15 +1103,91 @@ document.getElementById('btn-confirm-variant').onclick = () => {
         updateType: selectedVariantType,
         isOpenSource: parent.isOpenSource,
         weeksLeft: time,
-        contracts: []
-    };
+        contracts: [],
+        apiConfig: { active: false, price: 0, limit: 100 }
+    });
     
-    gameState.products.push(newProduct);
     variantModal.classList.add('hidden');
     renderTab('dash');
     updateHUD();
     showToast(`Developing variant...`, 'success');
 };
+
+// --- API MODAL LOGIC ---
+const apiModal = document.getElementById('api-modal');
+let selectedApiId = null;
+
+function openApiModal(productId) {
+    const p = gameState.products.find(x => x.id === productId);
+    if(!p) return;
+    
+    selectedApiId = productId;
+    if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+    
+    // Set UI State
+    const statusBtn = document.getElementById('btn-toggle-api-status');
+    const dot = statusBtn.querySelector('div');
+    if(p.apiConfig.active) {
+        statusBtn.classList.replace('bg-slate-700', 'bg-green-500');
+        dot.classList.replace('left-1', 'left-7');
+    } else {
+        statusBtn.classList.replace('bg-green-500', 'bg-slate-700');
+        dot.classList.replace('left-7', 'left-1');
+    }
+
+    const sliderPrice = document.getElementById('api-price-slider');
+    const displayPrice = document.getElementById('api-price-display');
+    sliderPrice.value = p.apiConfig.price;
+    displayPrice.textContent = p.apiConfig.price === 0 ? '$0.00 (Free)' : `$${p.apiConfig.price}.00`;
+
+    const sliderLimit = document.getElementById('api-limit-slider');
+    const displayLimit = document.getElementById('api-limit-display');
+    sliderLimit.value = p.apiConfig.limit;
+    displayLimit.textContent = `${p.apiConfig.limit} RPM`;
+    
+    apiModal.classList.remove('hidden');
+}
+
+document.getElementById('api-price-slider').oninput = (e) => {
+    const val = parseInt(e.target.value);
+    document.getElementById('api-price-display').textContent = val === 0 ? '$0.00 (Free)' : `$${val}.00`;
+};
+
+document.getElementById('api-limit-slider').oninput = (e) => {
+    document.getElementById('api-limit-display').textContent = `${e.target.value} RPM`;
+};
+
+document.getElementById('btn-toggle-api-status').onclick = (e) => {
+    const btn = e.currentTarget;
+    const dot = btn.querySelector('div');
+    const isActive = btn.classList.contains('bg-green-500');
+    
+    if(isActive) {
+        btn.classList.replace('bg-green-500', 'bg-slate-700');
+        dot.classList.replace('left-7', 'left-1');
+    } else {
+        btn.classList.replace('bg-slate-700', 'bg-green-500');
+        dot.classList.replace('left-1', 'left-7');
+    }
+};
+
+document.getElementById('btn-save-api').onclick = () => {
+    if(!selectedApiId) return;
+    const p = gameState.products.find(x => x.id === selectedApiId);
+    if(p) {
+        const isActive = document.getElementById('btn-toggle-api-status').classList.contains('bg-green-500');
+        p.apiConfig = {
+            active: isActive,
+            price: parseInt(document.getElementById('api-price-slider').value),
+            limit: parseInt(document.getElementById('api-limit-slider').value)
+        };
+        showToast('API Configuration Deployed', 'success');
+        apiModal.classList.add('hidden');
+        renderTab('dash');
+    }
+};
+
+document.getElementById('btn-close-api').onclick = () => apiModal.classList.add('hidden');
 
 function startUpdate(id, type) {
     const p = gameState.products.find(x => x.id === id);
