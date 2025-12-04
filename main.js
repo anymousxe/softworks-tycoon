@@ -177,7 +177,7 @@ function startGame(id, data) {
     activeSaveId = id;
     gameState = data;
     
-    // --- CRITICAL MIGRATION FIXES ---
+    // --- SAFEGUARDS & MIGRATION ---
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
@@ -305,7 +305,6 @@ function setupRealtimeListener(saveId) {
 
                 updateHUD();
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-                // Only prevent re-render if typing
                 if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) {
                     renderTab(activeTab);
                 }
@@ -371,33 +370,26 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
     setTimeout(() => {
         try {
-            // SAFEGUARD
             if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
 
             gameState.week++;
             if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
 
-            // Wages
             const wages = (gameState.employees.count || 1) * 800;
             gameState.cash -= wages;
             
-            // Morale
             if(Math.random() > 0.8 && gameState.employees.morale > 20) gameState.employees.morale -= 2;
 
-            // Upkeep
             const upkeep = gameState.hardware.reduce((sum, hw) => {
                 const tier = HARDWARE.find(x => x.id === hw.typeId);
                 return sum + (tier ? tier.upkeep * hw.count : 0);
             }, 0);
             gameState.cash -= upkeep;
 
-            // Research
             gameState.researchPts += Math.floor(gameState.reputation / 5) + Math.floor(getCompute() * 0.05) + 5;
 
-            // Product Logic
             if (gameState.products && Array.isArray(gameState.products)) {
                 gameState.products.forEach(p => {
-                    // Init missing fields
                     if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
                     if(!p.contracts) p.contracts = [];
 
@@ -421,7 +413,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                                     showToast(`${p.name} Launched!`, 'success');
                                 } else {
                                     p.version = parseFloat((p.version + (major ? 1.0 : 0.1)).toFixed(1));
-                                    p.quality = Math.min(100, p.quality + (major ? 15 : 5));
+                                    p.quality = Math.min(150, p.quality + (major ? 15 : 5));
                                     p.hype = 100;
                                     showToast(`${p.name} updated to v${p.version}!`, 'success');
                                 }
@@ -430,11 +422,11 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                                 p.released = true;
                                 const bonus = p.researchBonus || 0;
                                 const baseQ = Math.floor(Math.random() * 40) + 50;
-                                p.quality = Math.min(100, baseQ + bonus);
+                                p.quality = Math.min(150, baseQ + bonus); // CAP RAISED TO 150
                                 p.version = 1.0;
                                 p.hype = 100;
                                 gameState.reputation += 10;
-                                showToast(`🚀 ${p.name} Launched! Quality: ${p.quality}/100`, 'success');
+                                showToast(`🚀 ${p.name} Launched! Quality: ${p.quality}/150`, 'success');
                             }
                         }
                     }
@@ -453,10 +445,9 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                             if(comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
                         });
                         
-                        // API LOGIC
                         if(p.apiConfig && p.apiConfig.active) {
                             if(p.apiConfig.price === 0) {
-                                p.hype = Math.min(200, p.hype + 5); 
+                                p.hype = Math.min(250, p.hype + 5); // CAP RAISED TO 250
                                 const limitMult = p.apiConfig.limit / 100;
                                 gameState.cash -= (200 * limitMult); 
                             } else {
@@ -608,8 +599,6 @@ function renderTab(tab) {
                 card.querySelector('.btn-major').onclick = () => startUpdate(p.id, 'major');
                 card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id);
                 card.querySelector('.btn-api').onclick = () => openApiModal(p.id); 
-                
-                // RESTORED DELETE BUTTON LOGIC
                 card.querySelector('.btn-delete').onclick = () => {
                     if(confirm(`Permanently discontinue ${p.name}? This cannot be undone.`)) {
                         gameState.products = gameState.products.filter(x => x.id !== p.id);
@@ -618,7 +607,6 @@ function renderTab(tab) {
                         showToast('Product Discontinued', 'info');
                     }
                 };
-
             } else {
                 card.innerHTML += `
                     <div class="flex justify-between items-center mb-3">
@@ -762,6 +750,7 @@ function renderTab(tab) {
                             <span id="inject-val">0 PTS</span>
                         </div>
                         <input type="range" id="research-inject" min="0" max="${gameState.researchPts}" value="0" class="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                        <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="quality-boost" class="text-white font-bold">0</span> Quality</div>
                     </div>
 
                     <div class="flex items-center gap-3 mb-8 p-4 border border-slate-700 rounded-xl cursor-pointer hover:bg-slate-800 transition-colors" id="btn-toggle-opensource">
@@ -779,10 +768,12 @@ function renderTab(tab) {
         const typeContainer = document.getElementById('dev-types');
         const slider = document.getElementById('research-inject');
         const valLabel = document.getElementById('inject-val');
+        const boostLabel = document.getElementById('quality-boost');
         
         if(slider) slider.oninput = (e) => {
             injectAmount = parseInt(e.target.value);
             valLabel.textContent = `${injectAmount} PTS`;
+            boostLabel.textContent = injectAmount; // 1:1 RATIO FIX
         };
 
         PRODUCTS.forEach(p => {
@@ -813,7 +804,8 @@ function renderTab(tab) {
             gameState.products.push({ 
                 id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 0, revenue: 0, hype: 0, 
                 released: false, isUpdating: false, isOpenSource: openSource, weeksLeft: selectedType.time, 
-                researchBonus: Math.floor(injectAmount / 100), contracts: [],
+                researchBonus: injectAmount, // 1:1 RATIO FIX
+                contracts: [],
                 apiConfig: { active: false, price: 0, limit: 100 }
             });
             updateHUD(); showToast('Development Started', 'success'); 
@@ -858,7 +850,6 @@ function renderTab(tab) {
             </div>
         `;
 
-        // HR Logic
         document.getElementById('btn-hire').onclick = () => {
             if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
             gameState.employees.count++;
@@ -874,7 +865,6 @@ function renderTab(tab) {
             }
         };
 
-        // NEW GRID LOGIC
         const contractGrid = document.getElementById('contract-grid');
         const liveProds = (gameState.products || []).filter(p => p.released && !p.isOpenSource);
 
@@ -910,14 +900,13 @@ function renderTab(tab) {
                         p.contracts.push(c.name);
                         showToast(`Contract signed with ${c.name}!`, 'success');
                     }
-                    renderTab('biz'); // Re-render to update UI
+                    renderTab('biz'); 
                 };
                 list.appendChild(btn);
             });
             contractGrid.appendChild(el);
         });
 
-        // Campaigns
         const adsGrid = document.getElementById('ads-grid');
         if(adsGrid) {
             CAMPAIGNS.forEach(ad => {
@@ -937,7 +926,7 @@ function renderTab(tab) {
                          let count = 0;
                          if(gameState.products) {
                              gameState.products.forEach(p => { 
-                                 if(p.released) { p.hype += ad.hype; count++; }
+                                 if(p.released) { p.hype = Math.min(250, p.hype + ad.hype); count++; } // CAP RAISED TO 250
                              });
                          }
                          if(count > 0) {
