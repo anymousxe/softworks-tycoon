@@ -4,7 +4,7 @@ export const config = {
 };
 
 export default async function handler(request) {
-    // 1. Define CORS Headers
+    // 1. CORS Headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -12,28 +12,19 @@ export default async function handler(request) {
         'Content-Type': 'application/json',
     };
 
-    // 2. Handle Options (Pre-flight requests)
-    if (request.method === 'OPTIONS') {
-        return new Response(null, { headers });
-    }
-
-    // 3. Reject non-POST requests
-    if (request.method !== 'POST') {
-        return new Response('Method Not Allowed', { status: 405 });
-    }
+    if (request.method === 'OPTIONS') return new Response(null, { headers });
+    if (request.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers });
 
     try {
         const { prompt } = await request.json();
         
-        // 4. Get Key from Vercel Environment Variables
+        // Use the Server-Side Environment Variable
         const GEMINI_KEY = process.env.GEMINI_API_KEY; 
         
-        if (!GEMINI_KEY) {
-             throw new Error("Server Error: API Key not configured in Vercel.");
-        }
+        if (!GEMINI_KEY) throw new Error("Server Error: API Key not configured.");
 
-        // 5. Call Gemini 1.5 Flash (STABLE & FREE TIER FRIENDLY)
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+        // SWITCHED TO GEMINI 3 FLASH (The new Unlimited/Fast Standard)
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${GEMINI_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -43,10 +34,14 @@ export default async function handler(request) {
 
         const data = await response.json();
 
-        // 6. Return Data
+        if (!response.ok) {
+            console.error("Gemini 3 Error:", data);
+            return new Response(JSON.stringify({ error: data.error?.message || "AI Error" }), { status: 500, headers });
+        }
+
         return new Response(JSON.stringify(data), { headers });
 
     } catch (error) {
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+        return new Response(JSON.stringify({ error: error.message }), { status: 500, headers });
     }
 }
