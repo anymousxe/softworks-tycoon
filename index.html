@@ -33,18 +33,18 @@
                 <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-lg text-white">
                     <i data-lucide="sparkles"></i>
                 </div>
-                <h3 class="text-2xl font-black text-white tracking-tight">SYSTEM UPDATE v2.9</h3>
+                <h3 class="text-2xl font-black text-white tracking-tight">SYSTEM UPDATE v3.0</h3>
             </div>
             
             <div class="space-y-4 mb-8">
                 <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
-                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="bar-chart-2" class="w-4 h-4 text-cyan-400"></i> GLOBAL LEADERBOARD</h4>
-                    <p class="text-slate-300 text-xs">New Stats tab. Compare your models directly against OpenAI, Google, and others.</p>
+                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="flask-conical" class="w-4 h-4 text-purple-400"></i> R&D INJECTION</h4>
+                    <p class="text-slate-300 text-xs">You can now inject Research Points into <strong>Updates</strong> and <strong>Variants</strong> to ensure high quality upon release.</p>
                 </div>
 
                 <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
-                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="trending-down" class="w-4 h-4 text-red-400"></i> OBSOLESCENCE</h4>
-                    <p class="text-slate-300 text-xs">When competitors release superior models, your models now lose Quality, not just Hype.</p>
+                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4 text-green-400"></i> DEV PROTECTION</h4>
+                    <p class="text-slate-300 text-xs">Models currently in development or updating are now <strong>immune</strong> to quality drops from competitor releases.</p>
                 </div>
             </div>
 
@@ -63,6 +63,27 @@
             <div class="flex justify-between items-center mt-2">
                 <button id="btn-trigger-skip" class="text-xs text-slate-500 hover:text-white underline">Skip Tutorial</button>
                 <button id="btn-next-tutorial" class="bg-white text-black px-6 py-2 rounded-lg font-bold hover:bg-cyan-400 transition-colors text-sm">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="update-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black border border-cyan-500/20">
+            <h2 class="text-2xl font-black text-white mb-2 tracking-tight">CONFIGURE UPDATE</h2>
+            <p class="text-xs text-slate-500 font-mono mb-6">Target: <span id="update-target-name" class="text-cyan-400">...</span></p>
+            
+            <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
+                <div class="flex justify-between text-xs font-bold text-purple-300 mb-2">
+                    <span>Research Injection</span>
+                    <span id="update-inject-val">0 PTS</span>
+                </div>
+                <input type="range" id="update-research-slider" min="0" max="1000" value="0" class="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="update-quality-boost" class="text-white font-bold">0</span> Quality</div>
+            </div>
+
+            <div class="flex gap-3">
+                <button id="btn-cancel-update" class="px-4 py-2 text-slate-500 hover:text-white text-sm font-bold">CANCEL</button>
+                <button id="btn-confirm-update" class="flex-1 bg-white text-black font-bold py-3 rounded-xl text-sm hover:bg-cyan-400 shadow-lg shadow-white/5 tracking-widest">START UPDATE</button>
             </div>
         </div>
     </div>
@@ -103,6 +124,15 @@
             <div id="custom-variant-input" class="hidden mb-6">
                  <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">Custom Variant Name</label>
                  <input id="inp-custom-variant" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="e.g. Turbo Edition">
+            </div>
+
+            <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
+                <div class="flex justify-between text-xs font-bold text-purple-300 mb-2">
+                    <span>Research Injection</span>
+                    <span id="variant-inject-val">0 PTS</span>
+                </div>
+                <input type="range" id="variant-research-slider" min="0" max="1000" value="0" class="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="variant-quality-boost" class="text-white font-bold">0</span> Quality</div>
             </div>
 
             <button id="btn-confirm-variant" class="w-full bg-slate-800 text-slate-500 font-bold py-4 rounded-xl transition-all tracking-widest text-sm cursor-not-allowed" disabled>SELECT A VARIANT</button>
@@ -268,7 +298,8 @@
         <div class="flex flex-1 overflow-hidden">
             <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-8 gap-3 z-10 backdrop-blur-md overflow-y-auto custom-scrollbar">
                 <button id="nav-dash" class="nav-btn active" data-tab="dash"><i data-lucide="layout-dashboard"></i><span>Home</span></button>
-                <button id="nav-stats" class="nav-btn" data-tab="stats"><i data-lucide="bar-chart-2"></i><span>Stats</span></button> <button id="nav-rivals" class="nav-btn" data-tab="rivals"><i data-lucide="swords"></i><span>Rivals</span></button>
+                <button id="nav-stats" class="nav-btn" data-tab="stats"><i data-lucide="bar-chart-2"></i><span>Stats</span></button>
+                <button id="nav-rivals" class="nav-btn" data-tab="rivals"><i data-lucide="swords"></i><span>Rivals</span></button>
                 <button id="nav-dev" class="nav-btn" data-tab="dev"><i data-lucide="plus-square"></i><span>Create</span></button>
                 <button id="nav-market" class="nav-btn" data-tab="market"><i data-lucide="server"></i><span>Market</span></button>
                 <button id="nav-lab" class="nav-btn" data-tab="lab"><i data-lucide="flask-conical"></i><span>Lab</span></button>
