@@ -59,6 +59,14 @@ const SHOP_ITEMS = [
     { id: 'party', name: 'Office Party', cost: 5000, effect: 'Employees: +30 Morale', type: 'consumable_emp', amount: 30 }
 ];
 
+// --- UTILITY FUNCTION FOR RIVAL NAMES ---
+function generateRandomModelName() {
+    const pre = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
+    const suf = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
+    const ver = VERSIONS[Math.floor(Math.random() * VERSIONS.length)];
+    return `${pre}${suf} ${ver}`;
+}
+
 // --- AUTH & SETUP ---
 auth.onAuthStateChanged(user => {
     currentUser = user;
@@ -153,6 +161,7 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         reputation: 0,
         hardware: [], 
         products: [],
+        marketModels: [], // NEW: Track rival models
         reviews: [],
         unlockedTechs: [],
         purchasedItems: [], 
@@ -175,6 +184,7 @@ function startGame(id, data) {
     // --- SAFEGUARDS & MIGRATION ---
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
+    if(!gameState.marketModels) gameState.marketModels = []; // Init market models if missing
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
     
     if(!gameState.employees || typeof gameState.employees !== 'object') {
@@ -295,8 +305,8 @@ function setupRealtimeListener(saveId) {
                 gameState = newData;
                 if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99;
                 
-                // Realtime safeguard
                 if(!gameState.employees) gameState.employees = { count: 1, morale: 100, happiness: 100 };
+                if(!gameState.marketModels) gameState.marketModels = [];
 
                 updateHUD();
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
@@ -356,24 +366,57 @@ function showToast(msg, type = 'info') {
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
-// --- GENERATE RIVAL RELEASE ---
+// --- GENERATE RIVAL RELEASE & OBSOLESCENCE ---
 function generateRivalRelease() {
     const rival = RIVALS_LIST[Math.floor(Math.random() * RIVALS_LIST.length)];
     const pre = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
     const suf = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
     const ver = VERSIONS[Math.floor(Math.random() * VERSIONS.length)];
     
-    // Ensure unique sounding names
-    const releaseName = `${pre}${suf} ${ver}`;
-    showToast(`COMPETITOR: ${rival.name} released ${releaseName}!`, 'error');
+    // Competitor Variants
+    const variants = ['', 'Lite', 'Flash', 'Pro', 'Ultra'];
+    const variant = variants[Math.floor(Math.random() * variants.length)];
+    const variantSuffix = variant ? ` [${variant}]` : '';
     
-    // Impact User
+    const releaseName = `${pre}${suf} ${ver}${variantSuffix}`;
+    
+    // Calc Quality (Bias towards higher quality as time goes on)
+    let baseQ = 50 + (gameState.year - 2025) * 10;
+    if(variant === 'Lite') baseQ -= 10;
+    if(variant === 'Ultra') baseQ += 20;
+    const quality = Math.min(150, Math.floor(baseQ + Math.random() * 40));
+
+    // Add to Market History
+    if(!gameState.marketModels) gameState.marketModels = [];
+    gameState.marketModels.push({
+        id: Date.now().toString(),
+        name: releaseName,
+        company: rival.name,
+        color: rival.color,
+        quality: quality,
+        type: variant || 'Base',
+        week: gameState.week,
+        year: gameState.year
+    });
+    
+    // Keep list clean (Top 50)
+    if(gameState.marketModels.length > 50) gameState.marketModels.shift();
+
+    showToast(`${rival.name} released ${releaseName} (Q: ${quality})`, 'error');
+    
+    // OBSOLESCENCE MECHANIC: Hit User Quality
     if (gameState.products) {
+        let hitCount = 0;
         gameState.products.forEach(p => {
             if(p.released) {
-                p.hype = Math.max(0, p.hype - 5); // Hit to hype
+                // If rival is better, bigger hit
+                const hit = quality > p.quality ? 5 : 2;
+                p.quality = Math.max(0, p.quality - hit);
+                p.hype = Math.max(0, p.hype - 5);
+                hitCount++;
             }
         });
+        if(hitCount > 0) showToast(`Market shift! Your models lost quality.`, 'info');
     }
 }
 
@@ -391,7 +434,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             gameState.week++;
             if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
 
-            // RIVAL DROP CHANCE (INCREASED TO 30%)
+            // RIVAL DROP CHANCE (30% per week)
             if(Math.random() > 0.7) {
                 generateRivalRelease();
             }
@@ -545,6 +588,7 @@ function renderTab(tab) {
     content.innerHTML = '';
     content.className = 'animate-in';
 
+    // --- DASHBOARD ---
     if(tab === 'dash') {
         const liveProducts = gameState.products.filter(p => p.released).length;
         const rev = gameState.products.reduce((acc, p) => acc + (p.revenue||0), 0);
@@ -643,6 +687,51 @@ function renderTab(tab) {
             list.appendChild(card);
         });
         lucide.createIcons();
+    }
+
+    // --- STATS TAB (NEW) ---
+    if(tab === 'stats') {
+        content.innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-black text-white tracking-tight">GLOBAL LEADERBOARD</h2>
+                <div class="text-xs text-slate-500 font-mono">RANKING BY QUALITY</div>
+            </div>
+            <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+                <div class="grid grid-cols-5 bg-slate-900/80 p-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    <div>Rank</div>
+                    <div class="col-span-2">Model Name</div>
+                    <div>Developer</div>
+                    <div class="text-right">Quality</div>
+                </div>
+                <div id="stats-list" class="divide-y divide-slate-800/50"></div>
+            </div>
+        `;
+        
+        const list = document.getElementById('stats-list');
+        // Merge User Products + Rival Releases
+        const userModels = (gameState.products || []).filter(p => p.released).map(p => ({
+            name: p.name,
+            company: gameState.companyName,
+            quality: p.quality,
+            isUser: true,
+            color: 'text-cyan-400'
+        }));
+        
+        const marketModels = gameState.marketModels || [];
+        
+        const allModels = [...userModels, ...marketModels].sort((a,b) => b.quality - a.quality);
+        
+        allModels.forEach((m, i) => {
+            const el = document.createElement('div');
+            el.className = `grid grid-cols-5 p-4 items-center text-sm ${m.isUser ? 'bg-cyan-900/10' : 'hover:bg-slate-900/30'} transition-colors`;
+            el.innerHTML = `
+                <div class="font-mono text-slate-500">#${i+1}</div>
+                <div class="col-span-2 font-bold text-white">${m.name}</div>
+                <div class="${m.color || 'text-slate-400'} text-xs font-bold">${m.company}</div>
+                <div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>
+            `;
+            list.appendChild(el);
+        });
     }
 
     if(tab === 'rivals') {
@@ -794,7 +883,7 @@ function renderTab(tab) {
         if(slider) slider.oninput = (e) => {
             injectAmount = parseInt(e.target.value);
             valLabel.textContent = `${injectAmount} PTS`;
-            boostLabel.textContent = injectAmount; // 1:1 RATIO FIX
+            boostLabel.textContent = injectAmount; 
         };
 
         PRODUCTS.forEach(p => {
