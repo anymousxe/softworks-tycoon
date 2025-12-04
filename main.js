@@ -111,7 +111,7 @@ const AI_CONFIG = {
 // --- SYSTEM PROMPT ---
 function getSystemPrompt(context) {
     return `
-    You are 'Gemini 3 Ultra', an advanced, strategic AI advisor embedded in the game 'Softworks Tycoon'.
+    You are 'Gemini 3 Flash', an advanced, strategic AI advisor embedded in the game 'Softworks Tycoon'.
     
     CURRENT STATUS:
     - Funds: $${context.funds.toLocaleString()}
@@ -573,7 +573,8 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 async function generateDynamicReview(product) {
     const status = checkRateLimit(); 
     
-    if (!status.allowed || typeof SECRETS === 'undefined' || !SECRETS.GEMINI_API_KEY) {
+    // Check if limit reached
+    if (!status.allowed) {
         generateFallbackReview(product);
         return;
     }
@@ -586,12 +587,17 @@ async function generateDynamicReview(product) {
     Format: "Review Text"`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${SECRETS.GEMINI_API_KEY}`, {
+        // USE PROXY INSTEAD OF DIRECT CALL
+        const response = await fetch('/api/proxy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            body: JSON.stringify({ prompt: prompt })
         });
+        
         const data = await response.json();
+        
+        if(data.error) throw new Error(data.error);
+
         let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Interesting release.";
         text = text.replace(/"/g, ''); 
 
@@ -1292,18 +1298,13 @@ async function askGemini(prompt) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 
     try {
-        if (typeof SECRETS === 'undefined' || !SECRETS.GEMINI_API_KEY) {
-            throw new Error("API Key missing in secrets.js");
-        }
-
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${SECRETS.GEMINI_API_KEY}`, {
+        // USE PROXY INSTEAD OF DIRECT CALL
+        const response = await fetch('/api/proxy', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: systemPrompt }] }]
-            })
+            body: JSON.stringify({ prompt: systemPrompt })
         });
-
+        
         const data = await response.json();
         
         // Remove loading
@@ -1311,7 +1312,7 @@ async function askGemini(prompt) {
         if(loader) loader.remove();
 
         if (data.error) {
-            appendMessage('system', `❌ Error: ${data.error.message}`, false);
+            appendMessage('system', `❌ Error: ${data.error}`, false);
         } else {
             const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "System Error: No response data.";
             appendMessage('system', aiText);
