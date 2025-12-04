@@ -24,6 +24,10 @@ const APP_ID = 'softworks-tycoon';
 const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
 const COMPANIES = (typeof COMPANIES_DB !== 'undefined') ? COMPANIES_DB : [];
 const CAMPAIGNS = (typeof CAMPAIGNS_DB !== 'undefined') ? CAMPAIGNS_DB : [];
+const RIVALS_LIST = (typeof RIVALS_DB !== 'undefined') ? RIVALS_DB : [{name:'OpenAI', strength:99, color:'text-green-400'}];
+const PREFIXES = (typeof MODEL_PREFIXES !== 'undefined') ? MODEL_PREFIXES : ['Super'];
+const SUFFIXES = (typeof MODEL_SUFFIXES !== 'undefined') ? MODEL_SUFFIXES : ['GPT'];
+const VERSIONS = (typeof MODEL_VERSIONS !== 'undefined') ? MODEL_VERSIONS : ['1.0'];
 
 const RESEARCH = [
     { id: 'opt_algos', name: 'Optimized Algos', cost: 50, desc: '-1 Week Dev Time' },
@@ -44,15 +48,6 @@ const PRODUCTS = [
     { id: 'game_ai', name: 'NPC Brain', cost: 200000, time: 10, compute: 70, specs: ['Gaming', 'Simulation', 'VR'] },
     { id: 'robotics', name: 'Robot OS', cost: 300000, time: 12, compute: 100, specs: ['Industrial', 'Home', 'Military'] },
     { id: 'agi', name: 'Conscious AI', cost: 5000000, time: 24, compute: 2000, specs: ['Sentience'], reqTech: 'agi_theory' }
-];
-
-const RIVALS = [
-    { name: 'OpenAI (Real)', strength: 95, releases: ['GPT-5', 'Sora 2', 'Omni-Brain'], color: 'text-green-400' },
-    { name: 'Anthropic', strength: 85, releases: ['Claude 4', 'Claude Opus X'], color: 'text-yellow-400' },
-    { name: 'Google DeepMind', strength: 90, releases: ['Gemini Ultra 2', 'AlphaCode 3'], color: 'text-blue-400' },
-    { name: 'Meta AI', strength: 80, releases: ['Llama 4', 'MetaVerse Brain'], color: 'text-blue-300' },
-    { name: 'X.AI', strength: 75, releases: ['Grok 3', 'TruthGPT'], color: 'text-slate-200' },
-    { name: 'Stability', strength: 70, releases: ['Stable Video 4', 'Diffusion XL'], color: 'text-purple-400' }
 ];
 
 const SHOP_ITEMS = [
@@ -361,6 +356,27 @@ function showToast(msg, type = 'info') {
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
+// --- GENERATE RIVAL RELEASE ---
+function generateRivalRelease() {
+    const rival = RIVALS_LIST[Math.floor(Math.random() * RIVALS_LIST.length)];
+    const pre = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
+    const suf = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
+    const ver = VERSIONS[Math.floor(Math.random() * VERSIONS.length)];
+    
+    // Ensure unique sounding names
+    const releaseName = `${pre}${suf} ${ver}`;
+    showToast(`COMPETITOR: ${rival.name} released ${releaseName}!`, 'error');
+    
+    // Impact User
+    if (gameState.products) {
+        gameState.products.forEach(p => {
+            if(p.released) {
+                p.hype = Math.max(0, p.hype - 5); // Hit to hype
+            }
+        });
+    }
+}
+
 // --- NEXT WEEK LOGIC ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
     const btn = document.getElementById('btn-next-week');
@@ -374,6 +390,11 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
             gameState.week++;
             if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
+
+            // RIVAL DROP CHANCE (INCREASED TO 30%)
+            if(Math.random() > 0.7) {
+                generateRivalRelease();
+            }
 
             const wages = (gameState.employees.count || 1) * 800;
             gameState.cash -= wages;
@@ -422,7 +443,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                                 p.released = true;
                                 const bonus = p.researchBonus || 0;
                                 const baseQ = Math.floor(Math.random() * 40) + 50;
-                                p.quality = Math.min(150, baseQ + bonus); // CAP RAISED TO 150
+                                p.quality = Math.min(150, baseQ + bonus); 
                                 p.version = 1.0;
                                 p.hype = 100;
                                 gameState.reputation += 10;
@@ -447,7 +468,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         
                         if(p.apiConfig && p.apiConfig.active) {
                             if(p.apiConfig.price === 0) {
-                                p.hype = Math.min(250, p.hype + 5); // CAP RAISED TO 250
+                                p.hype = Math.min(250, p.hype + 5); 
                                 const limitMult = p.apiConfig.limit / 100;
                                 gameState.cash -= (200 * limitMult); 
                             } else {
@@ -644,7 +665,7 @@ function renderTab(tab) {
         `;
         grid.appendChild(playerCard);
 
-        RIVALS.forEach(r => {
+        RIVALS_LIST.forEach(r => {
             const el = document.createElement('div');
             el.className = 'glass-panel p-6 rounded-2xl';
             el.innerHTML = `
