@@ -198,6 +198,7 @@ function startGame(id, data) {
         });
     }
 
+    // --- FIX FOR BLANK TYPES ---
     if(gameState.marketModels.length > 0) {
         const types = ['text', 'image', 'audio', 'video', 'game_ai', 'robotics', 'agi'];
         gameState.marketModels.forEach(m => {
@@ -387,7 +388,7 @@ function generateRivalRelease() {
     const variant = variants[Math.floor(Math.random() * variants.length)];
     const variantSuffix = variant ? ` [${variant}]` : '';
     
-    // Competitor Types
+    // Competitor Types (VARIETY FIX)
     const types = ['text', 'image', 'audio', 'video', 'game_ai', 'robotics', 'agi'];
     const type = types[Math.floor(Math.random() * types.length)];
 
@@ -410,7 +411,7 @@ function generateRivalRelease() {
         company: rival.name,
         color: rival.color,
         quality: quality,
-        modelType: type, 
+        modelType: type, // ENSURED
         type: variant || 'Base',
         isOpenSource: isOpenSource,
         week: gameState.week,
@@ -427,13 +428,6 @@ function generateRivalRelease() {
     if (gameState.products) {
         let hitCount = 0;
         gameState.products.forEach(p => {
-            // SAFEGUARD: Only released AND not-updating models get hit
-            // If p.released is true AND p.isUpdating is true, it means it's live but being patched.
-            // We can decide to protect it or not. The user said "models still in development".
-            // New products have released: false.
-            // Updates have released: true, isUpdating: true.
-            // Logic: if it's currently being worked on (isUpdating) OR not released yet, it is immune.
-            
             if(p.released && !p.isUpdating) {
                 // If rival is better, bigger hit. Open Source hits harder.
                 let hit = quality > p.quality ? 5 : 2;
@@ -465,6 +459,23 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             // RIVAL DROP CHANCE (30% per week)
             if(Math.random() > 0.7) {
                 generateRivalRelease();
+            }
+
+            // RIVAL DECAY AND DISCONTINUE LOGIC
+            if(gameState.marketModels && gameState.marketModels.length > 0) {
+                gameState.marketModels = gameState.marketModels.filter(m => {
+                    // Decay quality
+                    if (Math.random() > 0.3) {
+                        m.quality = Math.max(0, m.quality - 1);
+                    }
+                    
+                    // Discontinue if quality too low
+                    if(m.quality <= 15) {
+                        // Removed
+                        return false; 
+                    }
+                    return true; // Keep
+                });
             }
 
             const wages = (gameState.employees.count || 1) * 800;
@@ -698,7 +709,6 @@ function renderTab(tab) {
                     </div>
                     <button class="w-full mt-2 text-slate-500 hover:text-red-500 text-[10px] font-bold py-2 btn-delete transition-colors">DISCONTINUE PRODUCT</button>
                 `;
-                // NEW: Use the UPDATE MODAL for patches
                 card.querySelector('.btn-patch').onclick = () => openUpdateModal(p.id, 'minor');
                 card.querySelector('.btn-major').onclick = () => openUpdateModal(p.id, 'major');
                 card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id);
@@ -979,7 +989,7 @@ function renderTab(tab) {
             gameState.products.push({ 
                 id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 0, revenue: 0, hype: 0, 
                 released: false, isUpdating: false, isOpenSource: openSource, weeksLeft: selectedType.time, 
-                researchBonus: injectAmount, 
+                researchBonus: injectAmount, // 1:1 RATIO FIX
                 contracts: [],
                 apiConfig: { active: false, price: 0, limit: 100 }
             });
@@ -1101,7 +1111,7 @@ function renderTab(tab) {
                          let count = 0;
                          if(gameState.products) {
                              gameState.products.forEach(p => { 
-                                 if(p.released) { p.hype = Math.min(250, p.hype + ad.hype); count++; }
+                                 if(p.released) { p.hype = Math.min(250, p.hype + ad.hype); count++; } // CAP RAISED TO 250
                              });
                          }
                          if(count > 0) {
@@ -1437,5 +1447,10 @@ document.getElementById('btn-save-api').onclick = () => {
 };
 
 document.getElementById('btn-close-api').onclick = () => apiModal.classList.add('hidden');
+
+function startUpdate(id, type) {
+    const p = gameState.products.find(x => x.id === id);
+    if(p) { p.isUpdating = true; p.updateType = type; p.weeksLeft = type === 'major' ? 6 : 2; renderTab('dash'); showToast(`Update started for ${p.name}`); }
+}
 
 lucide.createIcons();
