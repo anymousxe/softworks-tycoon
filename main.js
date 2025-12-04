@@ -101,34 +101,12 @@ const FALLBACK_REVIEWS = {
     bad: ["Bro what is this? 💀", "Refunded.", "Laggier than my grandma's PC.", "This ain't it chief."]
 };
 
-// --- AI CONFIG ---
+// --- AI CONFIG (Client-side usage is disabled) ---
 const AI_CONFIG = {
-    msgLimit: 40, 
-    windowMinutes: 5, 
+    msgLimit: 0, // Disabled
+    windowMinutes: 0, 
     storageKeyTimestamps: 'softworks_ai_timestamps_v5', 
 };
-
-// --- SYSTEM PROMPT ---
-function getSystemPrompt(context) {
-    return `
-    You are 'Gemini 3 Pro', an advanced, strategic AI advisor embedded in the game 'Softworks Tycoon'.
-    
-    CURRENT STATUS:
-    - Funds: $${context.funds.toLocaleString()}
-    - Reputation: ${context.reputation}
-    - Compute: ${context.compute} TF
-    - Products: ${context.products.join(', ') || "None"}
-    - Unlocked Tech: ${context.unlockedTech.join(', ') || "None"}
-    
-    USER QUERY: "${context.userQuery}"
-    
-    INSTRUCTIONS:
-    1. Act like a highly intelligent, slightly futuristic AI. Use "Thinking..." or "Analyzing..." if needed.
-    2. Be helpful but strategic. Don't just give answers, give *plans*.
-    3. Use Gen-Z/Tech slang (e.g., "cracked", "meta", "scaling", "moat").
-    4. Keep it concise (under 50 words).
-    `;
-}
 
 // --- AUTH & SETUP ---
 auth.onAuthStateChanged(user => {
@@ -182,7 +160,7 @@ function loadSaves() {
                 </div>
                 <div class="flex justify-between text-sm font-mono text-slate-500 border-t border-slate-700/50 pt-4">
                     <div class="flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4"></i> W${data.week} Y${data.year}</div>
-                    <div class="${data.cash < 0 ? 'text-red-500' : 'text-green-400'} font-bold">$${data.cash.toLocaleString()}</div>
+                    <div class="text-green-400 font-bold">$${data.cash.toLocaleString()}</div>
                 </div>
             `;
             el.addEventListener('click', (e) => { if(!e.target.closest('.delete-btn')) startGame(doc.id, data); });
@@ -227,7 +205,7 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         reviews: [], 
         unlockedTechs: [], 
         purchasedItems: [], 
-        chatHistory: [], 
+        chatHistory: [], // Keeping this field, but functionality is disabled
         tutorialStep: 0,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -254,7 +232,8 @@ function startGame(id, data) {
     setupRealtimeListener(id);
     updateHUD();
     renderTab('dash');
-    loadChatHistory(); 
+    
+    // AI Chat is disabled, so we don't need loadChatHistory or updateLimitDisplay calls here
     lucide.createIcons();
     
     setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
@@ -311,7 +290,11 @@ function runTutorial(step) {
     }
     else if(step === 4) { 
         positionHighlight(document.getElementById('btn-toggle-chat-sidebar')); 
-        box.textContent = "Click AI Help if you're stuck."; 
+        box.textContent = "AI Chat is offline. Check the dashboard next week!"; 
+        // We stop the tutorial here, as the next step was AI chat interaction
+        gameState.tutorialStep = 99; 
+        saveGame();
+        document.getElementById('tutorial-overlay').classList.add('hidden'); 
     }
 }
 
@@ -325,6 +308,26 @@ function positionHighlight(el) {
     h.style.height = `${r.height+10}px`;
     h.style.animation = 'pulse-ring 2s infinite';
 }
+
+// Event handlers for skipping and restarting tutorial
+document.getElementById('btn-cancel-skip').addEventListener('click', () => { document.getElementById('skip-modal').classList.add('hidden'); });
+document.getElementById('btn-confirm-skip').addEventListener('click', () => { 
+    gameState.tutorialStep = 99; 
+    saveGame();
+    document.getElementById('tutorial-overlay').classList.add('hidden');
+    document.getElementById('skip-modal').classList.add('hidden');
+    showToast('Tutorial Skipped', 'info');
+});
+
+// Event handlers for settings modal
+document.getElementById('btn-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.remove('hidden'));
+document.getElementById('btn-close-settings').addEventListener('click', () => document.getElementById('settings-modal').classList.add('hidden'));
+document.getElementById('btn-restart-tutorial').addEventListener('click', () => { 
+    document.getElementById('settings-modal').classList.add('hidden');
+    gameState.tutorialStep = 0; 
+    saveGame();
+    runTutorial(0);
+});
 
 // --- CORE GAME LOOP ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
@@ -379,7 +382,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         gameState.reputation += 10;
                         
                         showToast(`🚀 ${p.name} (${p.edition}) Launched!`, 'success');
-                        generateDynamicReview(p);
+                        generateFallbackReview(p); // Use local fallback review
                     }
                 }
             }
@@ -398,7 +401,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                     gameState.cash += weeklyRev; 
                     p.revenue += weeklyRev; 
                 }
-                if(Math.random() > 0.98) generateDynamicReview(p);
+                if(Math.random() > 0.98) generateFallbackReview(p); // Use local fallback review
             }
         });
 
@@ -593,7 +596,7 @@ function renderTab(tab) {
     if(tab === 'rivals') { renderRivals(); }
 }
 
-// (Helper render functions Expanded)
+// (Helper render functions)
 function renderMarket() {
     document.getElementById('content-area').innerHTML = `<h2 class="text-3xl font-black text-white mb-6 tracking-tight">HARDWARE MARKET</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>`;
     const grid = document.getElementById('server-grid');
@@ -647,7 +650,7 @@ function renderBiz() {
     });
 }
 function renderShop() {
-    document.getElementById('content-area').innerHTML = `<div class="flex justify-between items-center mb-6"><h2 class="text-3xl font-black text-white tracking-tight">CORPORATE ASSETS</h2><div class="text-xs text-slate-500 font-mono uppercase">Refreshes Monthly</div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>`;
+    document.getElementById('content-area').innerHTML = `<h2 class="text-3xl font-black text-white mb-6 tracking-tight">CORPORATE ASSETS</h2><div class="text-xs text-slate-500 font-mono uppercase">Refreshes Monthly</div></div><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>`;
     const grid = document.getElementById('shop-grid');
     SHOP_ITEMS.filter(item => item.type === 'consumable' || !gameState.purchasedItems.includes(item.id)).forEach(item => {
         const el = document.createElement('div'); el.className = 'glass-panel p-6 rounded-2xl hover:border-cyan-500/50 transition-colors';
@@ -703,6 +706,33 @@ function showToast(msg, type = 'info') {
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
+// Event handler to load correct HUD data
+function updateHUD() { 
+    document.getElementById('hud-company-name').textContent = gameState.companyName; 
+    document.getElementById('hud-cash').textContent = '$' + gameState.cash.toLocaleString(); 
+    document.getElementById('hud-compute').textContent = getCompute() + ' TF'; 
+    document.getElementById('hud-research').textContent = Math.floor(gameState.researchPts) + ' PTS'; 
+    document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`; 
+}
+
+// Event handler for renaming company
+document.getElementById('trigger-rename').addEventListener('click', () => { 
+    document.getElementById('rename-modal').classList.remove('hidden'); 
+    document.getElementById('inp-rename-company').value = gameState.companyName; 
+});
+document.getElementById('btn-cancel-rename').onclick = () => document.getElementById('rename-modal').classList.add('hidden');
+document.getElementById('btn-confirm-rename').onclick = () => { 
+    const newName = document.getElementById('inp-rename-company').value; 
+    if(newName) { 
+        gameState.companyName = newName; 
+        updateHUD(); 
+        saveGame(); 
+        document.getElementById('rename-modal').classList.add('hidden'); 
+        showToast('Company Rebranded!', 'success'); 
+    } 
+};
+
+
 function setupRealtimeListener(saveId) {
     if (realtimeUnsubscribe) realtimeUnsubscribe();
     realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(saveId).onSnapshot(doc => {
@@ -721,211 +751,36 @@ function setupRealtimeListener(saveId) {
     });
 }
 
-function saveGame() { 
-    if(!activeSaveId || !gameState) return; 
-    db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).update(gameState).catch(console.error); 
+// --- AI FALLBACK & DISABLE ---
+
+function generateFallbackReview(product) {
+    const sentiment = product.quality > 80 ? 'good' : (product.quality < 40 ? 'bad' : 'mid');
+    const texts = FALLBACK_REVIEWS[sentiment];
+    const text = texts[Math.floor(Math.random() * texts.length)];
+    const users = ['User', 'Anon', 'Dev', 'AI_Fan', 'TechBro'];
+    const user = users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random()*100);
+    
+    gameState.reviews.unshift({
+        product: product.name,
+        user: user,
+        rating: sentiment === 'good' ? 5 : (sentiment === 'mid' ? 3 : 1),
+        text: text,
+        week: gameState.week
+    });
+    if(gameState.reviews.length > 20) gameState.reviews.pop();
 }
 
-// --- AI & CHAT ---
-const chatWindow = document.getElementById('ai-chat-window'); 
-const chatMessages = document.getElementById('chat-messages'); 
-const chatForm = document.getElementById('chat-form'); 
-const chatInput = document.getElementById('chat-input');
-document.getElementById('btn-close-chat').addEventListener('click', toggleChat);
-document.getElementById('btn-toggle-chat-sidebar').addEventListener('click', () => { 
-    toggleChat(); 
-    if(gameState.tutorialStep === 4) { 
-        gameState.tutorialStep = 99; 
-        saveGame(); 
-        document.getElementById('tutorial-overlay').classList.add('hidden'); 
-    } 
-});
-document.getElementById('trigger-rename').addEventListener('click', () => { 
-    document.getElementById('rename-modal').classList.remove('hidden'); 
-    document.getElementById('inp-rename-company').value = gameState.companyName; 
-});
-document.getElementById('btn-cancel-rename').onclick = () => document.getElementById('rename-modal').classList.add('hidden');
-document.getElementById('btn-confirm-rename').onclick = () => { 
-    const newName = document.getElementById('inp-rename-company').value; 
-    if(newName) { 
-        gameState.companyName = newName; 
-        updateHUD(); 
-        saveGame(); 
-        document.getElementById('rename-modal').classList.add('hidden'); 
-        showToast('Company Rebranded!', 'success'); 
-    } 
-};
-
-function toggleChat() { 
-    chatWindow.classList.toggle('hidden'); 
-    if(!chatWindow.classList.contains('hidden')) { 
-        chatMessages.scrollTop = chatMessages.scrollHeight; 
-        updateLimitDisplay(); 
-        loadChatHistory(); 
-    } 
+// AI Chat function replacement - keeps chat disabled
+function toggleChat() {
+    document.getElementById('ai-chat-window').classList.toggle('hidden');
 }
 
-function getTimestamps() { 
-    const data = localStorage.getItem(AI_CONFIG.storageKeyTimestamps); 
-    return data ? JSON.parse(data) : []; 
-}
-
-function recordMessage() { 
-    const stamps = getTimestamps(); 
-    stamps.push(Date.now()); 
-    localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps)); 
-    updateLimitDisplay(); 
-}
-
-function checkRateLimit() {
-    let stamps = getTimestamps(); 
-    const now = Date.now();
-    const recentCount = stamps.filter(t => (now - t) < 15 * 60 * 1000).length;
-    const windowMinutes = recentCount > 25 ? 25 : AI_CONFIG.windowMinutes; 
-    stamps = stamps.filter(t => (now - t) < windowMinutes * 60 * 1000);
-    localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps));
-    return { 
-        allowed: stamps.length < AI_CONFIG.msgLimit, 
-        remaining: Math.max(0, AI_CONFIG.msgLimit - stamps.length), 
-        windowMinutes: windowMinutes 
-    };
-}
-
-function updateLimitDisplay() {
-    const status = checkRateLimit(); 
-    const limitLabel = document.getElementById('ai-limit-counter');
-    if(limitLabel) { 
-        limitLabel.textContent = `${status.remaining}/${AI_CONFIG.msgLimit} MSGS (${status.windowMinutes}m Window)`; 
-        limitLabel.className = status.remaining === 0 ? "text-[10px] text-red-500 font-mono animate-pulse" : "text-[10px] text-cyan-400 font-mono"; 
-    }
-    if (status.remaining <= 0 && chatInput) { 
-        chatInput.placeholder = `Cooldown active (${status.windowMinutes}m)...`; 
-        chatInput.disabled = true; 
-        chatForm.querySelector('button').disabled = true; 
-    } else if (chatInput) { 
-        chatInput.placeholder = "Ask System AI..."; 
-        chatInput.disabled = false; 
-        chatForm.querySelector('button').disabled = false; 
-    }
-}
-
-function loadChatHistory() {
-    chatMessages.innerHTML = `<div class="bg-slate-800/50 p-3 rounded-xl rounded-tl-none text-xs text-slate-300 border border-white/5">Greetings, Operator. I have full access to your company metrics. Need help with names, strategy, or market analysis?</div>`;
-    if(gameState.chatHistory) gameState.chatHistory.forEach(msg => appendMessage(msg.role, msg.text, false));
-}
-
-function appendMessage(role, text, save = true) {
-    const div = document.createElement('div');
-    div.className = role === 'user' ? "bg-cyan-900/30 p-3 rounded-xl rounded-tr-none text-xs text-cyan-100 border border-cyan-500/20 self-end ml-8" : "bg-slate-800/50 p-3 rounded-xl rounded-tl-none text-xs text-slate-300 border border-white/5 mr-8";
-    div.innerHTML = role === 'user' ? text : text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
-    chatMessages.appendChild(div); 
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    if (save) { 
-        gameState.chatHistory.push({ role, text }); 
-        if(gameState.chatHistory.length > 50) gameState.chatHistory.shift(); 
-        saveGame(); 
-    }
-}
-
-function createContext(userQuery) {
-     return { 
-         company: gameState.companyName, 
-         funds: gameState.cash, 
-         week: gameState.week, 
-         year: gameState.year, 
-         reputation: gameState.reputation, 
-         compute: getCompute(), 
-         products: gameState.products.map(p => `${p.name} (v${p.version})`), 
-         rivals: RIVALS.map(r => `${r.name} (${r.strength}%)`), 
-         unlockedTech: gameState.unlockedTechs, 
-         userQuery: userQuery 
-    };
-}
-
-async function askGemini(prompt) {
-    const status = checkRateLimit(); 
-    if (!status.allowed) { 
-        appendMessage('system', `❌ <b>System Alert:</b> Neural link overheated. Cooldown active.`, false); 
-        return; 
-    }
-    const loadingDiv = document.createElement('div'); 
-    loadingDiv.className = "text-xs text-slate-500 italic ml-2 animate-pulse"; 
-    loadingDiv.id = "ai-loading"; 
-    loadingDiv.innerText = "Analyzing..."; 
-    chatMessages.appendChild(loadingDiv); 
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    try {
-        const fullPrompt = getSystemPrompt(createContext(prompt));
-        const response = await fetch('/api/proxy', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ prompt: fullPrompt }) 
-        });
-        const data = await response.json(); 
-        document.getElementById('ai-loading')?.remove();
-        if (data.error) { 
-            appendMessage('system', `❌ Error: ${data.error.message || data.error}`, false); 
-        } else { 
-            appendMessage('system', data.candidates?.[0]?.content?.parts?.[0]?.text || "System Error: No response data."); 
-            recordMessage(); 
-        }
-    } catch (e) { 
-        document.getElementById('ai-loading')?.remove(); 
-        appendMessage('system', `❌ Connection Error: ${e.message}`, false); 
-    }
-}
-
-async function generateDynamicReview(product) {
-    const status = checkRateLimit(); 
-    if (!status.allowed) { 
-        generateFallbackReview(product); 
-        return; 
-    }
-    const prompt = `Generate a very short (max 10 words) game review for an AI product named "${product.name}" (${product.edition || 'standard'} edition). Quality is ${product.quality}/100. If Quality > 80: Enthusiastic. If < 40: Angry. Format: "Review Text"`;
-    try {
-        const response = await fetch('/api/proxy', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ prompt: prompt }) 
-        });
-        const data = await response.json();
-        let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Interesting release."; 
-        text = text.replace(/"/g, '');
-        const users = ['User', 'Anon', 'Dev', 'AI_Fan', 'TechBro']; 
-        const user = users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random()*100);
-        gameState.reviews.unshift({ 
-            product: product.name, 
-            user: user, 
-            rating: product.quality > 80 ? 5 : (product.quality < 40 ? 1 : 3), 
-            text: text, 
-            week: gameState.week 
-        });
-        if(gameState.reviews.length > 20) gameState.reviews.pop(); 
-        recordMessage();
-    } catch (e) { 
-        generateFallbackReview(product); 
-    }
-}
-
-if(chatForm) { 
-    chatForm.addEventListener('submit', (e) => { 
-        e.preventDefault(); 
-        const text = chatInput.value.trim(); 
-        if (!text) return; 
-        appendMessage('user', text); 
-        chatInput.value = ''; 
-        askGemini(text); 
-    }); 
-}
-
-// Kill Switch
-db.collection('artifacts').doc(APP_ID).collection('system').doc('config').onSnapshot(doc => { 
-    if (doc.exists && doc.data().maintenanceMode === true) { 
-        if (!window.location.href.includes('maintenance.html')) { 
-            window.location.href = 'maintenance.html'; 
-        } 
-    } 
+// WIPE AI Memory button handler
+document.getElementById('btn-wipe-ai').addEventListener('click', () => {
+    gameState.chatHistory = [];
+    localStorage.removeItem(AI_CONFIG.storageKeyTimestamps);
+    // Since AI is offline, we just alert the user.
+    alert("AI Memory Wiped (Functionality is currently offline).");
 });
 
-setInterval(updateLimitDisplay, 60000); 
-updateLimitDisplay();
+lucide.createIcons();
