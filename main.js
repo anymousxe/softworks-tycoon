@@ -197,6 +197,17 @@ function startGame(id, data) {
             if(!p.contracts) p.contracts = [];
         });
     }
+
+    // --- FIX FOR BLANK TYPES ---
+    // If we load an old save, rivals might have missing types. Fix them now.
+    if(gameState.marketModels.length > 0) {
+        const types = ['text', 'image', 'audio', 'video', 'game_ai', 'robotics', 'agi'];
+        gameState.marketModels.forEach(m => {
+            if(!m.modelType) {
+                m.modelType = types[Math.floor(Math.random() * types.length)];
+            }
+        });
+    }
     
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -378,7 +389,7 @@ function generateRivalRelease() {
     const variant = variants[Math.floor(Math.random() * variants.length)];
     const variantSuffix = variant ? ` [${variant}]` : '';
     
-    // Competitor Types
+    // Competitor Types (VARIETY FIX)
     const types = ['text', 'image', 'audio', 'video', 'game_ai', 'robotics', 'agi'];
     const type = types[Math.floor(Math.random() * types.length)];
 
@@ -401,9 +412,9 @@ function generateRivalRelease() {
         company: rival.name,
         color: rival.color,
         quality: quality,
-        modelType: type, 
+        modelType: type, // ENSURED
         type: variant || 'Base',
-        isOpenSource: isOpenSource, // NEW FIELD
+        isOpenSource: isOpenSource,
         week: gameState.week,
         year: gameState.year
     });
@@ -701,7 +712,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- STATS TAB (UPDATED WITH OPEN SOURCE) ---
+    // --- STATS TAB (UPDATED WITH TYPES) ---
     if(tab === 'stats') {
         content.innerHTML = `
             <div class="flex justify-between items-center mb-6">
@@ -726,7 +737,7 @@ function renderTab(tab) {
             company: gameState.companyName,
             quality: p.quality,
             type: p.type, 
-            isOpenSource: p.isOpenSource, // User OS Status
+            isOpenSource: p.isOpenSource,
             isUser: true,
             color: 'text-cyan-400'
         }));
@@ -734,20 +745,22 @@ function renderTab(tab) {
         const marketModels = (gameState.marketModels || []).map(m => ({
             ...m,
             type: m.modelType || 'text',
-            isOpenSource: m.isOpenSource || false // Rival OS Status
+            isOpenSource: m.isOpenSource || false
         }));
         
         const allModels = [...userModels, ...marketModels].sort((a,b) => b.quality - a.quality);
         
         const getIcon = (t) => {
-            if(t === 'text') return 'message-square';
-            if(t === 'image') return 'image';
-            if(t === 'audio') return 'music';
-            if(t === 'video') return 'video';
-            if(t === 'game_ai') return 'gamepad-2';
-            if(t === 'robotics') return 'bot';
-            if(t === 'agi') return 'brain-circuit';
-            return 'box';
+            switch(t) {
+                case 'text': return 'message-square';
+                case 'image': return 'image';
+                case 'audio': return 'music';
+                case 'video': return 'video';
+                case 'game_ai': return 'gamepad-2';
+                case 'robotics': return 'bot';
+                case 'agi': return 'brain-circuit';
+                default: return 'help-circle';
+            }
         };
 
         allModels.forEach((m, i) => {
@@ -758,7 +771,10 @@ function renderTab(tab) {
 
             el.innerHTML = `
                 <div class="font-mono text-slate-500">#${i+1}</div>
-                <div class="text-slate-400"><i data-lucide="${getIcon(m.type)}" class="w-4 h-4"></i></div>
+                <div class="text-slate-400 flex items-center gap-2">
+                    <i data-lucide="${getIcon(m.type)}" class="w-4 h-4"></i>
+                    <span class="text-[9px] font-bold uppercase tracking-wider text-slate-600">${m.type.substring(0,4)}</span>
+                </div>
                 <div class="col-span-2 font-bold text-white flex items-center">${m.name} ${osBadge}</div>
                 <div class="${m.color || 'text-slate-400'} text-xs font-bold">${m.company}</div>
                 <div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>
