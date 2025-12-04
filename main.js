@@ -18,25 +18,13 @@ let activeSaveId = null;
 let gameState = null;
 let saveInterval = null;
 let realtimeUnsubscribe = null;
-
 const APP_ID = 'softworks-tycoon';
 
-// --- DATA POOLS ---
-const HARDWARE = [
-    { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 2, upkeep: 50 },
-    { id: 'rtx_4090_farm', name: 'RTX 4090 Farm', cost: 5500, compute: 6, upkeep: 120 },
-    { id: 'a100', name: 'A100 Rack', cost: 8000, compute: 8, upkeep: 150 },
-    { id: 'v100_legacy', name: 'V100 Legacy Rack', cost: 12000, compute: 12, upkeep: 200 },
-    { id: 'h100', name: 'H100 Cluster', cost: 15000, compute: 15, upkeep: 250 },
-    { id: 'h200', name: 'Nvidia H200', cost: 35000, compute: 40, upkeep: 500, reqTech: 'h200_unlock' },
-    { id: 'gh200_super', name: 'GH200 Superchip', cost: 48000, compute: 60, upkeep: 650, reqTech: 'blackwell_arch' },
-    { id: 'b200', name: 'Blackwell B200', cost: 60000, compute: 75, upkeep: 800, reqTech: 'blackwell_arch' },
-    { id: 'dojo', name: 'Dojo Supercomputer', cost: 120000, compute: 150, upkeep: 1200 },
-    { id: 'tpu_pod', name: 'Google TPU Pod', cost: 250000, compute: 350, upkeep: 2500, reqTech: 'tpu_opt' },
-    { id: 'cerebras', name: 'Wafer Scale Engine', cost: 500000, compute: 800, upkeep: 4000, reqTech: 'wafer_scale' },
-    { id: 'quantum', name: 'Q-Bit Array', cost: 1500000, compute: 3000, upkeep: 10000, reqTech: 'quantum_tech' },
-    { id: 'neural_link', name: 'Bio-Neural Hive', cost: 5000000, compute: 10000, upkeep: 25000, reqTech: 'bio_computing' }
-];
+// --- DATA IMPORT FROM DATA.JS ---
+// Ensure variables from data.js are loaded
+const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
+const COMPANIES = (typeof COMPANIES_DB !== 'undefined') ? COMPANIES_DB : [];
+const CAMPAIGNS = (typeof CAMPAIGNS_DB !== 'undefined') ? CAMPAIGNS_DB : [];
 
 const RESEARCH = [
     { id: 'opt_algos', name: 'Optimized Algos', cost: 50, desc: '-1 Week Dev Time' },
@@ -50,12 +38,12 @@ const RESEARCH = [
 ];
 
 const PRODUCTS = [
-    { id: 'text', name: 'LLM', cost: 50000, time: 4, compute: 10, specs: ['Chatbot', 'Coding', 'Writing'] },
-    { id: 'image', name: 'Image Gen', cost: 80000, time: 6, compute: 20, specs: ['Realistic', 'Anime', 'Logo'] },
-    { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 15, specs: ['Music', 'Voice', 'SFX'] },
-    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 50, specs: ['Deepfake', 'Cinema', 'VFX'] },
-    { id: 'game_ai', name: 'NPC Brain', cost: 200000, time: 10, compute: 80, specs: ['Gaming', 'Simulation', 'VR'] },
-    { id: 'robotics', name: 'Robot OS', cost: 300000, time: 12, compute: 120, specs: ['Industrial', 'Home', 'Military'] },
+    { id: 'text', name: 'LLM', cost: 50000, time: 4, compute: 5, specs: ['Chatbot', 'Coding', 'Writing'] },
+    { id: 'image', name: 'Image Gen', cost: 80000, time: 6, compute: 15, specs: ['Realistic', 'Anime', 'Logo'] },
+    { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 10, specs: ['Music', 'Voice', 'SFX'] },
+    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40, specs: ['Deepfake', 'Cinema', 'VFX'] },
+    { id: 'game_ai', name: 'NPC Brain', cost: 200000, time: 10, compute: 70, specs: ['Gaming', 'Simulation', 'VR'] },
+    { id: 'robotics', name: 'Robot OS', cost: 300000, time: 12, compute: 100, specs: ['Industrial', 'Home', 'Military'] },
     { id: 'agi', name: 'Conscious AI', cost: 5000000, time: 24, compute: 2000, specs: ['Sentience'], reqTech: 'agi_theory' }
 ];
 
@@ -68,31 +56,13 @@ const RIVALS = [
     { name: 'Stability', strength: 70, releases: ['Stable Video 4', 'Diffusion XL'], color: 'text-purple-400' }
 ];
 
-const COMPANIES = [
-    { name: 'Indie Devs', budget: 500 }, { name: 'Startup Inc', budget: 1500 },
-    { name: 'Facebooc', budget: 3000 }, { name: 'StreamFlix', budget: 4000 },
-    { name: 'Microhard', budget: 5000 }, { name: 'Joggle', budget: 6000 },
-    { name: 'Amacon', budget: 7000 }, { name: 'NvidiaX', budget: 8000 },
-    { name: 'Tessla', budget: 9000 }, { name: 'Fruit Co', budget: 10000 },
-    { name: 'OpenAI (Real)', budget: 12000 }, { name: 'Wall Street', budget: 15000 },
-    { name: 'SpaceY', budget: 18000 }, { name: 'Pentagon', budget: 25000 },
-    { name: 'Global Gov', budget: 50000 }
-];
-
-const AD_CAMPAIGNS = [
-    { id: 'social_ads', name: 'Social Media Blast', cost: 2000, hype: 15, duration: 2 },
-    { id: 'influencer', name: 'Influencer Shoutout', cost: 15000, hype: 40, duration: 4 },
-    { id: 'billboard', name: 'Times Square Billboard', cost: 50000, hype: 80, duration: 8 },
-    { id: 'superbowl', name: 'Super Bowl Commercial', cost: 5000000, hype: 200, duration: 12 }
-];
-
 const SHOP_ITEMS = [
     { id: 'data_s', name: 'Data Set (Small)', cost: 5000, effect: 'Research +100', type: 'consumable', amount: 100 },
     { id: 'data_m', name: 'Data Set (Medium)', cost: 15000, effect: 'Research +350', type: 'consumable', amount: 350 },
     { id: 'data_l', name: 'Data Set (Large)', cost: 40000, effect: 'Research +1000', type: 'consumable', amount: 1000 },
     { id: 'consultant', name: 'AI Consultant', cost: 10000, effect: 'Dev Speed Boost (Instant)', type: 'consumable', amount: 0 },
-    { id: 'coffee', name: 'Espresso Machine', cost: 2000, effect: 'Permanent Morale Boost', type: 'permanent' },
-    { id: 'neon', name: 'Neon Office Lights', cost: 5000, effect: 'Permanent Vibe Boost', type: 'permanent' }
+    { id: 'coffee', name: 'Premium Coffee', cost: 2000, effect: 'Employees: +10 Morale', type: 'consumable_emp', amount: 10 },
+    { id: 'party', name: 'Office Party', cost: 5000, effect: 'Employees: +30 Morale', type: 'consumable_emp', amount: 30 }
 ];
 
 const FALLBACK_REVIEWS = {
@@ -101,37 +71,7 @@ const FALLBACK_REVIEWS = {
     bad: ["Bro what is this? 💀", "Refunded.", "Laggier than my grandma's PC.", "This ain't it chief."]
 };
 
-// --- 4. AI SYSTEM ASSISTANT CONFIG ---
-const AI_CONFIG = {
-    msgLimit: 50, // CRACKED LIMIT
-    windowMinutes: 5, // 5 MINUTE WINDOW
-    storageKeyTimestamps: 'softworks_ai_timestamps_v6', 
-};
-
-// --- SYSTEM PROMPT ---
-function getSystemPrompt(context) {
-    return `
-    You are 'Gemini 3 Flash', an advanced, strategic AI advisor embedded in the game 'Softworks Tycoon'.
-    
-    CURRENT STATUS:
-    - Funds: $${context.funds.toLocaleString()}
-    - Reputation: ${context.reputation}
-    - Compute: ${context.compute} TF
-    - Products: ${context.products.join(', ') || "None"}
-    - Unlocked Tech: ${context.unlockedTech.join(', ') || "None"}
-    
-    USER QUERY: "${context.userQuery}"
-    
-    INSTRUCTIONS:
-    1. Act like a highly intelligent, slightly futuristic AI. Use "Thinking..." or "Analyzing..." if needed.
-    2. Be helpful but strategic. Don't just give answers, give *plans*.
-    3. Use Gen-Z/Tech slang (e.g., "cracked", "meta", "scaling", "moat").
-    4. Keep it concise (under 50 words).
-    `;
-}
-
 // --- AUTH & SETUP ---
-
 auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -162,7 +102,6 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 });
 
 // --- SAVE SYSTEM ---
-
 function loadSaves() {
     const savesRef = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves');
     savesRef.onSnapshot(snapshot => {
@@ -229,7 +168,7 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         reviews: [],
         unlockedTechs: [],
         purchasedItems: [], 
-        chatHistory: [],
+        employees: { count: 1, morale: 100, happiness: 100 },
         tutorialStep: 0,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -245,11 +184,11 @@ function startGame(id, data) {
     activeSaveId = id;
     gameState = data;
     
-    // SAFEGUARDS
+    // SAFEGUARDS & MIGRATION
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
-    if(!gameState.chatHistory) gameState.chatHistory = []; 
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
+    if(!gameState.employees) gameState.employees = { count: 1, morale: 100, happiness: 100 };
     
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -258,33 +197,21 @@ function startGame(id, data) {
 
     updateHUD();
     renderTab('dash');
-    loadChatHistory();
     lucide.createIcons();
     
     // Check Tutorial on Start
     setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
 
-    // CHANGELOG POPUP
-    setTimeout(() => {
-        document.getElementById('changelog-modal').classList.remove('hidden');
-    }, 500);
-
     if (saveInterval) clearInterval(saveInterval);
     saveInterval = setInterval(saveGame, 5000);
 }
 
-document.getElementById('btn-close-changelog').onclick = () => {
-    document.getElementById('changelog-modal').classList.add('hidden');
-}
-
-// --- TUTORIAL SYSTEM ---
+// --- TUTORIAL SYSTEM (FIXED BLUR) ---
 const tutorialOverlay = document.getElementById('tutorial-overlay');
-const tutorialBox = document.getElementById('tutorial-box');
 const tutorialHighlight = document.getElementById('tutorial-highlight');
 const tutorialText = document.getElementById('tutorial-text');
 const btnNextTut = document.getElementById('btn-next-tutorial');
 const btnTriggerSkip = document.getElementById('btn-trigger-skip');
-const skipModal = document.getElementById('skip-modal');
 
 function runTutorial(step) {
     if(step >= 99) {
@@ -298,21 +225,21 @@ function runTutorial(step) {
 
     if(step === 0) {
         positionHighlight(null);
-        tutorialText.textContent = "Welcome, CEO. I am your onboard guidance system. Let's get your AI empire started. First, we need compute power.";
+        tutorialText.textContent = "Welcome, CEO. I am your guidance system. First, we need compute power to run our AI models.";
         btnNextTut.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); saveGame(); };
     }
     else if(step === 1) {
         const btn = document.getElementById('nav-market');
         positionHighlight(btn);
         tutorialText.textContent = "Navigate to the MARKET tab to purchase your first GPU cluster.";
-        btnNextTut.style.display = 'none'; // Force click on nav
+        btnNextTut.style.display = 'none'; 
     }
     else if(step === 2) {
         setTimeout(() => {
-            const btn = document.querySelector('#server-grid button'); // First button (GTX)
+            const btn = document.querySelector('#server-grid button'); // First button
             if(btn) {
                 positionHighlight(btn);
-                tutorialText.textContent = "The 'Consumer GPU Cluster' is cheap but effective for starting out. Buy one now.";
+                tutorialText.textContent = "The 'Consumer GPU Cluster' is efficient for startups. Buy one now.";
                 btnNextTut.style.display = 'none';
             }
         }, 500);
@@ -324,65 +251,31 @@ function runTutorial(step) {
         btnNextTut.style.display = 'none';
     }
     else if(step === 4) {
-        const btn = document.getElementById('btn-toggle-chat-sidebar');
-        positionHighlight(btn);
-        tutorialText.textContent = "You're ready. Click 'AI Help' if you need strategy advice. Good luck.";
-        btnNextTut.style.display = 'none';
+        gameState.tutorialStep = 99; // End tutorial
+        saveGame();
+        tutorialOverlay.classList.add('hidden');
     }
 }
 
 function positionHighlight(element) {
     if(!element) {
+        // If no element, hide the highlight box (shadow) but keep text visible
         tutorialHighlight.style.opacity = '0';
         return;
     }
     const rect = element.getBoundingClientRect();
     tutorialHighlight.style.opacity = '1';
-    tutorialHighlight.style.top = `${rect.top - 5}px`;
-    tutorialHighlight.style.left = `${rect.left - 5}px`;
-    tutorialHighlight.style.width = `${rect.width + 10}px`;
-    tutorialHighlight.style.height = `${rect.height + 10}px`;
-    tutorialHighlight.style.animation = 'pulse-ring 2s infinite';
+    tutorialHighlight.style.top = `${rect.top}px`;
+    tutorialHighlight.style.left = `${rect.left}px`;
+    tutorialHighlight.style.width = `${rect.width}px`;
+    tutorialHighlight.style.height = `${rect.height}px`;
 }
 
 if(btnTriggerSkip) {
     btnTriggerSkip.addEventListener('click', () => {
-        skipModal.classList.remove('hidden');
-    });
-}
-
-document.getElementById('btn-cancel-skip').addEventListener('click', () => {
-    skipModal.classList.add('hidden');
-});
-
-document.getElementById('btn-confirm-skip').addEventListener('click', () => {
-    gameState.tutorialStep = 99;
-    saveGame();
-    tutorialOverlay.classList.add('hidden');
-    skipModal.classList.add('hidden');
-    showToast('Tutorial Skipped', 'info');
-});
-
-// --- SETTINGS LOGIC ---
-const settingsModal = document.getElementById('settings-modal');
-document.getElementById('btn-settings').addEventListener('click', () => settingsModal.classList.remove('hidden'));
-document.getElementById('btn-close-settings').addEventListener('click', () => settingsModal.classList.add('hidden'));
-
-document.getElementById('btn-restart-tutorial').addEventListener('click', () => {
-    settingsModal.classList.add('hidden');
-    gameState.tutorialStep = 0;
-    saveGame();
-    runTutorial(0);
-});
-
-const wipeBtn = document.getElementById('btn-wipe-ai');
-if(wipeBtn) {
-    wipeBtn.addEventListener('click', () => {
-        gameState.chatHistory = [];
-        localStorage.removeItem(AI_CONFIG.storageKeyTimestamps);
-        loadChatHistory();
+        gameState.tutorialStep = 99;
         saveGame();
-        alert("AI Memory Wiped.");
+        tutorialOverlay.classList.add('hidden');
     });
 }
 
@@ -396,18 +289,13 @@ function setupRealtimeListener(saveId) {
             if (doc.exists) {
                 const newData = doc.data();
                 gameState = newData;
-                
-                if(!gameState.chatHistory) gameState.chatHistory = [];
                 if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99;
-
                 updateHUD();
-                
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-                // Don't re-render if typing
+                // Don't re-render if typing in dev
                 if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) {
                     renderTab(activeTab);
                 }
-                if (gameState.cash < 0) document.getElementById('hud-cash').classList.add('animate-pulse');
             }
         });
 }
@@ -471,18 +359,12 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
         gameState.week++;
         if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
 
-        if(Math.random() > 0.85) { 
-            const rival = RIVALS[Math.floor(Math.random() * RIVALS.length)];
-            const release = rival.releases[Math.floor(Math.random() * rival.releases.length)];
-            showToast(`COMPETITOR ALERT: ${rival.name} released ${release}!`, 'error');
-            
-            gameState.products.forEach(p => {
-                if(p.released) {
-                    p.hype = Math.max(0, p.hype - 10);
-                    p.quality = Math.max(0, p.quality - 2); 
-                }
-            });
-        }
+        // Employees Cost
+        const wages = gameState.employees.count * 800;
+        gameState.cash -= wages;
+        
+        // Morale Decay if no coffee
+        if(Math.random() > 0.8 && gameState.employees.morale > 20) gameState.employees.morale -= 2;
 
         const upkeep = gameState.hardware.reduce((sum, hw) => sum + (HARDWARE.find(x => x.id === hw.typeId).upkeep * hw.count), 0);
         gameState.cash -= upkeep;
@@ -491,12 +373,16 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
         gameState.products.forEach(p => {
             if((!p.released || p.isUpdating) && p.weeksLeft > 0) {
-                p.weeksLeft--;
+                // Morale impacts dev speed
+                const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
+                p.weeksLeft -= (1 * speedMult);
+                
                 if(p.weeksLeft <= 0) {
                     p.isUpdating = false;
+                    p.weeksLeft = 0;
                     if(p.updateType) {
                         const major = p.updateType === 'major';
-                        const variant = ['lite', 'flash', 'pro', 'ultra'].includes(p.updateType);
+                        const variant = ['lite', 'flash', 'pro', 'ultra', 'custom'].includes(p.updateType);
                         
                         if (variant) {
                             p.released = true;
@@ -506,7 +392,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                             if (p.updateType === 'ultra') p.quality = Math.min(100, p.quality * 1.3);
                             p.hype = 100;
                             showToast(`${p.name} Launched!`, 'success');
-                            generateDynamicReview(p);
                         } else {
                             p.version = parseFloat((p.version + (major ? 1.0 : 0.1)).toFixed(1));
                             p.quality = Math.min(100, p.quality + (major ? 15 : 5));
@@ -523,16 +408,15 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         p.hype = 100;
                         gameState.reputation += 10;
                         showToast(`🚀 ${p.name} Launched! Quality: ${p.quality}/100`, 'success');
-                        
-                        generateDynamicReview(p);
                     }
                 }
             }
 
             if(p.released && !p.isUpdating) {
+                // HUGE REVENUE BUFF
                 let weeklyRev = 0;
-                const organicUsers = Math.floor((p.quality * p.hype * 10));
-                let organicRev = Math.floor(organicUsers * 0.1); 
+                const organicUsers = Math.floor((p.quality * p.hype * 25)); // Multiplied user count
+                let organicRev = Math.floor(organicUsers * 0.5); // Higher rev per user
                 
                 // Variant revenue modifiers
                 if (p.name.includes('[Lite]')) organicRev *= 0.6;
@@ -543,20 +427,21 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                     const comp = COMPANIES.find(c => c.name === cName);
                     if(comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
                 });
+                
+                // Hype decay
                 p.hype = Math.max(0, p.hype - 2);
+                
                 if(p.isOpenSource) {
-                    if(p.hype > 0) gameState.reputation += 0.5;
+                    if(p.hype > 0) gameState.reputation += 1.5;
                 } else {
                     gameState.cash += weeklyRev;
                     p.revenue += weeklyRev;
                 }
-                
-                if(Math.random() > 0.98) generateDynamicReview(p);
             }
         });
 
         if(gameState.week % 4 === 0) {
-           COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*200)-100)));
+           COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*500)-100)));
         }
 
         saveGame();
@@ -569,75 +454,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
     }, 400); 
 });
 
-// --- DYNAMIC REVIEW GENERATION ---
-async function generateDynamicReview(product) {
-    const status = checkRateLimit(); 
-    
-    // Check if limit reached
-    if (!status.allowed) {
-        generateFallbackReview(product);
-        return;
-    }
-
-    const prompt = `Generate a very short (max 10 words) game review for an AI product named "${product.name}". 
-    Quality is ${product.quality}/100.
-    If Quality > 80: Enthusiastic, slang (cracked, fire).
-    If Quality 40-80: Meh, average.
-    If Quality < 40: Angry, hate it.
-    Format: "Review Text"`;
-
-    try {
-        // USE PROXY INSTEAD OF DIRECT CALL
-        const response = await fetch('/api/proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt })
-        });
-        
-        const data = await response.json();
-        
-        if(data.error) throw new Error(data.error);
-
-        let text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Interesting release.";
-        text = text.replace(/"/g, ''); 
-
-        // Add to reviews
-        const users = ['User', 'Anon', 'Dev', 'AI_Fan', 'TechBro'];
-        const user = users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random()*100);
-        
-        gameState.reviews.unshift({
-            product: product.name,
-            user: user,
-            rating: product.quality > 80 ? 5 : (product.quality < 40 ? 1 : 3),
-            text: text,
-            week: gameState.week
-        });
-        if(gameState.reviews.length > 20) gameState.reviews.pop();
-        recordMessage(); 
-
-    } catch (e) {
-        console.error("AI Review Failed:", e);
-        generateFallbackReview(product);
-    }
-}
-
-function generateFallbackReview(product) {
-    const sentiment = product.quality > 80 ? 'good' : (product.quality < 40 ? 'bad' : 'mid');
-    const texts = FALLBACK_REVIEWS[sentiment];
-    const text = texts[Math.floor(Math.random() * texts.length)];
-    const users = ['User', 'Anon', 'Dev', 'AI_Fan', 'TechBro'];
-    const user = users[Math.floor(Math.random() * users.length)] + Math.floor(Math.random()*100);
-    
-    gameState.reviews.unshift({
-        product: product.name,
-        user: user,
-        rating: sentiment === 'good' ? 5 : (sentiment === 'mid' ? 3 : 1),
-        text: text,
-        week: gameState.week
-    });
-    if(gameState.reviews.length > 20) gameState.reviews.pop();
-}
-
+// --- RENDER LOGIC ---
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         if(btn.id === 'btn-exit-game') {
@@ -649,23 +466,12 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
             loadSaves(); 
             return;
         }
-        if(btn.id === 'btn-toggle-chat-sidebar') {
-            toggleChat();
-            if(gameState.tutorialStep === 4) {
-               gameState.tutorialStep = 99;
-               saveGame();
-               tutorialOverlay.classList.add('hidden');
-            }
-            return;
-        }
-        if(btn.id === 'btn-settings') {
-            return; 
-        }
         
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         renderTab(btn.dataset.tab);
 
+        // Tutorial Triggers
         if(btn.dataset.tab === 'market' && gameState.tutorialStep === 1) {
             gameState.tutorialStep = 2; 
             runTutorial(2);
@@ -736,31 +542,23 @@ function renderTab(tab) {
                     </div>
 
                     <div class="flex gap-2">
-                        <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold flex-1 hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH (v${(p.version+0.1).toFixed(1)})</button>
-                        <button class="bg-white text-black px-3 py-3 text-[10px] font-bold flex-1 hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">MAJOR (v${Math.floor(p.version)+1}.0)</button>
-                         <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold flex-1 hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXPAND LINE</button>
+                        <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold flex-1 hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH</button>
+                        <button class="bg-white text-black px-3 py-3 text-[10px] font-bold flex-1 hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v2.0</button>
+                         <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold flex-1 hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
                     </div>
-                     <button class="w-full mt-2 text-slate-500 hover:text-red-500 text-[10px] font-bold py-2 btn-delete transition-colors">DISCONTINUE</button>
                 `;
                 card.querySelector('.btn-patch').onclick = () => startUpdate(p.id, 'minor');
                 card.querySelector('.btn-major').onclick = () => startUpdate(p.id, 'major');
-                // VARIANT BUTTON
                 card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id);
-                card.querySelector('.btn-delete').onclick = () => {
-                    if(confirm("Discontinue this product?")) {
-                        gameState.products = gameState.products.filter(x => x.id !== p.id);
-                        renderTab('dash');
-                    }
-                };
             } else {
                 card.innerHTML += `
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-white text-lg">${p.name}</h3>
-                        <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${p.weeksLeft}w LEFT</span>
+                        <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${Math.ceil(p.weeksLeft)}w LEFT</span>
                     </div>
                     <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Developing Update...' : 'Training Model...'}</div>
                     <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div class="h-full bg-cyan-500 animate-pulse shadow-[0_0_10px_cyan]" style="width: ${((p.isUpdating ? 6-p.weeksLeft : 4-p.weeksLeft)/6)*100}%"></div>
+                        <div class="h-full bg-cyan-500 animate-pulse shadow-[0_0_10px_cyan]" style="width: 50%"></div>
                     </div>
                 `;
             }
@@ -783,7 +581,6 @@ function renderTab(tab) {
                 <div class="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center font-bold text-black">YOU</div>
                 <div>
                     <h3 class="font-bold text-white">${gameState.companyName}</h3>
-                    <div class="text-xs text-cyan-400">Rising Star</div>
                 </div>
             </div>
             <div class="text-2xl font-black text-white">${Math.floor(gameState.reputation)} REP</div>
@@ -824,10 +621,18 @@ function renderTab(tab) {
             const owned = gameState.hardware.find(x => x.typeId === h.id)?.count || 0;
             const el = document.createElement('div');
             el.className = `glass-panel p-6 rounded-2xl transition-all ${locked ? 'opacity-50 bg-slate-900/20' : 'hover:border-cyan-500/50'}`;
-            el.innerHTML = `<div class="text-white font-bold text-lg mb-1">${h.name}</div><div class="text-slate-500 text-xs mb-6 font-mono">${h.compute} TF / $${h.upkeep} wk</div><div class="text-4xl font-black text-white mb-6">${owned}</div><button class="w-full border border-slate-600 text-white py-3 text-[10px] tracking-widest font-bold hover:bg-white hover:text-black rounded-xl uppercase transition-colors" ${locked ? 'disabled' : ''}>BUY $${h.cost.toLocaleString()}</button>`;
+            el.innerHTML = `
+                <div class="text-white font-bold text-lg mb-1">${h.name}</div>
+                <div class="text-slate-500 text-xs mb-6 font-mono">${h.compute} TF / $${h.upkeep} wk</div>
+                <div class="text-4xl font-black text-white mb-6">${owned}</div>
+                <div class="flex gap-2">
+                    <button class="flex-1 border border-slate-600 text-white py-3 text-[10px] tracking-widest font-bold hover:bg-white hover:text-black rounded-xl uppercase transition-colors btn-buy" ${locked ? 'disabled' : ''}>BUY $${h.cost.toLocaleString()}</button>
+                    ${owned > 0 ? `<button class="px-3 border border-red-900 text-red-500 hover:bg-red-900 rounded-xl btn-sell"><i data-lucide="minus"></i></button>` : ''}
+                </div>
+            `;
             
             if(!locked) {
-                el.querySelector('button').onclick = () => { 
+                el.querySelector('.btn-buy').onclick = () => { 
                     if(gameState.cash >= h.cost) { 
                         gameState.cash -= h.cost; 
                         const hw = gameState.hardware.find(x => x.typeId === h.id); 
@@ -835,16 +640,28 @@ function renderTab(tab) {
                         updateHUD(); 
                         renderTab('market'); 
                         showToast(`Purchased ${h.name}`, 'success'); 
-                        
                         if(gameState.tutorialStep === 2 && h.id === 'gtx_cluster') {
                             gameState.tutorialStep = 3;
                             runTutorial(3);
                         }
                     } else showToast('Insufficient Funds', 'error'); 
                 };
+                if(owned > 0) {
+                    el.querySelector('.btn-sell').onclick = () => {
+                        const hw = gameState.hardware.find(x => x.typeId === h.id);
+                        if(hw && hw.count > 0) {
+                            hw.count--;
+                            gameState.cash += Math.floor(h.cost * 0.5); // Sell for half price
+                            updateHUD();
+                            renderTab('market');
+                            showToast(`Sold ${h.name}`, 'info');
+                        }
+                    };
+                }
             }
             grid.appendChild(el);
         });
+        lucide.createIcons();
     }
 
     if(tab === 'lab') {
@@ -876,33 +693,27 @@ function renderTab(tab) {
                             <span id="inject-val">0 PTS</span>
                         </div>
                         <input type="range" id="research-inject" min="0" max="${gameState.researchPts}" value="0" class="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
-                        <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="quality-boost" class="text-white font-bold">0</span> Quality Boost</div>
                     </div>
 
                     <div class="flex items-center gap-3 mb-8 p-4 border border-slate-700 rounded-xl cursor-pointer hover:bg-slate-800 transition-colors" id="btn-toggle-opensource">
                         <div class="w-5 h-5 border-2 border-slate-500 rounded" id="check-os"></div>
                         <div>
                             <div class="text-sm text-white font-bold">Open Source License</div>
-                            <div class="text-[10px] text-slate-500">Free release. High Reputation gain. No Revenue.</div>
+                            <div class="text-[10px] text-slate-500">Free release. Reputation gain. No Revenue.</div>
                         </div>
                     </div>
-
-                    <div id="proj-cost-preview" class="mb-6 text-xs text-slate-400 font-mono bg-black/30 p-4 rounded-xl border border-white/5">Select a model type...</div>
-
                     <button id="btn-start-dev" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 tracking-widest text-sm">INITIALIZE</button>
                 </div>
             </div>
         `;
         let selectedType = null, openSource = false, injectAmount = 0;
         const typeContainer = document.getElementById('dev-types');
-        
         const slider = document.getElementById('research-inject');
         const valLabel = document.getElementById('inject-val');
-        const boostLabel = document.getElementById('quality-boost');
-        slider.oninput = (e) => {
+        
+        if(slider) slider.oninput = (e) => {
             injectAmount = parseInt(e.target.value);
             valLabel.textContent = `${injectAmount} PTS`;
-            boostLabel.textContent = Math.floor(injectAmount / 100);
         };
 
         PRODUCTS.forEach(p => {
@@ -915,7 +726,6 @@ function renderTab(tab) {
                     document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500', 'bg-cyan-900/20'));
                     btn.classList.add('border-cyan-500', 'bg-cyan-900/20');
                     selectedType = p;
-                    document.getElementById('proj-cost-preview').innerHTML = `<div class="flex justify-between mb-1"><span>Cost</span> <span class="text-white">$${p.cost.toLocaleString()}</span></div><div class="flex justify-between mb-1"><span>Time</span> <span class="text-white">${p.time} Weeks</span></div><div class="flex justify-between"><span>Compute</span> <span class="${getCompute() >= p.compute ? 'text-green-400' : 'text-red-500'}">${p.compute} TF</span></div>`;
                 };
             }
             typeContainer.appendChild(btn);
@@ -943,55 +753,111 @@ function renderTab(tab) {
 
     if(tab === 'biz') {
         content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">BUSINESS GROWTH</h2>
-            <div class="grid grid-cols-1 gap-8">
-                <div>
-                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="briefcase" class="text-green-500"></i> CONTRACTS</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="market-grid"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="glass-panel p-6 rounded-2xl border-l-4 border-yellow-500">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="users" class="text-yellow-500"></i> HR DEPARTMENT</h3>
+                    
+                    <div class="flex justify-between items-center mb-6 p-4 bg-slate-900/50 rounded-xl">
+                        <div>
+                            <div class="text-[10px] uppercase text-slate-500 font-bold">Employees</div>
+                            <div class="text-2xl font-black text-white">${gameState.employees.count}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-[10px] uppercase text-slate-500 font-bold">Team Morale</div>
+                            <div class="text-2xl font-black ${gameState.employees.morale > 80 ? 'text-green-400' : 'text-red-500'}">${gameState.employees.morale}%</div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 mb-4">
+                        <button id="btn-hire" class="flex-1 bg-white text-black font-bold py-2 rounded-lg hover:bg-green-400">HIRE (+1)</button>
+                        <button id="btn-fire" class="flex-1 border border-slate-700 text-red-500 font-bold py-2 rounded-lg hover:bg-red-900/20">FIRE (-1)</button>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-yellow-500"></i> CAMPAIGNS</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="ads-grid"></div>
+
+                <div class="glass-panel p-6 rounded-2xl">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="briefcase" class="text-green-500"></i> B2B CONTRACTS</h3>
+                     <div class="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar" id="contract-list"></div>
                 </div>
             </div>
+
+            <h3 class="text-xl font-bold text-white mt-8 mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-purple-500"></i> CAMPAIGNS & CAMEOS</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ads-grid"></div>
         `;
-        
-        const marketGrid = document.getElementById('market-grid');
+
+        // HR Logic
+        document.getElementById('btn-hire').onclick = () => {
+            gameState.employees.count++;
+            gameState.cash -= 1000; // Hiring fee
+            updateHUD(); renderTab('biz');
+        };
+        document.getElementById('btn-fire').onclick = () => {
+            if(gameState.employees.count > 1) {
+                gameState.employees.count--;
+                gameState.employees.morale -= 10;
+                updateHUD(); renderTab('biz');
+            }
+        };
+
+        // Contract Logic
+        const contractList = document.getElementById('contract-list');
         COMPANIES.forEach(c => {
             const el = document.createElement('div');
-            el.className = 'glass-panel p-6 rounded-2xl';
-            el.innerHTML = `<div class="flex justify-between items-center mb-6"><h3 class="font-bold text-white text-lg">${c.name}</h3><span class="text-green-400 font-mono text-xs bg-green-900/20 px-2 py-1 rounded border border-green-500/20">$${c.budget.toLocaleString()}/wk</span></div><div class="space-y-2" id="contracts-${c.name.replace(/\s+/g, '')}"></div>`;
-            const pList = el.querySelector(`#contracts-${c.name.replace(/\s+/g, '')}`);
-            const commercialProducts = gameState.products.filter(p => p.released && !p.isOpenSource);
-            if(commercialProducts.length === 0) pList.innerHTML = `<div class="text-xs text-slate-600 italic py-2 text-center">No commercial products available.</div>`;
-            commercialProducts.forEach(p => {
-                const active = p.contracts.includes(c.name);
-                const btn = document.createElement('button');
-                btn.className = `w-full flex justify-between items-center text-xs p-3 rounded-lg border transition-all ${active ? 'bg-green-500/10 border-green-500 text-green-400' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`;
-                btn.innerHTML = `<span class="font-bold">${p.name}</span>${active ? '<i data-lucide="check" class="w-3 h-3"></i>' : '<span class="text-[9px] uppercase tracking-wider">PITCH</span>'}`;
-                btn.onclick = () => {
-                    if(active) { p.contracts = p.contracts.filter(x => x !== c.name); showToast(`Contract ended with ${c.name}`); }
-                    else { p.contracts.push(c.name); showToast(`Signed with ${c.name}!`, 'success'); }
-                    renderTab('biz');
-                };
-                pList.appendChild(btn);
-            });
-            marketGrid.appendChild(el);
+            el.className = 'p-3 bg-slate-900/40 rounded-lg flex justify-between items-center';
+            el.innerHTML = `<div><div class="font-bold text-white">${c.name}</div><div class="text-xs text-slate-500">$${c.budget}/wk</div></div>`;
+            const liveProds = gameState.products.filter(p => p.released && !p.isOpenSource);
+            
+            if(liveProds.length > 0) {
+                 const select = document.createElement('select');
+                 select.className = "bg-black text-xs text-white p-1 rounded border border-slate-700";
+                 select.innerHTML = `<option value="">Pitch To...</option>` + liveProds.map(p => `<option value="${p.id}" ${p.contracts.includes(c.name) ? 'selected' : ''}>${p.name}</option>`).join('');
+                 
+                 select.onchange = (e) => {
+                     const pid = e.target.value;
+                     // Clear this company from all products first
+                     gameState.products.forEach(p => p.contracts = p.contracts.filter(x => x !== c.name));
+                     if(pid) {
+                         const p = gameState.products.find(x => x.id === pid);
+                         if(p) p.contracts.push(c.name);
+                         showToast(`Contract signed with ${c.name}`, 'success');
+                     }
+                 };
+                 el.appendChild(select);
+            } else {
+                el.innerHTML += `<div class="text-[10px] text-slate-600">No Products</div>`;
+            }
+            contractList.appendChild(el);
         });
 
+        // Campaigns
         const adsGrid = document.getElementById('ads-grid');
-        AD_CAMPAIGNS.forEach(ad => {
-            const el = document.createElement('div');
-            el.className = 'glass-panel p-6 rounded-2xl hover:border-yellow-500/50 transition-colors';
-            el.innerHTML = `<div class="text-yellow-400 mb-4"><i data-lucide="megaphone" class="w-8 h-8"></i></div><h3 class="font-bold text-white text-lg leading-tight mb-2">${ad.name}</h3><div class="text-xs text-slate-400 mb-6 font-mono">Impact: +${ad.hype} Hype<br>Cost: $${ad.cost.toLocaleString()}</div><button class="w-full bg-white text-black font-bold py-3 rounded-xl text-xs tracking-widest hover:bg-yellow-400 transition-colors">RUN CAMPAIGN</button>`;
-            el.querySelector('button').onclick = () => {
-                if(gameState.cash >= ad.cost) {
-                    gameState.cash -= ad.cost;
-                    gameState.products.forEach(p => { if(p.released) p.hype = Math.min(100, p.hype + ad.hype); });
-                    updateHUD(); showToast('Campaign Launched! 📈', 'success');
-                } else showToast('Insufficient Funds', 'error');
-            };
-            adsGrid.appendChild(el);
+        CAMPAIGNS.forEach(ad => {
+             const el = document.createElement('div');
+             el.className = 'glass-panel p-6 rounded-2xl hover:border-purple-500/50 transition-colors relative overflow-hidden';
+             if(ad.type === 'cameo') el.className += ' border-l-4 border-yellow-500';
+             
+             el.innerHTML = `
+                <h3 class="font-bold text-white text-lg mb-1">${ad.name}</h3>
+                <div class="text-xs text-slate-400 mb-4 font-mono">Cost: $${ad.cost.toLocaleString()} | Hype: +${ad.hype}</div>
+                <button class="w-full bg-slate-800 text-white font-bold py-2 rounded-lg text-xs hover:bg-purple-600 transition-colors">LAUNCH</button>
+             `;
+             
+             el.querySelector('button').onclick = () => {
+                 if(gameState.cash >= ad.cost) {
+                     gameState.cash -= ad.cost;
+                     // Apply hype to all released products
+                     let count = 0;
+                     gameState.products.forEach(p => { 
+                         if(p.released) { p.hype += ad.hype; count++; }
+                     });
+                     if(count > 0) {
+                         updateHUD(); showToast('Campaign Live!', 'success');
+                     } else {
+                         showToast('No live products to advertise!', 'error');
+                         gameState.cash += ad.cost; // Refund
+                     }
+                 } else showToast('Insufficient Funds', 'error');
+             };
+             adsGrid.appendChild(el);
         });
         lucide.createIcons();
     }
@@ -1000,15 +866,14 @@ function renderTab(tab) {
         content.innerHTML = `
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-3xl font-black text-white tracking-tight">CORPORATE ASSETS</h2>
-                <div class="text-xs text-slate-500 font-mono uppercase">Refreshes Monthly</div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
         `;
         const grid = document.getElementById('shop-grid');
         
-        // Filter items: Hide permanent items if already bought
+        // Filter items
         const availableItems = SHOP_ITEMS.filter(item => {
-            if(item.type === 'consumable') return true;
+            if(item.type.includes('consumable')) return true;
             return !gameState.purchasedItems.includes(item.id);
         });
 
@@ -1021,6 +886,9 @@ function renderTab(tab) {
                     gameState.cash -= item.cost;
                     if(item.type === 'consumable') {
                         if(item.amount > 0) gameState.researchPts += item.amount;
+                    } else if(item.type === 'consumable_emp') {
+                        gameState.employees.morale = Math.min(100, gameState.employees.morale + item.amount);
+                        showToast(`Staff Morale Increased!`, 'success');
                     } else {
                         gameState.purchasedItems.push(item.id);
                     }
@@ -1051,7 +919,7 @@ function renderTab(tab) {
     }
 }
 
-// VARIANT LOGIC
+// VARIANT LOGIC (UPDATED FOR CUSTOM)
 let selectedVariantId = null;
 let selectedVariantType = null;
 const variantModal = document.getElementById('variant-modal');
@@ -1063,15 +931,15 @@ function openVariantModal(productId) {
     selectedVariantId = productId;
     selectedVariantType = null;
     document.getElementById('variant-base-name').textContent = p.name;
+    document.getElementById('custom-variant-input').classList.add('hidden');
     
     document.querySelectorAll('.variant-opt').forEach(b => {
-        b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'bg-slate-800');
-        b.classList.add('border-slate-700');
+         b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
+         b.classList.add('border-slate-700');
     });
     
     document.getElementById('btn-confirm-variant').disabled = true;
     document.getElementById('btn-confirm-variant').classList.add('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
-    document.getElementById('btn-confirm-variant').classList.remove('text-black', 'bg-white', 'hover:bg-cyan-400');
     
     variantModal.classList.remove('hidden');
 }
@@ -1080,7 +948,7 @@ document.querySelectorAll('.variant-opt').forEach(btn => {
     btn.onclick = () => {
         selectedVariantType = btn.dataset.type;
         document.querySelectorAll('.variant-opt').forEach(b => {
-             b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'bg-slate-800');
+             b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
              b.classList.add('border-slate-700');
         });
         
@@ -1089,10 +957,16 @@ document.querySelectorAll('.variant-opt').forEach(btn => {
         if(selectedVariantType === 'flash') btn.classList.add('border-yellow-500', 'bg-slate-800');
         if(selectedVariantType === 'pro') btn.classList.add('border-cyan-500', 'bg-slate-800');
         if(selectedVariantType === 'ultra') btn.classList.add('border-purple-500', 'bg-slate-800');
+        if(selectedVariantType === 'custom') {
+            btn.classList.add('border-pink-500', 'bg-slate-800');
+            document.getElementById('custom-variant-input').classList.remove('hidden');
+        } else {
+            document.getElementById('custom-variant-input').classList.add('hidden');
+        }
 
         const confirmBtn = document.getElementById('btn-confirm-variant');
         confirmBtn.disabled = false;
-        confirmBtn.textContent = `INITIALIZE ${selectedVariantType.toUpperCase()} MODEL`;
+        confirmBtn.textContent = `INITIALIZE VARIANT`;
         confirmBtn.classList.remove('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
         confirmBtn.classList.add('text-black', 'bg-white', 'hover:bg-cyan-400');
     }
@@ -1106,15 +980,21 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     const parent = gameState.products.find(x => x.id === selectedVariantId);
     if(!parent) return;
 
-    // Logic for variants
     let costMult = 1;
     let time = 2;
-    if(selectedVariantType === 'lite') { costMult = 0.5; time = 2; }
-    if(selectedVariantType === 'flash') { costMult = 0.8; time = 1; }
-    if(selectedVariantType === 'pro') { costMult = 1.2; time = 4; }
-    if(selectedVariantType === 'ultra') { costMult = 2.0; time = 8; }
+    let suffix = "";
 
-    const cost = Math.floor(50000 * costMult); // Simplified base cost logic for variants
+    if(selectedVariantType === 'lite') { costMult = 0.5; time = 2; suffix = "[Lite]"; }
+    if(selectedVariantType === 'flash') { costMult = 0.8; time = 1; suffix = "[Flash]"; }
+    if(selectedVariantType === 'pro') { costMult = 1.2; time = 4; suffix = "[Pro]"; }
+    if(selectedVariantType === 'ultra') { costMult = 2.0; time = 8; suffix = "[Ultra]"; }
+    if(selectedVariantType === 'custom') {
+        const customName = document.getElementById('inp-custom-variant').value;
+        if(!customName) return showToast('Enter a custom name!', 'error');
+        costMult = 1.5; time = 5; suffix = `[${customName}]`;
+    }
+
+    const cost = Math.floor(50000 * costMult); 
 
     if(gameState.cash < cost && !gameState.isSandbox) {
         showToast('Insufficient Funds for Variant', 'error');
@@ -1125,15 +1005,15 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     
     const newProduct = {
         id: Date.now().toString(),
-        name: `${parent.name} [${selectedVariantType.charAt(0).toUpperCase() + selectedVariantType.slice(1)}]`,
+        name: `${parent.name} ${suffix}`,
         type: parent.type,
         version: 1.0,
-        quality: parent.quality, // Start with parent quality
+        quality: parent.quality,
         revenue: 0,
         hype: 0,
         released: false,
-        isUpdating: true, // Treat as update phase logic
-        updateType: selectedVariantType, // Flag for update logic to handle release
+        isUpdating: true,
+        updateType: selectedVariantType,
         isOpenSource: parent.isOpenSource,
         weeksLeft: time,
         contracts: []
@@ -1143,203 +1023,12 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     variantModal.classList.add('hidden');
     renderTab('dash');
     updateHUD();
-    showToast(`Developing ${selectedVariantType} variant...`, 'success');
+    showToast(`Developing variant...`, 'success');
 };
-
 
 function startUpdate(id, type) {
     const p = gameState.products.find(x => x.id === id);
     if(p) { p.isUpdating = true; p.updateType = type; p.weeksLeft = type === 'major' ? 6 : 2; renderTab('dash'); showToast(`Update started for ${p.name}`); }
 }
-
-// --- KILL SWITCH LISTENER (GLOBAL) ---
-db.collection('artifacts').doc(APP_ID).collection('system').doc('config')
-    .onSnapshot(doc => {
-        if (doc.exists && doc.data().maintenanceMode === true) {
-            if (!window.location.href.includes('maintenance.html')) {
-                window.location.href = 'maintenance.html';
-            }
-        }
-    });
-
-// --- AI & WIDGET LOGIC ---
-
-const chatWindow = document.getElementById('ai-chat-window');
-const chatCloseBtn = document.getElementById('btn-close-chat');
-const chatMessages = document.getElementById('chat-messages');
-const chatForm = document.getElementById('chat-form');
-const chatInput = document.getElementById('chat-input');
-const limitLabel = document.getElementById('ai-limit-counter');
-
-function toggleChat() {
-    chatWindow.classList.toggle('hidden');
-    if(!chatWindow.classList.contains('hidden')) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        updateLimitDisplay();
-        loadChatHistory();
-    }
-}
-
-if(chatCloseBtn) chatCloseBtn.addEventListener('click', toggleChat);
-
-// --- DYNAMIC RATE LIMIT LOGIC ---
-function getTimestamps() {
-    const data = localStorage.getItem(AI_CONFIG.storageKeyTimestamps);
-    return data ? JSON.parse(data) : [];
-}
-
-function recordMessage() {
-    const stamps = getTimestamps();
-    stamps.push(Date.now());
-    localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps));
-    updateLimitDisplay();
-}
-
-function checkRateLimit() {
-    let stamps = getTimestamps();
-    const now = Date.now();
-    
-    // Updated Limit Logic
-    const windowMs = AI_CONFIG.windowMinutes * 60 * 1000;
-
-    // Filter stamps to only keep those within current window
-    stamps = stamps.filter(t => (now - t) < windowMs);
-    
-    // Save cleaned stamps back to storage
-    localStorage.setItem(AI_CONFIG.storageKeyTimestamps, JSON.stringify(stamps));
-
-    return {
-        allowed: stamps.length < AI_CONFIG.msgLimit,
-        remaining: Math.max(0, AI_CONFIG.msgLimit - stamps.length),
-        windowMinutes: AI_CONFIG.windowMinutes
-    };
-}
-
-function updateLimitDisplay() {
-    const status = checkRateLimit();
-    if(limitLabel) {
-        limitLabel.textContent = `${status.remaining}/${AI_CONFIG.msgLimit} MSGS (${status.windowMinutes}m Window)`;
-        limitLabel.className = status.remaining === 0 ? "text-[10px] text-red-500 font-mono animate-pulse" : "text-[10px] text-cyan-400 font-mono";
-    }
-    
-    if (status.remaining <= 0 && chatInput) {
-        chatInput.placeholder = `Cooldown active (${status.windowMinutes}m)...`;
-        chatInput.disabled = true;
-        chatForm.querySelector('button').disabled = true;
-    } else if (chatInput) {
-        chatInput.placeholder = "Ask System AI...";
-        chatInput.disabled = false;
-        chatForm.querySelector('button').disabled = false;
-    }
-}
-
-// Chat History Loading from DB
-function loadChatHistory() {
-    chatMessages.innerHTML = `
-        <div class="bg-slate-800/50 p-3 rounded-xl rounded-tl-none text-xs text-slate-300 border border-white/5">
-            Greetings, Operator. I have full access to your company metrics. Need help with names, strategy, or market analysis?
-        </div>
-    `;
-    if(gameState.chatHistory && gameState.chatHistory.length > 0) {
-        gameState.chatHistory.forEach(msg => appendMessage(msg.role, msg.text, false)); 
-    }
-}
-
-// Add Message to UI & Save to DB
-function appendMessage(role, text, save = true) {
-    const div = document.createElement('div');
-    if (role === 'user') {
-        div.className = "bg-cyan-900/30 p-3 rounded-xl rounded-tr-none text-xs text-cyan-100 border border-cyan-500/20 self-end ml-8";
-        div.innerHTML = text; 
-    } else {
-        div.className = "bg-slate-800/50 p-3 rounded-xl rounded-tl-none text-xs text-slate-300 border border-white/5 mr-8";
-        div.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); 
-    }
-    chatMessages.appendChild(div);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    
-    if (save) {
-        gameState.chatHistory.push({ role, text });
-        if(gameState.chatHistory.length > 50) gameState.chatHistory.shift(); // Keep DB size reasonable
-        saveGame();
-    }
-}
-
-// AI Interaction
-async function askGemini(prompt) {
-    const status = checkRateLimit();
-    if (!status.allowed) {
-        appendMessage('system', `❌ <b>System Alert:</b> Neural link overheated. Cooldown active for ${status.windowMinutes} minutes.`, false);
-        return;
-    }
-
-    // Build Context
-    const context = {
-        company: gameState.companyName,
-        funds: gameState.cash,
-        week: gameState.week,
-        year: gameState.year,
-        reputation: gameState.reputation,
-        compute: getCompute(),
-        products: gameState.products.map(p => `${p.name} (v${p.version}, Q:${p.quality}, Hype:${p.hype})`),
-        rivals: RIVALS.map(r => `${r.name} (${r.strength}%)`),
-        unlockedTech: gameState.unlockedTechs,
-        userQuery: prompt
-    };
-
-    const systemPrompt = getSystemPrompt(context);
-
-    // Show Loading
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = "text-xs text-slate-500 italic ml-2 animate-pulse";
-    loadingDiv.id = "ai-loading";
-    loadingDiv.innerText = "Analyzing...";
-    chatMessages.appendChild(loadingDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
-    try {
-        // USE PROXY INSTEAD OF DIRECT CALL
-        const response = await fetch('/api/proxy', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: systemPrompt })
-        });
-        
-        const data = await response.json();
-        
-        // Remove loading
-        const loader = document.getElementById('ai-loading');
-        if(loader) loader.remove();
-
-        if (data.error) {
-            appendMessage('system', `❌ Error: ${data.error}`, false);
-        } else {
-            const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || "System Error: No response data.";
-            appendMessage('system', aiText);
-            recordMessage(); 
-        }
-
-    } catch (e) {
-        const loader = document.getElementById('ai-loading');
-        if(loader) loader.remove();
-        appendMessage('system', `❌ Connection Error: ${e.message}`, false);
-    }
-}
-
-if(chatForm) {
-    chatForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const text = chatInput.value.trim();
-        if (!text) return;
-
-        appendMessage('user', text);
-        chatInput.value = '';
-        askGemini(text);
-    });
-}
-
-// Initial Load
-setInterval(updateLimitDisplay, 60000); 
-updateLimitDisplay();
 
 lucide.createIcons();
