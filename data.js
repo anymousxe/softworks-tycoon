@@ -1,6 +1,6 @@
 // --- DATABASE & KNOCKOFFS ---
 
-// Hardware / GPUs (Buffed Compute, Lowered Upkeep)
+// Hardware / GPUs
 const HARDWARE_DB = [
     { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 5, upkeep: 10 },
     { id: 'rtx_4090_farm', name: 'RTX 4090 Farm', cost: 5500, compute: 15, upkeep: 40 },
@@ -17,7 +17,7 @@ const HARDWARE_DB = [
     { id: 'neural_link', name: 'Bio-Neural Hive', cost: 5000000, compute: 50000, upkeep: 10000, reqTech: 'bio_computing' }
 ];
 
-// Companies to pitch to (Added Lmsite, Listart, etc)
+// Companies to pitch to (Contract Grid)
 const COMPANIES_DB = [
     { name: 'Indie Devs', budget: 1500 }, 
     { name: 'Startup Inc', budget: 3500 },
@@ -50,6 +50,43 @@ const CAMPAIGNS_DB = [
     { id: 'superbowl', name: 'Super Bowl Commercial', cost: 5000000, hype: 5000, duration: 12, type: 'basic' }
 ];
 
-// Random Model Name Generator Parts
-const MODEL_PREFIXES = ["Super", "Ultra", "Hyper", "Mega", "Omni", "Quantum", "Cyber", "Neo", "Flux", "Astro", "Deep", "Brain", "Neural", "Synapse", "Void"];
-const MODEL_SUFFIXES = ["Mind", "Core", "Flow", "Net", "GPT", "Vision", "Voice", "Sim", "X", "Prime", "Max", "Pro", "One", "Zero", "Alpha"];
+// --- MASSIVE RIVALS LIST ---
+const RIVALS_DB = [
+    { name: 'OpenAI', strength: 98, color: 'text-green-400' },
+    { name: 'Anthropic', strength: 92, color: 'text-yellow-400' },
+    { name: 'Google DeepMind', strength: 95, color: 'text-blue-400' },
+    { name: 'Meta AI', strength: 88, color: 'text-blue-300' },
+    { name: 'X.AI', strength: 80, color: 'text-slate-200' },
+    { name: 'Stability', strength: 75, color: 'text-purple-400' },
+    { name: 'Mistral', strength: 78, color: 'text-orange-400' },
+    { name: 'Cohere', strength: 70, color: 'text-teal-400' },
+    { name: 'Midjourney', strength: 85, color: 'text-pink-400' },
+    { name: 'Character.AI', strength: 82, color: 'text-cyan-400' },
+    { name: 'Perplexity', strength: 65, color: 'text-indigo-400' },
+    { name: 'HuggingFace', strength: 60, color: 'text-yellow-200' },
+    { name: 'Tencent', strength: 85, color: 'text-green-600' },
+    { name: 'Baidu', strength: 82, color: 'text-blue-600' },
+    { name: 'Alibaba', strength: 80, color: 'text-orange-600' },
+    { name: 'Apple ML', strength: 90, color: 'text-slate-400' },
+    { name: 'Amazon AGI', strength: 88, color: 'text-yellow-600' },
+    { name: 'IBM Watson', strength: 50, color: 'text-blue-800' },
+    { name: 'Tesla AI', strength: 75, color: 'text-red-500' },
+    { name: 'Nvidia Research', strength: 99, color: 'text-green-500' }
+];
+
+// NAME GENERATOR PARTS (Trillions of combinations)
+const MODEL_PREFIXES = [
+    "Super", "Ultra", "Hyper", "Mega", "Omni", "Quantum", "Cyber", "Neo", "Flux", "Astro", "Deep", 
+    "Brain", "Neural", "Synapse", "Void", "Star", "Nexus", "Titan", "Giga", "Terra", "Galactic", 
+    "Cosmic", "Infinite", "Alpha", "Omega", "Zeta", "Prime", "Core", "Apex", "Zenith", "Horizon", 
+    "Vector", "Tensor", "Scalar", "Logic", "Reason", "Thought", "Mind", "Soul", "Spirit", "Ghost"
+];
+
+const MODEL_SUFFIXES = [
+    "Mind", "Core", "Flow", "Net", "GPT", "Vision", "Voice", "Sim", "X", "Prime", "Max", "Pro", 
+    "One", "Zero", "Alpha", "Beta", "Gamma", "Delta", "Sigma", "Turbo", "V", "XL", "XS", "Nano", 
+    "Heavy", "Light", "Chat", "Code", "Art", "Imagine", "Real", "Dream", "Nightmare", "Pulse", 
+    "Wave", "Signal", "Node", "Link", "Chain", "Graph", "Matrix"
+];
+
+const MODEL_VERSIONS = ["1.0", "2.0", "3.0", "3.5", "4.0", "4o", "5", "X", "Pro", "Ultra", "Max"];
