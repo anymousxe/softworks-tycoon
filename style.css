@@ -1,41 +1,71 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap');
 
+/* Base overrides */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: #050505;
+    background-color: #050505; /* Deep OLED Black */
     color: #e2e8f0;
 }
-.font-mono { font-family: 'JetBrains Mono', monospace; }
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
 
+/* Custom Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #0a0a0a; }
 ::-webkit-scrollbar-thumb { background: #262626; border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 
+/* Nav Button Styles */
 .nav-btn {
-    width: 56px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4px; border-radius: 14px; color: #525252; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative; border: 1px solid transparent; background: transparent;
+    width: 56px;
+    height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    border-radius: 14px;
+    color: #525252;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    border: 1px solid transparent;
+    background: transparent;
 }
 .nav-btn:hover { background-color: rgba(255, 255, 255, 0.05); color: #e2e8f0; transform: translateY(-2px); }
 .nav-btn.active {
     background-color: rgba(34, 211, 238, 0.1); color: #22d3ee;
     border: 1px solid rgba(34, 211, 238, 0.2); box-shadow: 0 0 20px rgba(34, 211, 238, 0.15);
 }
-.nav-btn span { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
-
-.glass-panel {
-    background: rgba(15, 15, 15, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+.nav-btn span {
+    font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
 }
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(15px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+/* Glass Panel */
+.glass-panel {
+    background: rgba(15, 15, 15, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Animations */
+@keyframes fadeIn { 
+    from { opacity: 0; transform: translateY(15px) scale(0.98); } 
+    to { opacity: 1; transform: translateY(0) scale(1); } 
+}
 .animate-in { animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 
-@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes slideInRight { 
+    from { transform: translateX(100%); opacity: 0; } 
+    to { transform: translateX(0); opacity: 1; } 
+}
 .toast-enter { animation: slideInRight 0.3s ease-out forwards; }
 
+/* Tutorial Highlight Pulse */
 @keyframes pulse-ring {
     0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.7); }
     70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 211, 238, 0); }
