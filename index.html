@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Softworks Universe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #050505; font-family: 'Inter', sans-serif; color: white; overflow: hidden; }
+        .glass { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .bg-anim { animation: pulse-bg 20s infinite alternate; }
+        @keyframes pulse-bg { 0% { opacity: 0.3; } 100% { opacity: 0.6; } }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen relative">
+    <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center bg-anim opacity-40"></div>
+    <div class="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
+    
+    <div class="relative z-10 text-center max-w-5xl w-full p-6 animate-[fadeIn_1s_ease-out]">
+        <div class="mb-12">
+            <h1 class="text-8xl font-black mb-2 tracking-tighter text-white drop-shadow-2xl">SOFTWORKS</h1>
+            <div class="flex justify-center items-center gap-4">
+                <div class="h-px bg-white/20 w-12"></div>
+                <p class="text-cyan-400 font-mono tracking-[0.5em] text-sm uppercase">Simulation Universe</p>
+                <div class="h-px bg-white/20 w-12"></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12 px-12">
+            <a href="ai-tycoon/index.html" class="glass p-12 rounded-[2rem] hover:border-cyan-500 transition-all hover:-translate-y-4 hover:shadow-[0_0_50px_rgba(6,182,212,0.3)] group cursor-pointer block relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="w-20 h-20 bg-cyan-500/20 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:bg-cyan-500 transition-colors text-cyan-400 group-hover:text-black relative z-10">
+                    <i data-lucide="cpu" class="w-10 h-10"></i>
+                </div>
+                <h2 class="text-4xl font-black mb-3 relative z-10">AI TYCOON</h2>
+                <p class="text-slate-400 text-sm font-mono relative z-10">Build the AGI. Dominate the Tech Industry.</p>
+            </a>
+
+            <a href="moviestar/index.html" class="glass p-12 rounded-[2rem] hover:border-yellow-500 transition-all hover:-translate-y-4 hover:shadow-[0_0_50px_rgba(234,179,8,0.3)] group cursor-pointer block relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="w-20 h-20 bg-yellow-500/20 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:bg-yellow-500 transition-colors text-yellow-400 group-hover:text-black relative z-10">
+                    <i data-lucide="clapperboard" class="w-10 h-10"></i>
+                </div>
+                <h2 class="text-4xl font-black mb-3 relative z-10">MOVIE STAR</h2>
+                <p class="text-slate-400 text-sm font-mono relative z-10">Act, Direct, and Run a Studio.</p>
+            </a>
+        </div>
+        
+        <div class="mt-16 flex justify-center gap-6 opacity-50">
+            <span class="text-[10px] font-mono text-slate-500">v3.0 PLATFORM</span>
+            <span class="text-[10px] font-mono text-slate-500">DEV BY ANYMOUSXE</span>
+        </div>
+    </div>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
