@@ -1,7 +1,10 @@
-// --- DATABASE & KNOCKOFFS ---
+// --- SOFTWORKS MASTER DATABASE ---
 
-// Hardware / GPUs
-const HARDWARE_DB = [
+// ==========================================
+// 🧠 AI TYCOON DATA
+// ==========================================
+
+const HARDWARE = [
     { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 5, upkeep: 10 },
     { id: 'rtx_4090_farm', name: 'RTX 4090 Farm', cost: 5500, compute: 15, upkeep: 40 },
     { id: 'a100', name: 'A100 Rack', cost: 8000, compute: 30, upkeep: 80 },
@@ -17,41 +20,27 @@ const HARDWARE_DB = [
     { id: 'neural_link', name: 'Bio-Neural Hive', cost: 5000000, compute: 50000, upkeep: 10000, reqTech: 'bio_computing' }
 ];
 
-// Companies to pitch to (Contract Grid)
-const COMPANIES_DB = [
-    { name: 'Indie Devs', budget: 1500 }, 
-    { name: 'Startup Inc', budget: 3500 },
-    { name: 'Lmsite', budget: 5000, type: 'AI Hosting' }, 
-    { name: 'Listart', budget: 6500, type: 'Art Assets' },
-    { name: 'Facebooc', budget: 8000 }, 
-    { name: 'StreamFlix', budget: 12000 },
-    { name: 'Microhard', budget: 15000 }, 
-    { name: 'Joggle', budget: 18000 },
-    { name: 'Amacon', budget: 22000 }, 
-    { name: 'NvidiaX', budget: 25000 },
-    { name: 'Tessla', budget: 30000 }, 
-    { name: 'Fruit Co', budget: 35000 },
-    { name: 'OpenAI (Real)', budget: 45000 }, 
-    { name: 'Wall Street', budget: 60000 },
-    { name: 'SpaceY', budget: 80000 }, 
-    { name: 'Pentagon', budget: 150000 },
+const AI_COMPANIES = [
+    { name: 'Indie Devs', budget: 1500 }, { name: 'Startup Inc', budget: 3500 },
+    { name: 'Lmsite', budget: 5000, type: 'AI Hosting' }, { name: 'Listart', budget: 6500, type: 'Art Assets' },
+    { name: 'Facebooc', budget: 8000 }, { name: 'StreamFlix', budget: 12000 },
+    { name: 'Microhard', budget: 15000 }, { name: 'Joggle', budget: 18000 },
+    { name: 'Amacon', budget: 22000 }, { name: 'NvidiaX', budget: 25000 },
+    { name: 'Tessla', budget: 30000 }, { name: 'Fruit Co', budget: 35000 },
+    { name: 'OpenAI (Real)', budget: 45000 }, { name: 'Wall Street', budget: 60000 },
+    { name: 'SpaceY', budget: 80000 }, { name: 'Pentagon', budget: 150000 },
     { name: 'Global Gov', budget: 500000 }
 ];
 
-// Marketing Cameos & Methods
-const CAMPAIGNS_DB = [
+const AI_CAMPAIGNS = [
     { id: 'social_ads', name: 'Social Media Blast', cost: 2000, hype: 15, duration: 2, type: 'basic' },
     { id: 'influencer', name: 'Tech Influencer', cost: 15000, hype: 40, duration: 4, type: 'basic' },
     { id: 'billboard', name: 'Times Square Billboard', cost: 50000, hype: 100, duration: 8, type: 'basic' },
-    { id: 'movie_ad', name: 'Product Placement in "Fast & Furious 29"', cost: 150000, hype: 250, duration: 10, type: 'movie' },
-    { id: 'cameo_alex', name: 'Cameo: Alerios Alex', cost: 300000, hype: 400, duration: 1, type: 'cameo' },
-    { id: 'cameo_ryan', name: 'Cameo: Ryant Renyold', cost: 800000, hype: 900, duration: 1, type: 'cameo' },
-    { id: 'cameo_elion', name: 'Cameo: Elion Tusk', cost: 2500000, hype: 2000, duration: 1, type: 'cameo' },
-    { id: 'superbowl', name: 'Super Bowl Commercial', cost: 5000000, hype: 5000, duration: 12, type: 'basic' }
+    { id: 'movie_ad', name: 'Product Placement', cost: 150000, hype: 250, duration: 10, type: 'movie' },
+    { id: 'cameo_elion', name: 'Cameo: Elion Tusk', cost: 2500000, hype: 2000, duration: 1, type: 'cameo' }
 ];
 
-// --- MASSIVE RIVALS LIST ---
-const RIVALS_DB = [
+const AI_RIVALS = [
     { name: 'OpenAI', strength: 98, color: 'text-green-400' },
     { name: 'Anthropic', strength: 92, color: 'text-yellow-400' },
     { name: 'Google DeepMind', strength: 95, color: 'text-blue-400' },
@@ -59,34 +48,70 @@ const RIVALS_DB = [
     { name: 'X.AI', strength: 80, color: 'text-slate-200' },
     { name: 'Stability', strength: 75, color: 'text-purple-400' },
     { name: 'Mistral', strength: 78, color: 'text-orange-400' },
-    { name: 'Cohere', strength: 70, color: 'text-teal-400' },
-    { name: 'Midjourney', strength: 85, color: 'text-pink-400' },
-    { name: 'Character.AI', strength: 82, color: 'text-cyan-400' },
-    { name: 'Perplexity', strength: 65, color: 'text-indigo-400' },
-    { name: 'HuggingFace', strength: 60, color: 'text-yellow-200' },
-    { name: 'Tencent', strength: 85, color: 'text-green-600' },
-    { name: 'Baidu', strength: 82, color: 'text-blue-600' },
-    { name: 'Alibaba', strength: 80, color: 'text-orange-600' },
-    { name: 'Apple ML', strength: 90, color: 'text-slate-400' },
-    { name: 'Amazon AGI', strength: 88, color: 'text-yellow-600' },
-    { name: 'IBM Watson', strength: 50, color: 'text-blue-800' },
-    { name: 'Tesla AI', strength: 75, color: 'text-red-500' },
     { name: 'Nvidia Research', strength: 99, color: 'text-green-500' }
 ];
 
-// NAME GENERATOR PARTS (Trillions of combinations)
-const MODEL_PREFIXES = [
-    "Super", "Ultra", "Hyper", "Mega", "Omni", "Quantum", "Cyber", "Neo", "Flux", "Astro", "Deep", 
-    "Brain", "Neural", "Synapse", "Void", "Star", "Nexus", "Titan", "Giga", "Terra", "Galactic", 
-    "Cosmic", "Infinite", "Alpha", "Omega", "Zeta", "Prime", "Core", "Apex", "Zenith", "Horizon", 
-    "Vector", "Tensor", "Scalar", "Logic", "Reason", "Thought", "Mind", "Soul", "Spirit", "Ghost"
+const AI_PRODUCTS = [
+    { id: 'text', name: 'LLM', cost: 50000, time: 4, compute: 5 },
+    { id: 'image', name: 'Image Gen', cost: 80000, time: 6, compute: 15 },
+    { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 10 },
+    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40 },
+    { id: 'game_ai', name: 'NPC Brain', cost: 200000, time: 10, compute: 70 },
+    { id: 'robotics', name: 'Robot OS', cost: 300000, time: 12, compute: 100 },
+    { id: 'agi', name: 'Conscious AI', cost: 5000000, time: 24, compute: 2000, reqTech: 'agi_theory' }
 ];
 
-const MODEL_SUFFIXES = [
-    "Mind", "Core", "Flow", "Net", "GPT", "Vision", "Voice", "Sim", "X", "Prime", "Max", "Pro", 
-    "One", "Zero", "Alpha", "Beta", "Gamma", "Delta", "Sigma", "Turbo", "V", "XL", "XS", "Nano", 
-    "Heavy", "Light", "Chat", "Code", "Art", "Imagine", "Real", "Dream", "Nightmare", "Pulse", 
-    "Wave", "Signal", "Node", "Link", "Chain", "Graph", "Matrix"
+const AI_RESEARCH = [
+    { id: 'opt_algos', name: 'Optimized Algos', cost: 50, desc: '-1 Week Dev Time' },
+    { id: 'h200_unlock', name: 'H200 Hardware', cost: 150, desc: 'Unlock H200 Chips' },
+    { id: 'blackwell_arch', name: 'Blackwell Arch', cost: 300, desc: 'Unlock B200/GH200' },
+    { id: 'tpu_opt', name: 'TPU Optimization', cost: 600, desc: 'Unlock TPU Pods' },
+    { id: 'agi_theory', name: 'AGI Theory', cost: 1000, desc: 'Unlock Conscious AI Product' },
+    { id: 'wafer_scale', name: 'Wafer Scale', cost: 2000, desc: 'Unlock Cerebras WSE' },
+    { id: 'quantum_tech', name: 'Quantum Supremacy', cost: 5000, desc: 'Unlock Quantum Servers' },
+    { id: 'bio_computing', name: 'Bio-Computing', cost: 10000, desc: 'Unlock Neural Hive' }
 ];
 
+const AI_SHOP = [
+    { id: 'data_s', name: 'Data Set (Small)', cost: 5000, effect: 'Research +100', type: 'consumable', amount: 100 },
+    { id: 'data_m', name: 'Data Set (Medium)', cost: 15000, effect: 'Research +350', type: 'consumable', amount: 350 },
+    { id: 'consultant', name: 'AI Consultant', cost: 10000, effect: 'Dev Speed Boost (Instant)', type: 'consumable', amount: 0 },
+    { id: 'coffee', name: 'Premium Coffee', cost: 2000, effect: 'Employees: +10 Morale', type: 'consumable_emp', amount: 10 }
+];
+
+const MODEL_PREFIXES = ["Super", "Ultra", "Hyper", "Mega", "Omni", "Quantum", "Cyber", "Neo", "Flux", "Deep", "Brain", "Neural", "Synapse"];
+const MODEL_SUFFIXES = ["Mind", "Core", "Flow", "Net", "GPT", "Vision", "Voice", "Sim", "X", "Prime", "Max", "Pro", "Chat"];
 const MODEL_VERSIONS = ["1.0", "2.0", "3.0", "3.5", "4.0", "4o", "5", "X", "Pro", "Ultra", "Max"];
+
+// ==========================================
+// 🎬 MOVIE STAR DATA
+// ==========================================
+
+const FIRST_NAMES_M = ["Leo", "Brad", "Tom", "Johnny", "Robert", "Chris", "Ryan", "Keanu", "Denzel", "Will", "Samuel", "Morgan", "Harrison", "Clint", "Al", "Joaquin", "Christian", "Matt", "Ben", "George", "Adam", "Jared", "Idris", "Jason", "Dwayne", "Kevin", "Mark", "Tim", "Oscar", "Zac"];
+const FIRST_NAMES_F = ["Scarlett", "Margot", "Emma", "Jennifer", "Angelina", "Meryl", "Viola", "Zendaya", "Florence", "Anya", "Natalie", "Julia", "Sandra", "Reese", "Nicole", "Charlize", "Halle", "Salma", "Gal", "Brie", "Saoirse", "Jessica", "Anne", "Emily", "Blake", "Mila", "Kristen", "Dakota"];
+const LAST_NAMES = ["Dicaprio", "Pitt", "Cruise", "Depp", "Downey", "Hemsworth", "Reynolds", "Reeves", "Washington", "Smith", "Jackson", "Freeman", "Ford", "Eastwood", "Pacino", "Phoenix", "Bale", "Damon", "Affleck", "Clooney", "Driver", "Leto", "Elba", "Momoa", "Johnson", "Hart", "Wahlberg", "Chalamet", "Holland"];
+
+const MOVIE_GENRES = ["Action", "Horror", "Sci-Fi", "Drama", "Comedy", "Romance", "Thriller", "Fantasy", "Mystery"];
+
+const SKILLS_SHOP = [
+    { id: 'acting_101', name: 'Acting 101', type: 'acting', boost: 5, cost: 500, desc: "Learn to cry on command." },
+    { id: 'improv_class', name: 'Improv Club', type: 'acting', boost: 10, cost: 1200, desc: "Yes, and..." },
+    { id: 'method_acting', name: 'Method Acting', type: 'acting', boost: 20, cost: 5000, desc: "Stay in character for 3 months." },
+    { id: 'masterclass', name: 'Masterclass', type: 'acting', boost: 40, cost: 25000, desc: "Taught by a legend." },
+    { id: 'voice_coach', name: 'Vocal Training', type: 'speech', boost: 5, cost: 600, desc: "Stop mumbling." },
+    { id: 'public_speaking', name: 'Public Speaking', type: 'speech', boost: 15, cost: 2000, desc: "Nail your interviews." },
+    { id: 'gym_membership', name: 'Gym Membership', type: 'looks', boost: 5, cost: 300, desc: "Basic fitness." },
+    { id: 'stylist', name: 'Personal Stylist', type: 'looks', boost: 15, cost: 4000, desc: "Drip upgrade." },
+    { id: 'plastic_surgery', name: 'Cosmetic Touch-up', type: 'looks', boost: 35, cost: 50000, desc: "A little botox never hurt." }
+];
+
+const JOBS = [
+    { title: "Background Extra", pay: 100, req: 0, fame: 0, type: "gig", desc: "Stand there and don't look at the camera." },
+    { title: "Commercial Lead", pay: 2500, req: 10, fame: 2, type: "gig", desc: "Hold a soda can and smile." },
+    { title: "Student Film", pay: 500, req: 15, fame: 5, type: "movie", desc: "Artistic, but pays in pizza." },
+    { title: "Indie Horror Victim", pay: 15000, req: 25, fame: 15, type: "movie", desc: "Scream loud, die first." },
+    { title: "Soap Opera Guest", pay: 8000, req: 30, fame: 10, type: "show", desc: "Dramatic reveal of an evil twin." },
+    { title: "Sitcom Neighbor", pay: 40000, req: 45, fame: 30, type: "show", desc: "Walk in, say catchphrase, leave." },
+    { title: "Action Sidekick", pay: 150000, req: 70, fame: 100, type: "movie", desc: "Look cool while things explode." },
+    { title: "Marvel Hero", pay: 5000000, req: 95, fame: 1000, type: "movie", desc: "Green screen suit required." }
+];
