@@ -13,36 +13,61 @@
 
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
-    <div id="save-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#050505] flex-col">
-        <h1 class="text-6xl font-bebas text-pink-500 mb-8 tracking-widest">SELECT SAVE FILE</h1>
-        <div id="save-slots" class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl px-8"></div>
-        <button id="btn-new-save" class="mt-8 bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-pink-400 transition-colors">NEW CAREER</button>
-        <a href="../index.html" class="mt-4 text-slate-500 hover:text-white text-xs">Back to Hub</a>
-    </div>
-
-    <div id="episode-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
-        <div class="bg-[#111] border border-pink-500/20 p-8 rounded-2xl max-w-2xl w-full relative shadow-2xl">
-            <h2 class="text-4xl font-bebas text-pink-500 mb-4">WRITER'S ROOM</h2>
-            <div class="grid grid-cols-2 gap-8">
-                <div class="space-y-4">
-                    <input id="ep-title" class="w-full bg-[#222] p-3 rounded text-white border border-white/10" placeholder="Episode Title">
-                    <textarea id="ep-plot" class="w-full bg-[#222] p-3 rounded text-white h-32 border border-white/10" placeholder="Plot Summary..."></textarea>
-                </div>
-                <div class="bg-[#1a1a1a] p-4 rounded border border-white/5 overflow-y-auto h-48" id="episode-cast-list"></div>
+    <div id="save-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#050505] flex-col p-8">
+        <h1 class="text-7xl font-bebas text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600 mb-2">SOFTWORKS: MOVIESTAR</h1>
+        <p class="text-slate-500 font-mono text-xs uppercase tracking-[0.5em] mb-12">Select Career File</p>
+        
+        <div id="save-slots" class="grid grid-cols-1 md:grid-cols-5 gap-4 w-full max-w-6xl mb-12">
             </div>
-            <div class="flex gap-4 mt-6">
-                <button id="close-episode-modal" class="flex-1 border border-slate-700 text-slate-400 py-3 rounded">CANCEL</button>
-                <button id="btn-publish-episode" class="flex-1 bg-white text-black font-bold py-3 rounded hover:bg-pink-400">AIR EPISODE</button>
-            </div>
+        
+        <div class="flex gap-4">
+            <button id="btn-new-save" class="bg-white text-black px-10 py-4 rounded-full font-black hover:bg-pink-400 hover:scale-105 transition-all shadow-lg shadow-white/10">NEW CAREER</button>
+            <a href="../index.html" class="border border-white/20 text-slate-400 px-10 py-4 rounded-full font-bold hover:bg-white/10 transition-all flex items-center gap-2">
+                <i data-lucide="arrow-left" class="w-4 h-4"></i> BACK TO HUB
+            </a>
         </div>
     </div>
 
-    <div id="game-screen" class="hidden h-screen flex flex-col">
-        <header class="h-24 border-b border-white/5 bg-[#0a0a0a] flex items-center justify-between px-8 z-10">
-            <div class="flex items-center gap-6">
-                <div class="w-12 h-12 bg-pink-600 rounded-xl text-white flex items-center justify-center font-black text-2xl shadow-[0_0_20px_rgba(219,39,119,0.4)]">M</div>
+    <div id="episode-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
+        <div class="bg-[#0a0a0a] border border-white/10 p-8 rounded-2xl max-w-3xl w-full relative shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h1 id="hud-name" class="font-bebas text-3xl text-white tracking-wide leading-none">...</h1>
+                    <h2 class="text-4xl font-bebas text-pink-500 tracking-wider">WRITER'S ROOM</h2>
+                    <p class="text-xs text-slate-500 font-mono uppercase">Season <span id="ep-season-num">1</span></p>
+                </div>
+                <button id="close-episode-modal" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <div class="mb-4">
+                        <label class="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Episode Title</label>
+                        <input id="ep-title" class="w-full bg-[#151515] border border-white/10 p-3 rounded-lg text-white mt-1 outline-none focus:border-pink-500 font-bold" placeholder="e.g. The Red Wedding">
+                    </div>
+                    
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Plot Summary</label>
+                        <textarea id="ep-plot" class="w-full bg-[#151515] border border-white/10 p-3 rounded-lg text-white h-40 mt-1 outline-none focus:border-pink-500 resize-none text-sm leading-relaxed" placeholder="Describe the events..."></textarea>
+                    </div>
+                </div>
+                
+                <div class="bg-[#151515] p-4 rounded-lg border border-white/5 flex flex-col h-full">
+                    <label class="text-[10px] uppercase font-bold text-slate-500 mb-3 block tracking-widest">Cast Status (Click to Kill)</label>
+                    <div id="episode-cast-list" class="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2 max-h-[250px]">
+                        </div>
+                </div>
+            </div>
+
+            <button id="btn-publish-episode" class="w-full mt-6 bg-white text-black font-black py-4 rounded-xl hover:bg-pink-400 transition-colors font-bebas text-xl tracking-widest shadow-lg shadow-white/10">AIR EPISODE</button>
+        </div>
+    </div>
+
+    <div id="game-screen" class="hidden h-screen flex flex-col bg-gradient-to-br from-[#0f0c29] via-[#050505] to-[#1a0b2e]">
+        <header class="h-24 border-b border-white/5 bg-black/40 backdrop-blur-md flex items-center justify-between px-8 z-10">
+            <div class="flex items-center gap-6">
+                <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl text-white flex items-center justify-center font-black text-2xl shadow-[0_0_20px_rgba(236,72,153,0.4)]">M</div>
+                <div>
+                    <h1 id="hud-name" class="font-bebas text-3xl text-white tracking-wide leading-none">Actor Name</h1>
                     <div class="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold mt-1">Softworks: Moviestar</div>
                 </div>
             </div>
@@ -54,24 +79,26 @@
                         <span id="hud-energy-text" class="text-[9px] text-pink-400">250/250</span>
                     </div>
                     <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                        <div id="hud-energy-bar" class="h-full bg-gradient-to-r from-pink-600 to-purple-500" style="width: 100%"></div>
+                        <div id="hud-energy-bar" class="h-full bg-gradient-to-r from-pink-600 to-purple-500 transition-all duration-500" style="width: 100%"></div>
                     </div>
                 </div>
 
                 <div class="text-right">
-                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Bank</div>
+                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Bank Account</div>
                     <div id="hud-cash" class="text-green-400 text-lg font-bold">$0</div>
                 </div>
                 <div class="text-right">
-                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Week</div>
-                    <div id="hud-week" class="text-white text-lg font-bold">1</div>
+                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Timeline</div>
+                    <div id="hud-week" class="text-white text-lg font-bold">W1 Y1</div>
                 </div>
-                <button id="btn-next-week" class="bg-white text-black px-8 py-3 rounded-lg font-bold hover:bg-pink-400 transition-colors">NEXT WEEK</button>
+                <button id="btn-next-week" class="bg-white text-black px-8 py-3 rounded-lg font-bold hover:bg-pink-400 transition-all hover:scale-105 shadow-lg shadow-white/5 flex items-center gap-2">
+                    <i data-lucide="play" class="w-4 h-4 fill-current"></i> NEXT
+                </button>
             </div>
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <aside class="w-72 bg-[#050505] border-r border-white/5 p-6 flex flex-col gap-2 z-10">
+            <aside class="w-72 bg-black/60 backdrop-blur-xl border-r border-white/5 p-6 flex flex-col gap-2 z-10">
                 <button class="nav-btn active" data-tab="career"><i data-lucide="star"></i> Find Work</button>
                 <button class="nav-btn" data-tab="doctor"><i data-lucide="heart-pulse"></i> The Doctor</button>
                 <button class="nav-btn" data-tab="skills"><i data-lucide="book-open"></i> Acting School</button>
@@ -82,7 +109,7 @@
                 <button id="btn-save-exit" class="nav-btn text-red-500 hover:bg-red-900/10"><i data-lucide="log-out"></i> Save & Exit</button>
             </aside>
 
-            <main id="content-area" class="flex-1 p-10 overflow-y-auto bg-[#080808] custom-scrollbar relative">
+            <main id="content-area" class="flex-1 p-10 overflow-y-auto custom-scrollbar relative">
                 </main>
         </div>
     </div>
@@ -91,6 +118,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="movie_data.js"></script>
-    <script src="movie_main.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
