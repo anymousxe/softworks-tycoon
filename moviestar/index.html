@@ -3,115 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Softworks: Hollywood</title>
+    <title>Softworks: Moviestar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/png" href="../icon.png" />
 </head>
-<body class="bg-[#050505] text-slate-200 font-sans overflow-hidden selection:bg-yellow-500 selection:text-black">
+<body class="bg-[#050505] text-slate-200 font-sans overflow-hidden selection:bg-pink-500 selection:text-white">
 
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
-    <div id="episode-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
-        <div class="bg-[#0a0a0a] border border-white/10 p-8 rounded-2xl max-w-2xl w-full relative shadow-2xl">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-4xl font-bebas text-yellow-500 tracking-wider">WRITER'S ROOM</h2>
-                <button id="close-episode-modal" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <div class="mb-4">
-                        <label class="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Episode Title</label>
-                        <input id="ep-title" class="w-full bg-[#151515] border border-white/10 p-3 rounded-lg text-white mt-1 outline-none focus:border-yellow-500 font-bold" placeholder="e.g. The Red Wedding">
-                    </div>
-                    
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Plot Summary</label>
-                        <textarea id="ep-plot" class="w-full bg-[#151515] border border-white/10 p-3 rounded-lg text-white h-40 mt-1 outline-none focus:border-yellow-500 resize-none text-sm leading-relaxed" placeholder="Describe the events..."></textarea>
-                    </div>
-                </div>
-                
-                <div class="bg-[#151515] p-4 rounded-lg border border-white/5 flex flex-col h-full">
-                    <label class="text-[10px] uppercase font-bold text-slate-500 mb-3 block tracking-widest">Cast Status (Click to Kill)</label>
-                    <div id="episode-cast-list" class="space-y-2 overflow-y-auto custom-scrollbar flex-1 pr-2">
-                        </div>
-                </div>
-            </div>
-
-            <button id="btn-publish-episode" class="w-full mt-6 bg-white text-black font-black py-4 rounded-xl hover:bg-yellow-400 transition-colors font-bebas text-xl tracking-widest">AIR EPISODE</button>
-        </div>
+    <div id="save-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[#050505] flex-col">
+        <h1 class="text-6xl font-bebas text-pink-500 mb-8 tracking-widest">SELECT SAVE FILE</h1>
+        <div id="save-slots" class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl px-8"></div>
+        <button id="btn-new-save" class="mt-8 bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-pink-400 transition-colors">NEW CAREER</button>
+        <a href="../index.html" class="mt-4 text-slate-500 hover:text-white text-xs">Back to Hub</a>
     </div>
 
-    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center">
-        <div class="absolute inset-0 bg-black/90 backdrop-blur-sm"></div>
-        <div class="relative bg-black/40 border border-white/10 p-12 rounded-3xl shadow-2xl max-w-md w-full text-center backdrop-blur-xl">
-            <h1 class="text-7xl font-bebas text-yellow-500 mb-2">HOLLYWOOD</h1>
-            <p class="text-white font-mono mb-10 text-xs tracking-[0.3em] uppercase">Softworks Simulation</p>
-            
-            <input id="inp-actor-name" class="w-full bg-black/50 border border-white/20 p-4 text-white mb-6 rounded-xl focus:border-yellow-500 outline-none text-center font-bold placeholder-slate-600" placeholder="Enter Stage Name">
-            
-            <div id="sandbox-toggle" class="flex items-center justify-center gap-3 mb-8 cursor-pointer text-slate-500 hover:text-yellow-400 transition-colors group select-none">
-                <div class="p-2 bg-white/5 rounded-lg group-hover:bg-yellow-500/10"><i data-lucide="infinity" class="w-4 h-4"></i></div>
-                <span class="text-xs font-bold uppercase tracking-wider">Sandbox Mode</span>
+    <div id="episode-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
+        <div class="bg-[#111] border border-pink-500/20 p-8 rounded-2xl max-w-2xl w-full relative shadow-2xl">
+            <h2 class="text-4xl font-bebas text-pink-500 mb-4">WRITER'S ROOM</h2>
+            <div class="grid grid-cols-2 gap-8">
+                <div class="space-y-4">
+                    <input id="ep-title" class="w-full bg-[#222] p-3 rounded text-white border border-white/10" placeholder="Episode Title">
+                    <textarea id="ep-plot" class="w-full bg-[#222] p-3 rounded text-white h-32 border border-white/10" placeholder="Plot Summary..."></textarea>
+                </div>
+                <div class="bg-[#1a1a1a] p-4 rounded border border-white/5 overflow-y-auto h-48" id="episode-cast-list"></div>
             </div>
-
-            <button id="btn-start" class="w-full bg-white hover:bg-yellow-400 text-black font-black py-4 rounded-xl transition-all tracking-widest text-xl font-bebas shadow-lg shadow-white/10">ACTION!</button>
+            <div class="flex gap-4 mt-6">
+                <button id="close-episode-modal" class="flex-1 border border-slate-700 text-slate-400 py-3 rounded">CANCEL</button>
+                <button id="btn-publish-episode" class="flex-1 bg-white text-black font-bold py-3 rounded hover:bg-pink-400">AIR EPISODE</button>
+            </div>
         </div>
     </div>
 
     <div id="game-screen" class="hidden h-screen flex flex-col">
         <header class="h-24 border-b border-white/5 bg-[#0a0a0a] flex items-center justify-between px-8 z-10">
             <div class="flex items-center gap-6">
-                <div class="w-12 h-12 bg-yellow-500 rounded-xl text-black flex items-center justify-center font-black text-2xl shadow-[0_0_20px_rgba(234,179,8,0.4)]">S</div>
+                <div class="w-12 h-12 bg-pink-600 rounded-xl text-white flex items-center justify-center font-black text-2xl shadow-[0_0_20px_rgba(219,39,119,0.4)]">M</div>
                 <div>
-                    <h1 id="hud-name" class="font-bebas text-3xl text-white tracking-wide leading-none">Actor Name</h1>
-                    <div class="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold mt-1">Unsigned Talent</div>
+                    <h1 id="hud-name" class="font-bebas text-3xl text-white tracking-wide leading-none">...</h1>
+                    <div class="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold mt-1">Softworks: Moviestar</div>
                 </div>
             </div>
             
             <div class="flex items-center gap-10 font-mono text-xs">
+                <div class="w-48">
+                    <div class="flex justify-between mb-1">
+                        <span class="text-[9px] uppercase font-bold text-slate-500">Energy</span>
+                        <span id="hud-energy-text" class="text-[9px] text-pink-400">250/250</span>
+                    </div>
+                    <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div id="hud-energy-bar" class="h-full bg-gradient-to-r from-pink-600 to-purple-500" style="width: 100%"></div>
+                    </div>
+                </div>
+
                 <div class="text-right">
-                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Bank Account</div>
+                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Bank</div>
                     <div id="hud-cash" class="text-green-400 text-lg font-bold">$0</div>
                 </div>
                 <div class="text-right">
-                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Global Fame</div>
-                    <div id="hud-fame" class="text-yellow-400 text-lg font-bold">0</div>
+                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Week</div>
+                    <div id="hud-week" class="text-white text-lg font-bold">1</div>
                 </div>
-                <div class="h-8 w-px bg-white/10"></div>
-                <div class="text-right mr-2">
-                    <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider mb-1">Timeline</div>
-                    <div id="hud-week" class="text-white text-lg font-bold">Week 1</div>
-                </div>
-                <button id="btn-next-week" class="bg-white text-black px-8 py-3 rounded-lg font-bold hover:bg-yellow-400 transition-all hover:scale-105 shadow-lg shadow-white/5 flex items-center gap-2">
-                    <i data-lucide="play" class="w-4 h-4 fill-current"></i> NEXT
-                </button>
+                <button id="btn-next-week" class="bg-white text-black px-8 py-3 rounded-lg font-bold hover:bg-pink-400 transition-colors">NEXT WEEK</button>
             </div>
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <aside class="w-72 bg-[#050505] border-r border-white/5 p-6 flex flex-col gap-3 z-10">
-                <div class="text-[10px] text-slate-600 font-bold uppercase tracking-widest mb-2 pl-4">Menu</div>
+            <aside class="w-72 bg-[#050505] border-r border-white/5 p-6 flex flex-col gap-2 z-10">
                 <button class="nav-btn active" data-tab="career"><i data-lucide="star"></i> Find Work</button>
+                <button class="nav-btn" data-tab="doctor"><i data-lucide="heart-pulse"></i> The Doctor</button>
                 <button class="nav-btn" data-tab="skills"><i data-lucide="book-open"></i> Acting School</button>
                 <div class="h-px bg-white/5 my-2"></div>
-                <div class="text-[10px] text-slate-600 font-bold uppercase tracking-widest mb-2 pl-4">Production</div>
                 <button class="nav-btn" data-tab="studio"><i data-lucide="clapperboard"></i> My Studio</button>
                 <button class="nav-btn" data-tab="roster"><i data-lucide="users"></i> Casting Roster</button>
                 <div class="flex-1"></div>
-                <a href="../index.html" class="nav-btn text-red-500 hover:bg-red-900/10 hover:text-red-400 mt-auto"><i data-lucide="log-out"></i> Exit to Hub</a>
+                <button id="btn-save-exit" class="nav-btn text-red-500 hover:bg-red-900/10"><i data-lucide="log-out"></i> Save & Exit</button>
             </aside>
 
             <main id="content-area" class="flex-1 p-10 overflow-y-auto bg-[#080808] custom-scrollbar relative">
-                <div class="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-yellow-500/5 to-transparent pointer-events-none"></div>
                 </main>
         </div>
     </div>
 
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="movie_data.js"></script>
-    <script src="main.js"></script>
+    <script src="movie_main.js"></script>
 </body>
 </html>
