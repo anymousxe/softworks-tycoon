@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700;900&display=swap');
+
+body { font-family: 'Inter', sans-serif; }
+.font-bebas { font-family: 'Bebas Neue', sans-serif; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #eab308; }
+
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+
+/* Nav Buttons */
+.nav-btn {
+    width: 100%; text-align: left;
+    padding: 14px 20px; border-radius: 12px;
+    font-weight: 700; color: #64748b;
+    display: flex; align-items: center; gap: 12px;
+    transition: all 0.2s;
+    font-size: 13px;
+    border: 1px solid transparent;
+}
+.nav-btn:hover { color: #fff; background-color: rgba(255,255,255,0.05); }
+.nav-btn.active { color: #000; background-color: #fff; border-color: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.1); }
+.nav-btn i { width: 18px; height: 18px; }
+
+.glass-panel {
+    background: rgba(20, 20, 20, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.animate-in { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
