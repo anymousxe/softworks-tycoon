@@ -1,370 +1,185 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Softworks Tycoon</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <script src="https://unpkg.com/lucide@latest"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-
     <link rel="stylesheet" href="style.css">
-
     <link rel="icon" type="image/png" href="icon.png" />
 
-
-
     <meta property="og:title" content="Softworks Tycoon">
-
     <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market.">
-
     <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png">
-
     <meta name="theme-color" content="#06b6d4">
-
 </head>
-
 <body class="bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black overflow-hidden">
-
-
 
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
-
-
     <div id="changelog-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-
-        <div class="glass-panel p-8 rounded-2xl max-w-lg w-full relative shadow-2xl bg-black animate-in border border-cyan-500/30">
-
+        <div class="glass-panel p-8 rounded-2xl max-w-lg w-full relative shadow-2xl bg-black animate-in border border-red-500/30">
             <div class="flex items-center gap-3 mb-6">
-
-                <div class="bg-gradient-to-tr from-cyan-500 to-blue-600 p-2 rounded-lg text-white">
-
-                    <i data-lucide="sparkles"></i>
-
+                <div class="bg-gradient-to-tr from-red-500 to-orange-600 p-2 rounded-lg text-white">
+                    <i data-lucide="flame"></i>
                 </div>
-
-                <h3 class="text-2xl font-black text-white tracking-tight">SYSTEM RESTORED</h3>
-
+                <h3 class="text-2xl font-black text-white tracking-tight">WE ARE SO BACK</h3>
             </div>
-
             <div class="space-y-4 mb-8">
-
                 <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
-
-                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="cpu" class="w-4 h-4 text-cyan-400"></i> PURE AI FOCUS</h4>
-
-                    <p class="text-slate-300 text-xs">Music sim removed. Focused 100% on the AI economy, rivals, and tech tree.</p>
-
+                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="skull" class="w-4 h-4 text-red-400"></i> THE CRASH (RIP)</h4>
+                    <p class="text-slate-300 text-xs">Fixed the massive error that bricked EVERYTHING. Took 2 days of straight suffering, but the system is finally stable again.</p>
                 </div>
-
                 <div class="bg-slate-900/50 border border-slate-700 p-4 rounded-xl">
-
-                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="shield-check" class="w-4 h-4 text-green-400"></i> STABLE BUILD</h4>
-
-                    <p class="text-slate-300 text-xs">Includes Obsolescence, B2B Grid, API Precision, and R&D Injection.</p>
-
+                    <h4 class="text-white font-bold text-sm mb-1 flex items-center gap-2"><i data-lucide="sparkles" class="w-4 h-4 text-cyan-400"></i> NEW DRIP</h4>
+                    <p class="text-slate-300 text-xs">Updated the game icon. Looking fresh on the tab.</p>
                 </div>
-
             </div>
-
-            <button id="btn-close-changelog" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl text-sm transition-all shadow-lg shadow-white/5 tracking-widest">LET'S COOK</button>
-
+            <button id="btn-close-changelog" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl text-sm transition-all shadow-lg shadow-white/5 tracking-widest">LOCKED IN</button>
         </div>
-
     </div>
-
-
 
     <div id="tutorial-overlay" class="hidden fixed inset-0 z-[90]">
-
         <div id="tutorial-highlight" class="absolute rounded-xl transition-all duration-300 pointer-events-none"></div>
-
         <div id="tutorial-box" class="absolute bottom-24 left-1/2 -translate-x-1/2 bg-[#0a0a0a] border border-cyan-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl pointer-events-auto flex flex-col gap-4 animate-in z-[100]">
-
             <div class="flex items-center gap-3">
-
                 <div class="bg-cyan-500/20 p-2 rounded-lg"><i data-lucide="graduation-cap" class="text-cyan-400 w-6 h-6"></i></div>
-
                 <h3 class="font-bold text-white text-lg">Onboarding</h3>
-
             </div>
-
             <p id="tutorial-text" class="text-slate-300 text-sm leading-relaxed">Welcome CEO.</p>
-
             <div class="flex justify-between items-center mt-2">
-
                 <button id="btn-trigger-skip" class="text-xs text-slate-500 hover:text-white underline">Skip Tutorial</button>
-
                 <button id="btn-next-tutorial" class="bg-white text-black px-6 py-2 rounded-lg font-bold hover:bg-cyan-400 transition-colors text-sm">Next</button>
-
             </div>
-
         </div>
-
     </div>
-
-
 
     <div id="update-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-
         <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black border border-cyan-500/20">
-
             <h2 class="text-2xl font-black text-white mb-2 tracking-tight">CONFIGURE UPDATE</h2>
-
             <p class="text-xs text-slate-500 font-mono mb-6">Target: <span id="update-target-name" class="text-cyan-400">...</span></p>
-
             <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
-
                 <div class="flex justify-between text-xs font-bold text-purple-300 mb-2"><span>Research Injection</span><span id="update-inject-val">0 PTS</span></div>
-
                 <input type="range" id="update-research-slider" min="0" max="1000" value="0" class="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
-
                 <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="update-quality-boost" class="text-white font-bold">0</span> Quality</div>
-
             </div>
-
             <div class="flex gap-3"><button id="btn-cancel-update" class="px-4 py-2 text-slate-500 hover:text-white text-sm font-bold">CANCEL</button><button id="btn-confirm-update" class="flex-1 bg-white text-black font-bold py-3 rounded-xl text-sm hover:bg-cyan-400 shadow-lg shadow-white/5 tracking-widest">START UPDATE</button></div>
-
         </div>
-
     </div>
-
-
 
     <div id="variant-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-
         <div class="glass-panel p-8 rounded-2xl max-w-3xl w-full relative shadow-2xl bg-black border border-cyan-500/20">
-
             <div class="flex justify-between items-center mb-6"><div><h2 class="text-2xl font-black text-white tracking-tight">EXPAND PRODUCT LINE</h2><p class="text-xs text-slate-500 font-mono mt-1">Base: <span id="variant-base-name" class="text-cyan-400">...</span></p></div><button id="btn-close-variant" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button></div>
-
             <div class="grid grid-cols-5 gap-4 mb-6">
-
                 <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-green-500 rounded-xl text-left transition-all" data-type="lite"><span class="font-bold text-white block mb-1">Lite</span><span class="text-[10px] text-slate-400">Low Cost/Perf</span></button>
-
                 <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-yellow-500 rounded-xl text-left transition-all" data-type="flash"><span class="font-bold text-white block mb-1">Flash</span><span class="text-[10px] text-slate-400">High Speed</span></button>
-
                 <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-cyan-500 rounded-xl text-left transition-all" data-type="pro"><span class="font-bold text-white block mb-1">Pro</span><span class="text-[10px] text-slate-400">Balanced</span></button>
-
                 <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-purple-500 rounded-xl text-left transition-all" data-type="ultra"><span class="font-bold text-white block mb-1">Ultra</span><span class="text-[10px] text-slate-400">Max Compute</span></button>
-
                 <button class="variant-opt group p-3 border border-slate-700 bg-slate-900/40 hover:bg-slate-800 hover:border-pink-500 rounded-xl text-left transition-all" data-type="custom"><span class="font-bold text-white block mb-1">Custom</span><span class="text-[10px] text-slate-400">You Name It</span></button>
-
             </div>
-
             <div id="custom-variant-input" class="hidden mb-6"><label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">Custom Variant Name</label><input id="inp-custom-variant" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="e.g. Turbo Edition"></div>
-
             <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30"><div class="flex justify-between text-xs font-bold text-purple-300 mb-2"><span>Research Injection</span><span id="variant-inject-val">0 PTS</span></div><input type="range" id="variant-research-slider" min="0" max="1000" value="0" class="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"><div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="variant-quality-boost" class="text-white font-bold">0</span> Quality</div></div>
-
             <button id="btn-confirm-variant" class="w-full bg-slate-800 text-slate-500 font-bold py-4 rounded-xl transition-all tracking-widest text-sm cursor-not-allowed" disabled>SELECT A VARIANT</button>
-
         </div>
-
     </div>
-
-
 
     <div id="api-modal" class="hidden fixed inset-0 z-[85] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-
         <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black border border-green-500/20">
-
             <div class="flex justify-between items-center mb-6"><div><h2 class="text-2xl font-black text-white tracking-tight">API GATEWAY</h2><p class="text-xs text-slate-500 font-mono mt-1">Configure public access</p></div><button id="btn-close-api" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button></div>
-
             <div class="space-y-6">
-
                 <div class="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-800"><div><div class="text-sm font-bold text-white">Public API Status</div><div id="api-status-text" class="text-[10px] text-slate-500">Currently Offline</div></div><button id="btn-toggle-api-status" class="w-14 h-8 rounded-full bg-slate-700 relative transition-all shadow-inner"><div class="w-6 h-6 bg-white rounded-full absolute top-1 left-1 transition-all shadow-md"></div></button></div>
-
                 <div><div class="flex justify-between text-xs font-bold text-slate-300 mb-2"><span>Cost per 1k Tokens ($)</span></div><div class="flex gap-4"><input type="number" id="api-price-input" min="0" max="1000" step="0.001" class="w-28 bg-black border border-slate-700 rounded p-2 text-white font-mono text-sm focus:border-green-500 outline-none" placeholder="0.00"><input type="range" id="api-price-slider" min="0" max="10" step="0.1" value="0" class="flex-1 accent-green-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer self-center"></div><div class="text-[10px] text-slate-500 mt-1 text-right">0 = Free (Max Hype)</div></div>
-
                 <div><div class="flex justify-between text-xs font-bold text-slate-300 mb-2"><span>Rate Limit (RPM)</span></div><div class="flex gap-4"><input type="number" id="api-limit-input" min="1" max="100000" step="1" class="w-28 bg-black border border-slate-700 rounded p-2 text-white font-mono text-sm focus:border-blue-500 outline-none"><input type="range" id="api-limit-slider" min="1" max="5000" step="100" value="100" class="flex-1 accent-blue-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer self-center"></div></div>
-
             </div>
-
             <button id="btn-save-api" class="w-full bg-white hover:bg-green-400 text-black font-black py-4 rounded-xl mt-6 transition-all tracking-widest text-sm shadow-lg shadow-white/5">DEPLOY CHANGES</button>
-
         </div>
-
     </div>
-
-
 
     <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop')] bg-cover bg-center">
-
         <div class="absolute inset-0 bg-black/80 backdrop-blur-md"></div>
-
         <div class="relative bg-black/40 border border-white/10 p-12 rounded-3xl shadow-2xl max-w-md w-full text-center backdrop-blur-xl">
-
             <div class="mb-6 inline-block p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg shadow-cyan-500/20"><i data-lucide="cpu" class="w-10 h-10 text-white"></i></div>
-
             <h1 class="text-5xl font-black text-white mb-2 tracking-tighter">SOFTWORKS</h1>
-
             <p class="text-cyan-400 font-mono mb-10 text-sm tracking-[0.2em] uppercase opacity-80">Tycoon Edition</p>
-
             <button id="btn-login-google" class="w-full bg-white hover:bg-slate-100 text-black font-bold py-4 rounded-xl mb-4 transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(255,255,255,0.1)] group"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="G"><span class="group-hover:translate-x-1 transition-transform">Sign in with Google</span></button>
-
             <button id="btn-login-guest" class="w-full bg-transparent hover:bg-white/5 text-slate-300 font-bold py-4 rounded-xl transition-all border border-white/10 hover:border-cyan-500/50 flex items-center justify-center gap-2"><i data-lucide="user" class="w-4 h-4"></i> Guest Access</button>
-
             <p class="mt-6 text-[10px] text-slate-600 uppercase tracking-widest">developed by anymousxe</p>
-
         </div>
-
     </div>
-
-
 
     <div id="menu-screen" class="hidden min-h-screen p-8 pt-20 max-w-7xl mx-auto">
-
         <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-
             <div><h1 class="text-6xl md:text-8xl font-black text-white mb-2 tracking-tighter">SOFTWORKS</h1><div class="text-cyan-500 font-mono tracking-widest text-lg">SELECT SAVE FILE</div></div>
-
             <div class="flex items-center gap-4 bg-slate-900/50 p-2 pr-4 pl-2 rounded-full border border-slate-800 backdrop-blur-sm"><img id="user-photo" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Guest" class="w-10 h-10 rounded-full bg-slate-800 border-2 border-slate-700" alt="Profile"><div class="text-left mr-2"><div class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Operator</div><div id="user-name" class="text-white font-bold text-sm">Guest Agent</div><div id="user-email" class="text-xs text-slate-400 font-mono hidden">...</div></div><button id="btn-logout" class="p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-red-400 transition-colors border border-transparent hover:border-white/10" title="Logout"><i data-lucide="log-out" class="w-4 h-4"></i></button></div>
-
         </div>
-
         <div id="save-slots" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-
     </div>
-
-
 
     <div id="create-screen" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-
         <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black border border-cyan-500/20">
-
             <h2 class="text-3xl font-black text-white mb-6">NEW CORPORATION</h2>
-
             <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 block">Company Name</label>
-
             <input id="inp-comp-name" class="w-full bg-slate-900 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-bold placeholder-slate-600" placeholder="e.g. Apex Industries">
-
             <div id="btn-toggle-sandbox" class="flex items-center gap-4 p-4 rounded-xl border border-slate-700 cursor-pointer hover:bg-slate-800 transition-all mb-8"><div class="p-2 bg-yellow-500/10 rounded-lg text-yellow-500"><i data-lucide="infinity"></i></div><div><div class="text-white font-bold text-sm">Sandbox Mode</div><div class="text-[10px] text-slate-500">Unlimited money. No achievements.</div></div></div>
-
             <div class="flex gap-4"><button id="btn-cancel-create" class="px-6 py-3 text-slate-500 hover:text-white text-sm font-bold tracking-widest">CANCEL</button><button id="btn-confirm-create" class="flex-1 bg-white hover:bg-cyan-400 text-black font-black py-3 rounded-xl text-sm transition-all tracking-widest shadow-lg shadow-white/5">INITIALIZE</button></div>
-
         </div>
-
     </div>
-
-
 
     <div id="game-screen" class="hidden flex flex-col h-screen bg-[#050505]">
-
         <header class="h-20 border-b border-white/5 bg-black/40 flex items-center justify-between px-6 z-10 backdrop-blur-xl">
-
             <div class="flex items-center gap-5">
-
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20"><i data-lucide="command" class="text-white w-5 h-5"></i></div>
-
                 <div class="group cursor-pointer" id="trigger-rename">
-
                     <div class="flex items-center gap-2"><div id="hud-company-name" class="font-black text-xl text-white leading-none tracking-tight">Softworks</div><i data-lucide="edit-3" class="w-3 h-3 text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity"></i></div>
-
                     <div id="hud-ticker" class="text-[10px] text-cyan-400 font-mono mt-1 opacity-80 flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> System Online</div>
-
                 </div>
-
             </div>
-
             <div class="flex items-center gap-8 font-mono text-sm">
-
                 <div class="text-right hidden md:block"><div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Funds</div><span id="hud-cash" class="text-green-400 text-lg font-bold">$0</span></div>
-
                 <div class="text-right hidden md:block"><div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Compute</div><span id="hud-compute" class="text-blue-400 text-lg font-bold">0 TF</span></div>
-
                 <div class="text-right hidden md:block"><div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Research</div><span id="hud-research" class="text-purple-400 text-lg font-bold">0 PTS</span></div>
-
                 <div class="h-8 w-px bg-white/10 mx-2"></div>
-
                 <div class="text-right mr-4"><div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Timeline</div><span id="hud-date" class="text-white">W1/2025</span></div>
-
                 <button id="btn-next-week" class="bg-white hover:bg-cyan-400 text-black px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-white/5"><i data-lucide="play" class="w-4 h-4 fill-current"></i> Next</button>
-
             </div>
-
         </header>
 
-
-
         <div class="flex flex-1 overflow-hidden">
-
             <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-8 gap-3 z-10 backdrop-blur-md overflow-y-auto custom-scrollbar">
-
                 <button id="nav-dash" class="nav-btn active" data-tab="dash"><i data-lucide="layout-dashboard"></i><span>Home</span></button>
-
                 <button id="nav-stats" class="nav-btn" data-tab="stats"><i data-lucide="bar-chart-2"></i><span>Stats</span></button>
-
                 <button id="nav-rivals" class="nav-btn" data-tab="rivals"><i data-lucide="swords"></i><span>Rivals</span></button>
-
                 <button id="nav-dev" class="nav-btn" data-tab="dev"><i data-lucide="plus-square"></i><span>Create</span></button>
-
                 <button id="nav-market" class="nav-btn" data-tab="market"><i data-lucide="server"></i><span>Market</span></button>
-
                 <button id="nav-lab" class="nav-btn" data-tab="lab"><i data-lucide="flask-conical"></i><span>Lab</span></button>
-
                 <button id="nav-biz" class="nav-btn" data-tab="biz"><i data-lucide="briefcase"></i><span>Manage</span></button>
-
                 <button id="nav-reviews" class="nav-btn" data-tab="reviews"><i data-lucide="star"></i><span>Reviews</span></button>
-
                 <button id="nav-shop" class="nav-btn" data-tab="shop"><i data-lucide="shopping-cart"></i><span>Shop</span></button>
-
                 <div class="flex-1"></div>
-
                 <button id="btn-exit-game" class="nav-btn text-red-500 hover:text-red-400 hover:bg-red-900/10 mt-2"><i data-lucide="log-out"></i><span>Exit</span></button>
-
             </aside>
-
             <main id="main-view" class="flex-1 overflow-y-auto bg-[#050505] p-8 relative">
-
                 <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none"></div>
-
                 <div class="max-w-7xl mx-auto relative z-10" id="content-area"></div>
-
             </main>
-
         </div>
-
     </div>
-
     
-
     <div id="rename-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-
         <div class="glass-panel p-8 rounded-2xl max-w-sm w-full relative shadow-2xl bg-black">
-
             <h3 class="text-xl font-bold text-white mb-4">Rebrand Company</h3>
-
             <input id="inp-rename-company" class="w-full bg-slate-900 border border-slate-700 p-3 text-white mb-4 rounded focus:border-cyan-500 outline-none" placeholder="New Name...">
-
             <div class="flex gap-3"><button id="btn-cancel-rename" class="px-4 py-2 text-slate-500 hover:text-white text-sm font-bold">CANCEL</button><button id="btn-confirm-rename" class="flex-1 bg-white text-black font-bold py-2 rounded text-sm hover:bg-cyan-400">CONFIRM</button></div>
-
         </div>
-
     </div>
-
-
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
     
-
     <script src="data.js"></script>
-
     <script src="main.js"></script>
-
 </body>
-
 </html>
-
