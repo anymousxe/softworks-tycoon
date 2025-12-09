@@ -19,6 +19,38 @@
 
     <div id="toast-container" class="fixed top-24 right-6 z-[70] flex flex-col gap-2 pointer-events-none"></div>
 
+    <div id="settings-modal" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black border border-slate-700">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-black text-white tracking-tight">SYSTEM SETTINGS</h2>
+                <button id="btn-close-settings" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
+            </div>
+
+            <div class="mb-8 p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                <h3 class="font-bold text-white text-sm mb-2 flex items-center gap-2"><i data-lucide="rotate-ccw" class="text-cyan-400"></i> TIMELINE RESTORE</h3>
+                <p class="text-xs text-slate-400 mb-4">Go back 1 week. Undoes any massive Ls.</p>
+                <button id="btn-undo-week" class="w-full bg-slate-800 hover:bg-cyan-900 text-cyan-400 font-bold py-3 rounded-xl text-sm transition-all border border-cyan-500/20">UNDO LAST WEEK</button>
+            </div>
+
+            <div id="admin-panel" class="hidden space-y-4 border-t border-slate-800 pt-6">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="shield-alert" class="text-red-500"></i>
+                    <h3 class="font-black text-red-500 text-sm tracking-widest">GOD MODE ACTIVE</h3>
+                </div>
+                
+                <div>
+                    <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-1">Set Cash ($)</label>
+                    <input id="admin-cash" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 text-white rounded focus:border-red-500 outline-none font-mono">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-1">Set Research (PTS)</label>
+                    <input id="admin-research" type="number" class="w-full bg-slate-900 border border-slate-700 p-2 text-white rounded focus:border-red-500 outline-none font-mono">
+                </div>
+                <button id="btn-admin-save" class="w-full bg-red-600 hover:bg-red-500 text-white font-black py-3 rounded-xl text-sm transition-all shadow-lg shadow-red-900/20">FORCE UPDATE STATE</button>
+            </div>
+        </div>
+    </div>
+
     <div id="changelog-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
         <div class="glass-panel p-8 rounded-2xl max-w-lg w-full relative shadow-2xl bg-black animate-in border border-red-500/30">
             <div class="flex items-center gap-3 mb-6">
@@ -157,7 +189,10 @@
                 <button id="nav-biz" class="nav-btn" data-tab="biz"><i data-lucide="briefcase"></i><span>Manage</span></button>
                 <button id="nav-reviews" class="nav-btn" data-tab="reviews"><i data-lucide="star"></i><span>Reviews</span></button>
                 <button id="nav-shop" class="nav-btn" data-tab="shop"><i data-lucide="shopping-cart"></i><span>Shop</span></button>
+                
                 <div class="flex-1"></div>
+                
+                <button id="nav-settings" class="nav-btn text-slate-400 hover:text-white hover:bg-white/5 mb-2"><i data-lucide="settings"></i><span>Settings</span></button>
                 <button id="btn-exit-game" class="nav-btn text-red-500 hover:text-red-400 hover:bg-red-900/10 mt-2"><i data-lucide="log-out"></i><span>Exit</span></button>
             </aside>
             <main id="main-view" class="flex-1 overflow-y-auto bg-[#050505] p-8 relative">
