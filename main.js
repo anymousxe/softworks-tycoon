@@ -1444,7 +1444,7 @@ function startUpdate(id, type) {
     if(p) { p.isUpdating = true; p.updateType = type; p.weeksLeft = type === 'major' ? 6 : 2; renderTab('dash'); showToast(`Update started for ${p.name}`); }
 }
 
-// --- ADMIN & UNDO LOGIC HANDLERS ---
+// --- ADMIN & UNDO LOGIC (Inserted Here) ---
 
 // Toggle Settings Modal
 const btnSettings = document.getElementById('nav-settings');
