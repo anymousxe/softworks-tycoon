@@ -1,4 +1,5 @@
 // --- 1. FIREBASE CONFIGURATION ---
+
 const firebaseConfig = {
     apiKey: "AIzaSyD0FKEuORJd63FPGbM_P3gThpZknVsytsU",
     authDomain: "softworks-tycoon.firebaseapp.com",
@@ -20,9 +21,8 @@ let saveInterval = null;
 let realtimeUnsubscribe = null;
 const APP_ID = 'softworks-tycoon';
 
-// UNDO & ADMIN GLOBALS
-const ADMIN_EMAIL = 'anymousxe.info@gmail.com';
-let previousGameState = null;
+// >>> NEW: History Stack for Undo Feature <<<
+let historyStack = [];
 
 // --- DATA IMPORT SAFETY ---
 const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
@@ -64,6 +64,7 @@ const SHOP_ITEMS = [
 ];
 
 // --- AUTH & SETUP ---
+
 auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
@@ -74,7 +75,6 @@ auth.onAuthStateChanged(user => {
         const photo = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
         document.getElementById('user-name').textContent = name;
         document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0,8);
-        document.getElementById('user-email').classList.remove('hidden'); 
         document.getElementById('user-photo').src = photo;
 
         loadSaves();
@@ -95,6 +95,7 @@ document.getElementById('btn-logout').addEventListener('click', () => {
 });
 
 // --- SAVE SYSTEM ---
+
 function loadSaves() {
     const savesRef = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves');
     savesRef.onSnapshot(snapshot => {
@@ -170,7 +171,7 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
     document.getElementById('create-screen').classList.add('hidden');
 });
 
-document.getElementById('btn-cancel-create').addEventListener('click', () => document.getElementById('create-screen').classList.add('hidden');
+document.getElementById('btn-cancel-create').addEventListener('click', () => document.getElementById('create-screen').classList.add('hidden'));
 
 // --- GAME LOGIC ---
 
@@ -432,14 +433,6 @@ function generateRivalRelease() {
 
 // --- NEXT WEEK LOGIC ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
-    // *** UNDO SYSTEM: CAPTURE STATE BEFORE CHANGES ***
-    try {
-        previousGameState = JSON.parse(JSON.stringify(gameState));
-    } catch(e) {
-        console.error("Failed to snapshot state", e);
-    }
-    // ************************************************
-
     const btn = document.getElementById('btn-next-week');
     btn.disabled = true;
     btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i>`;
@@ -447,6 +440,17 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
     setTimeout(() => {
         try {
+            // >>> UNDO SYSTEM SNAPSHOT <<<
+            if (gameState) {
+                // Create deep copy for history
+                const snapshot = JSON.parse(JSON.stringify(gameState));
+                historyStack.push(snapshot);
+                // Cap history at 6 weeks
+                if (historyStack.length > 6) {
+                    historyStack.shift();
+                }
+            }
+
             if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
 
             gameState.week++;
@@ -593,6 +597,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 });
 
 // --- RENDER LOGIC ---
+
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         if(btn.id === 'btn-exit-game') {
@@ -604,9 +609,6 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
             loadSaves(); 
             return;
         }
-        
-        // Handle Settings Button separately
-        if(btn.id === 'nav-settings') return;
         
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -1444,64 +1446,74 @@ function startUpdate(id, type) {
     if(p) { p.isUpdating = true; p.updateType = type; p.weeksLeft = type === 'major' ? 6 : 2; renderTab('dash'); showToast(`Update started for ${p.name}`); }
 }
 
-// --- ADMIN & UNDO LOGIC (Inserted Here) ---
-
-// Toggle Settings Modal
-const btnSettings = document.getElementById('nav-settings');
-if(btnSettings) {
-    btnSettings.onclick = () => {
-        document.getElementById('settings-modal').classList.remove('hidden');
-        // Check for Admin
-        if(currentUser && currentUser.email === ADMIN_EMAIL) {
-            document.getElementById('admin-panel').classList.remove('hidden');
-        } else {
-            document.getElementById('admin-panel').classList.add('hidden');
-        }
-    };
-}
-
-document.getElementById('btn-close-settings').onclick = () => {
-    document.getElementById('settings-modal').classList.add('hidden');
-};
-
-// UNDO Logic
-document.getElementById('btn-undo-week').onclick = () => {
-    if(!previousGameState) {
-        showToast("No timeline point found!", "error");
-        return;
-    }
-    
-    // Restore state
-    gameState = JSON.parse(JSON.stringify(previousGameState));
-    saveGame();
-    updateHUD();
-    
-    // Refresh the current tab to show restored data
-    const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-    if(typeof renderTab === 'function') renderTab(activeTab);
-    
-    showToast("Timeline Restored! (Week Undone)", "success");
-    document.getElementById('settings-modal').classList.add('hidden');
-    
-    // Clear previous state so you can't double undo
-    previousGameState = null;
-};
-
-// Admin Logic
-document.getElementById('btn-admin-save').onclick = () => {
-    const cashInput = document.getElementById('admin-cash').value;
-    const resInput = document.getElementById('admin-research').value;
-
-    if(cashInput !== "") {
-        gameState.cash = parseInt(cashInput);
-    }
-    if(resInput !== "") {
-        gameState.researchPts = parseInt(resInput);
-    }
-    
-    saveGame();
-    updateHUD();
-    showToast("GOD MODE: STATE UPDATED", "success");
-};
-
 lucide.createIcons();
+
+// --- SETTINGS & UNDO SYSTEM ---
+
+const settingsModal = document.getElementById('settings-modal');
+const undoBtn = document.getElementById('btn-undo-week');
+
+// Open Settings
+document.getElementById('nav-settings').addEventListener('click', () => {
+    settingsModal.classList.remove('hidden');
+    
+    // Update Undo Button UI
+    if(historyStack.length === 0) {
+        undoBtn.disabled = true;
+        undoBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        undoBtn.textContent = "NO HISTORY AVAILABLE";
+    } else {
+        undoBtn.disabled = false;
+        undoBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        undoBtn.textContent = `UNDO LAST WEEK (${historyStack.length}/6)`;
+    }
+
+    // Check for Admin/God Mode (Secret trigger: Company name is "debug")
+    if(gameState.companyName.toLowerCase() === 'debug') {
+        document.getElementById('admin-panel').classList.remove('hidden');
+        document.getElementById('admin-cash').value = gameState.cash;
+        document.getElementById('admin-research').value = gameState.researchPts;
+    }
+});
+
+// Close Settings
+document.getElementById('btn-close-settings').addEventListener('click', () => {
+    settingsModal.classList.add('hidden');
+});
+
+// Undo Logic
+undoBtn.addEventListener('click', () => {
+    if(historyStack.length === 0) return;
+
+    if(confirm('Revert to previous week? Any progress since then will be lost.')) {
+        // Pop the last state
+        const prevState = historyStack.pop();
+        
+        // Restore State
+        gameState = prevState;
+        
+        // Force Save to DB immediately
+        saveGame();
+        
+        // Update UI
+        updateHUD();
+        const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
+        renderTab(activeTab);
+        
+        settingsModal.classList.add('hidden');
+        showToast('Timeline Restored ⏪', 'success');
+    }
+});
+
+// Admin Save (If you use the debug panel)
+document.getElementById('btn-admin-save').addEventListener('click', () => {
+    const newCash = parseInt(document.getElementById('admin-cash').value);
+    const newRes = parseInt(document.getElementById('admin-research').value);
+    
+    gameState.cash = newCash;
+    gameState.researchPts = newRes;
+    
+    saveGame();
+    updateHUD();
+    showToast('God Mode: State Updated', 'success');
+});
