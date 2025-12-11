@@ -21,8 +21,9 @@ let saveInterval = null;
 let realtimeUnsubscribe = null;
 const APP_ID = 'softworks-tycoon';
 
-// >>> NEW: History Stack for Undo Feature <<<
+// >>> NEW: History Stack & God Mode State <<<
 let historyStack = [];
+let godMode = false;
 
 // --- DATA IMPORT SAFETY ---
 const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
@@ -330,13 +331,39 @@ function saveGame() {
       .doc(activeSaveId).update(gameState).catch(console.error);
 }
 
+// >>> UPDATED HUD WITH ADMIN LOGIC <<<
 function updateHUD() {
     document.getElementById('hud-company-name').textContent = gameState.companyName;
     document.getElementById('hud-cash').textContent = '$' + gameState.cash.toLocaleString();
     document.getElementById('hud-compute').textContent = getCompute() + ' TF';
     document.getElementById('hud-research').textContent = Math.floor(gameState.researchPts) + ' PTS';
     document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`;
+
+    // Admin Pencil Toggle
+    if (godMode) {
+        document.getElementById('admin-edit-cash').classList.remove('hidden');
+        document.getElementById('admin-edit-research').classList.remove('hidden');
+    } else {
+        document.getElementById('admin-edit-cash').classList.add('hidden');
+        document.getElementById('admin-edit-research').classList.add('hidden');
+    }
 }
+
+// --- ADMIN EDIT HANDLERS ---
+document.getElementById('admin-edit-cash').addEventListener('click', () => {
+    const val = prompt("GOD MODE: Set Cash Amount", gameState.cash);
+    if(val !== null && !isNaN(val)) {
+        gameState.cash = parseInt(val);
+        updateHUD(); saveGame(); showToast("Cash Overwritten", "success");
+    }
+});
+document.getElementById('admin-edit-research').addEventListener('click', () => {
+    const val = prompt("GOD MODE: Set Research Points", gameState.researchPts);
+    if(val !== null && !isNaN(val)) {
+        gameState.researchPts = parseInt(val);
+        updateHUD(); saveGame(); showToast("Research Overwritten", "success");
+    }
+});
 
 document.getElementById('trigger-rename').addEventListener('click', () => {
     document.getElementById('rename-modal').classList.remove('hidden');
@@ -667,7 +694,10 @@ function renderTab(tab) {
                 card.innerHTML += `
                     <div class="flex justify-between items-start mb-6">
                         <div>
-                            <h3 class="text-2xl font-bold text-white tracking-tight">${p.name} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
+                            <div class="flex items-center gap-2 group/edit">
+                                <h3 class="text-2xl font-bold text-white tracking-tight">${p.name} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
+                                ${godMode ? `<button class="text-slate-500 hover:text-white btn-rename-prod" data-id="${p.id}"><i data-lucide="edit-2" class="w-3 h-3"></i></button>` : ''}
+                            </div>
                             <div class="flex gap-2 mt-1">
                                 <div class="text-xs text-slate-500 font-bold bg-slate-800 inline-block px-2 py-0.5 rounded">${p.type.toUpperCase()}</div>
                                 <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1">
@@ -706,6 +736,14 @@ function renderTab(tab) {
                 card.querySelector('.btn-major').onclick = () => openUpdateModal(p.id, 'major');
                 card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id);
                 card.querySelector('.btn-api').onclick = () => openApiModal(p.id); 
+                
+                if(godMode) {
+                    card.querySelector('.btn-rename-prod').onclick = () => {
+                         const newName = prompt("Rename Product:", p.name);
+                         if(newName) { p.name = newName; renderTab('dash'); saveGame(); }
+                    };
+                }
+
                 card.querySelector('.btn-delete').onclick = () => {
                     if(confirm(`Permanently discontinue ${p.name}? This cannot be undone.`)) {
                         gameState.products = gameState.products.filter(x => x.id !== p.id);
@@ -1448,72 +1486,79 @@ function startUpdate(id, type) {
 
 lucide.createIcons();
 
-// --- SETTINGS & UNDO SYSTEM ---
+// --- SETTINGS DASHBOARD & ADMIN LOGIC ---
 
-const settingsModal = document.getElementById('settings-modal');
+const settingsOverlay = document.getElementById('settings-overlay');
 const undoBtn = document.getElementById('btn-undo-week');
+const godModeToggle = document.getElementById('btn-toggle-godmode');
+const godModeStatus = document.getElementById('godmode-status');
 
-// Open Settings
+// Open Settings Dashboard
 document.getElementById('nav-settings').addEventListener('click', () => {
-    settingsModal.classList.remove('hidden');
+    settingsOverlay.classList.remove('hidden');
     
+    // Render History Dots
+    const dotsContainer = document.getElementById('history-dots');
+    dotsContainer.innerHTML = '';
+    for(let i=0; i<6; i++) {
+        const isActive = i < historyStack.length;
+        const dot = document.createElement('div');
+        dot.className = `w-2 h-2 rounded-full transition-colors ${isActive ? 'bg-cyan-500' : 'bg-slate-800'}`;
+        dotsContainer.appendChild(dot);
+    }
+
     // Update Undo Button UI
     if(historyStack.length === 0) {
         undoBtn.disabled = true;
         undoBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        undoBtn.textContent = "NO HISTORY AVAILABLE";
+        undoBtn.innerHTML = `<i data-lucide="history"></i> NO SNAPSHOTS AVAILABLE`;
     } else {
         undoBtn.disabled = false;
         undoBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        undoBtn.textContent = `UNDO LAST WEEK (${historyStack.length}/6)`;
+        undoBtn.innerHTML = `<i data-lucide="history"></i> REVERT TO WEEK ${gameState.week - 1}`;
     }
-
-    // Check for Admin/God Mode (Secret trigger: Company name is "debug")
-    if(gameState.companyName.toLowerCase() === 'debug') {
-        document.getElementById('admin-panel').classList.remove('hidden');
-        document.getElementById('admin-cash').value = gameState.cash;
-        document.getElementById('admin-research').value = gameState.researchPts;
-    }
+    lucide.createIcons();
 });
 
 // Close Settings
 document.getElementById('btn-close-settings').addEventListener('click', () => {
-    settingsModal.classList.add('hidden');
+    settingsOverlay.classList.add('hidden');
 });
 
 // Undo Logic
 undoBtn.addEventListener('click', () => {
     if(historyStack.length === 0) return;
 
-    if(confirm('Revert to previous week? Any progress since then will be lost.')) {
-        // Pop the last state
+    if(confirm('Warning: This will revert time by 1 week. Any progress made since then will be lost forever. Proceed?')) {
         const prevState = historyStack.pop();
-        
-        // Restore State
         gameState = prevState;
-        
-        // Force Save to DB immediately
         saveGame();
         
-        // Update UI
         updateHUD();
         const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
         renderTab(activeTab);
         
-        settingsModal.classList.add('hidden');
+        settingsOverlay.classList.add('hidden');
         showToast('Timeline Restored ⏪', 'success');
     }
 });
 
-// Admin Save (If you use the debug panel)
-document.getElementById('btn-admin-save').addEventListener('click', () => {
-    const newCash = parseInt(document.getElementById('admin-cash').value);
-    const newRes = parseInt(document.getElementById('admin-research').value);
+// God Mode Toggle
+godModeToggle.addEventListener('click', () => {
+    godMode = !godMode;
+    const dot = godModeToggle.querySelector('div');
     
-    gameState.cash = newCash;
-    gameState.researchPts = newRes;
+    if(godMode) {
+        godModeToggle.classList.replace('bg-slate-800', 'bg-red-600');
+        dot.classList.replace('left-1', 'left-9'); // move dot right
+        godModeStatus.classList.remove('hidden');
+    } else {
+        godModeToggle.classList.replace('bg-red-600', 'bg-slate-800');
+        dot.classList.replace('left-9', 'left-1'); // move dot left
+        godModeStatus.classList.add('hidden');
+    }
     
-    saveGame();
-    updateHUD();
-    showToast('God Mode: State Updated', 'success');
+    updateHUD(); // Refresh HUD to show/hide icons
+    const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
+    if(activeTab === 'dash') renderTab('dash'); // Refresh Dash to show/hide product rename icons
 });
