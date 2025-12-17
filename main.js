@@ -20,6 +20,7 @@ let gameState = null;
 let saveInterval = null;
 let realtimeUnsubscribe = null;
 const APP_ID = 'softworks-tycoon';
+const ADMIN_EMAIL = 'anymousxe.info@gmail.com'; // LOCKED IN
 
 // >>> NEW: History Stack & God Mode State <<<
 let historyStack = [];
@@ -39,20 +40,16 @@ const RESEARCH = [
     { id: 'h200_unlock', name: 'H200 Hardware', cost: 150, desc: 'Unlock H200 Chips' },
     { id: 'blackwell_arch', name: 'Blackwell Arch', cost: 300, desc: 'Unlock B200/GH200' },
     { id: 'tpu_opt', name: 'TPU Optimization', cost: 600, desc: 'Unlock TPU Pods' },
-    { id: 'agi_theory', name: 'AGI Theory', cost: 1000, desc: 'Unlock Conscious AI Product' },
     { id: 'wafer_scale', name: 'Wafer Scale', cost: 2000, desc: 'Unlock Cerebras WSE' },
-    { id: 'quantum_tech', name: 'Quantum Supremacy', cost: 5000, desc: 'Unlock Quantum Servers' },
-    { id: 'bio_computing', name: 'Bio-Computing', cost: 10000, desc: 'Unlock Neural Hive' }
+    { id: 'quantum_tech', name: 'Quantum Supremacy', cost: 5000, desc: 'Unlock Quantum Servers' }
 ];
 
+// UPDATED PRODUCT LIST - NO MORE ROBOTS/AGI
 const PRODUCTS = [
-    { id: 'text', name: 'LLM', cost: 50000, time: 4, compute: 5, specs: ['Chatbot', 'Coding', 'Writing'] },
-    { id: 'image', name: 'Image Gen', cost: 80000, time: 6, compute: 15, specs: ['Realistic', 'Anime', 'Logo'] },
+    { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5, specs: ['Chatbot', 'Coding', 'Writing'] },
+    { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15, specs: ['Realistic', 'Anime', 'Logo'] },
     { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 10, specs: ['Music', 'Voice', 'SFX'] },
-    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40, specs: ['Deepfake', 'Cinema', 'VFX'] },
-    { id: 'game_ai', name: 'NPC Brain', cost: 200000, time: 10, compute: 70, specs: ['Gaming', 'Simulation', 'VR'] },
-    { id: 'robotics', name: 'Robot OS', cost: 300000, time: 12, compute: 100, specs: ['Industrial', 'Home', 'Military'] },
-    { id: 'agi', name: 'Conscious AI', cost: 5000000, time: 24, compute: 2000, specs: ['Sentience'], reqTech: 'agi_theory' }
+    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40, specs: ['Deepfake', 'Cinema', 'VFX'] }
 ];
 
 const SHOP_ITEMS = [
@@ -78,12 +75,29 @@ auth.onAuthStateChanged(user => {
         document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0,8);
         document.getElementById('user-photo').src = photo;
 
+        // CHECK ADMIN STATUS IMMEDIATELY
+        checkAdminAccess();
+
         loadSaves();
     } else {
         document.getElementById('login-screen').classList.remove('hidden');
         document.getElementById('menu-screen').classList.add('hidden');
     }
 });
+
+function checkAdminAccess() {
+    const godWrapper = document.getElementById('btn-toggle-godmode').parentElement;
+    if (currentUser && currentUser.email === ADMIN_EMAIL) {
+        godWrapper.classList.remove('hidden');
+    } else {
+        godWrapper.classList.add('hidden');
+        // Force disable if somehow enabled
+        if(godMode) {
+             godMode = false;
+             updateHUD();
+        }
+    }
+}
 
 document.getElementById('btn-login-google').addEventListener('click', () => {
     auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert(e.message));
@@ -194,11 +208,13 @@ function startGame(id, data) {
         gameState.products.forEach(p => {
             if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
             if(!p.contracts) p.contracts = [];
+            // Ensure capabilities exist
+            if(!p.capabilities) p.capabilities = "General Purpose Model";
         });
     }
 
     if(gameState.marketModels.length > 0) {
-        const types = ['text', 'image', 'audio', 'video', 'game_ai', 'robotics', 'agi'];
+        const types = ['text', 'image', 'audio', 'video'];
         gameState.marketModels.forEach(m => {
             if(!m.modelType) {
                 m.modelType = types[Math.floor(Math.random() * types.length)];
@@ -229,7 +245,7 @@ document.getElementById('btn-close-changelog').onclick = () => {
     document.getElementById('changelog-modal').classList.add('hidden');
 };
 
-// --- TUTORIAL SYSTEM ---
+// --- TUTORIAL SYSTEM (Unchanged) ---
 const tutorialOverlay = document.getElementById('tutorial-overlay');
 const tutorialHighlight = document.getElementById('tutorial-highlight');
 const tutorialText = document.getElementById('tutorial-text');
@@ -339,6 +355,15 @@ function updateHUD() {
     document.getElementById('hud-research').textContent = Math.floor(gameState.researchPts) + ' PTS';
     document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`;
 
+    // CHECK ADMIN AGAIN ON HUD UPDATE
+    const godWrapper = document.getElementById('btn-toggle-godmode').parentElement;
+    if (currentUser && currentUser.email === ADMIN_EMAIL) {
+        godWrapper.classList.remove('hidden');
+    } else {
+        godWrapper.classList.add('hidden');
+        godMode = false; // ensure disable
+    }
+
     // Admin Pencil Toggle
     if (godMode) {
         document.getElementById('admin-edit-cash').classList.remove('hidden');
@@ -411,7 +436,7 @@ function generateRivalRelease() {
     const variant = variants[Math.floor(Math.random() * variants.length)];
     const variantSuffix = variant ? ` [${variant}]` : '';
     
-    const types = ['text', 'image', 'audio', 'video', 'game_ai', 'robotics', 'agi'];
+    const types = ['text', 'image', 'audio', 'video'];
     const type = types[Math.floor(Math.random() * types.length)];
 
     const isOpenSource = Math.random() > 0.85;
@@ -458,6 +483,47 @@ function generateRivalRelease() {
     }
 }
 
+// --- NEW REVIEW GENERATION LOGIC ---
+function generateReviews() {
+    if(!gameState.reviews) gameState.reviews = [];
+    
+    const liveProducts = gameState.products.filter(p => p.released);
+    if(liveProducts.length === 0) return;
+
+    // 40% chance of a review each week
+    if(Math.random() > 0.6) {
+        const p = liveProducts[Math.floor(Math.random() * liveProducts.length)];
+        let sentiment = "";
+        let rating = 3;
+        
+        const q = p.quality;
+        if(q > 90) { rating = 5; sentiment = "Absolutely insane quality. SOTA."; }
+        else if(q > 70) { rating = 4; sentiment = "Pretty good, useful for work."; }
+        else if(q > 40) { rating = 3; sentiment = "It's okay, but kinda slow."; }
+        else { rating = 1; sentiment = "Total garbage. Hallucinates constantly."; }
+
+        // Random modifiers
+        if(p.name.toLowerCase().includes('lite')) {
+            if(Math.random() > 0.5) { sentiment = "Great for the price/speed."; rating += 1; }
+            else { sentiment = "Too dumbed down."; rating -= 1; }
+        }
+
+        rating = Math.max(1, Math.min(5, rating));
+        
+        const newReview = {
+            user: "User" + Math.floor(1000 + Math.random() * 9000),
+            text: sentiment,
+            rating: rating,
+            product: p.name,
+            date: `W${gameState.week}`
+        };
+        
+        gameState.reviews.unshift(newReview);
+        if(gameState.reviews.length > 20) gameState.reviews.pop(); // Keep last 20
+        showToast(`New review for ${p.name}`, 'info');
+    }
+}
+
 // --- NEXT WEEK LOGIC ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
     const btn = document.getElementById('btn-next-week');
@@ -469,10 +535,8 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
         try {
             // >>> UNDO SYSTEM SNAPSHOT <<<
             if (gameState) {
-                // Create deep copy for history
                 const snapshot = JSON.parse(JSON.stringify(gameState));
                 historyStack.push(snapshot);
-                // Cap history at 6 weeks
                 if (historyStack.length > 6) {
                     historyStack.shift();
                 }
@@ -486,6 +550,9 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             if(Math.random() > 0.7) {
                 generateRivalRelease();
             }
+
+            // GENERATE REVIEWS
+            generateReviews();
 
             if(gameState.marketModels && gameState.marketModels.length > 0) {
                 gameState.marketModels = gameState.marketModels.filter(m => {
@@ -691,6 +758,7 @@ function renderTab(tab) {
                 const apiActive = p.apiConfig && p.apiConfig.active;
                 const apiStatus = apiActive ? (p.apiConfig.price === 0 ? 'text-purple-400' : 'text-green-400') : 'text-slate-600';
                 
+                // ADDED: DISPLAY SPECIALIZATION (CAPABILITIES)
                 card.innerHTML += `
                     <div class="flex justify-between items-start mb-6">
                         <div>
@@ -704,6 +772,7 @@ function renderTab(tab) {
                                     <i data-lucide="globe" class="w-3 h-3"></i> API
                                 </div>
                             </div>
+                            <div class="text-xs text-slate-400 mt-2 italic max-w-xs leading-tight">"${p.capabilities || 'Standard Model'}"</div>
                         </div>
                         <div class="text-right mt-2">
                             <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Weekly Rev</div>
@@ -739,8 +808,8 @@ function renderTab(tab) {
                 
                 if(godMode) {
                     card.querySelector('.btn-rename-prod').onclick = () => {
-                         const newName = prompt("Rename Product:", p.name);
-                         if(newName) { p.name = newName; renderTab('dash'); saveGame(); }
+                          const newName = prompt("Rename Product:", p.name);
+                          if(newName) { p.name = newName; renderTab('dash'); saveGame(); }
                     };
                 }
 
@@ -769,7 +838,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- STATS TAB ---
+    // --- STATS TAB (FIXED ICONS) ---
     if(tab === 'stats') {
         content.innerHTML = `
             <div class="flex justify-between items-center mb-6">
@@ -813,9 +882,6 @@ function renderTab(tab) {
                 case 'image': return 'image';
                 case 'audio': return 'music';
                 case 'video': return 'video';
-                case 'game_ai': return 'gamepad-2';
-                case 'robotics': return 'bot';
-                case 'agi': return 'brain-circuit';
                 default: return 'help-circle';
             }
         };
@@ -838,6 +904,9 @@ function renderTab(tab) {
             `;
             list.appendChild(el);
         });
+        
+        // CRITICAL: CALL ICONS AT THE END
+        setTimeout(() => lucide.createIcons(), 50);
     }
 
     if(tab === 'rivals') {
@@ -951,6 +1020,7 @@ function renderTab(tab) {
         });
     }
 
+    // --- DEV TAB WITH NEW SPECIALIZATION INPUT ---
     if(tab === 'dev') {
         content.innerHTML = `
             <h2 class="text-3xl font-black text-white mb-6 tracking-tight">NEW PROJECT</h2>
@@ -958,7 +1028,10 @@ function renderTab(tab) {
                 <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4" id="dev-types"></div>
                 <div class="glass-panel p-8 rounded-2xl h-fit border-l-4 border-cyan-500">
                     <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Codename</label>
-                    <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="e.g. Skynet v1">
+                    <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-4 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="e.g. Skynet v1">
+                    
+                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Specialization / Capabilities</label>
+                    <textarea id="new-proj-specs" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-mono text-sm h-24 resize-none" placeholder="e.g. Specialized in Python coding, fast image processing, analysis..."></textarea>
                     
                     <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
                         <div class="flex justify-between text-xs font-bold text-purple-300 mb-2">
@@ -1010,6 +1083,8 @@ function renderTab(tab) {
         document.getElementById('btn-toggle-opensource').onclick = () => { openSource = !openSource; document.getElementById('check-os').className = `w-5 h-5 border-2 rounded transition-colors ${openSource ? 'bg-green-500 border-green-500' : 'border-slate-500'}`; };
         document.getElementById('btn-start-dev').onclick = () => {
             const name = document.getElementById('new-proj-name').value;
+            const specs = document.getElementById('new-proj-specs').value;
+
             if(!name || !selectedType) return showToast('Select project type and name!', 'error');
             if(gameState.cash < selectedType.cost && !gameState.isSandbox) return showToast('Insufficient Funds!', 'error');
             if(getCompute() < selectedType.compute) return showToast('Need Compute!', 'error');
@@ -1020,9 +1095,10 @@ function renderTab(tab) {
             gameState.products.push({ 
                 id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 0, revenue: 0, hype: 0, 
                 released: false, isUpdating: false, isOpenSource: openSource, weeksLeft: selectedType.time, 
-                researchBonus: injectAmount, // 1:1 RATIO FIX
+                researchBonus: injectAmount,
                 contracts: [],
-                apiConfig: { active: false, price: 0, limit: 100 }
+                apiConfig: { active: false, price: 0, limit: 100 },
+                capabilities: specs || "General Purpose Model" // SAVE SPECS
             });
             updateHUD(); showToast('Development Started', 'success'); 
             
@@ -1208,16 +1284,26 @@ function renderTab(tab) {
             const list = document.getElementById('reviews-list');
             gameState.reviews.forEach(r => {
                 const el = document.createElement('div');
-                el.className = 'glass-panel p-4 rounded-xl flex gap-4';
+                el.className = 'glass-panel p-4 rounded-xl flex gap-4 animate-in';
                 const color = r.rating >= 4 ? 'bg-green-500' : (r.rating <= 2 ? 'bg-red-500' : 'bg-yellow-500');
-                el.innerHTML = `<div class="w-2 rounded-full ${color} shrink-0"></div><div><div class="flex items-center gap-2 mb-1"><span class="font-bold text-white text-sm">@${r.user}</span><span class="text-xs text-slate-500">on ${r.product}</span></div><p class="text-slate-300 text-sm">"${r.text}"</p></div>`;
+                el.innerHTML = `
+                    <div class="w-2 rounded-full ${color} shrink-0"></div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-bold text-white text-sm">@${r.user}</span>
+                            <span class="text-xs text-slate-500">on ${r.product}</span>
+                            <span class="text-[10px] text-slate-600 font-mono">${r.date || ''}</span>
+                        </div>
+                        <p class="text-slate-300 text-sm">"${r.text}"</p>
+                    </div>
+                `;
                 list.appendChild(el);
             });
         }
     }
 }
 
-// VARIANT LOGIC
+// VARIANT LOGIC (Unchanged)
 let selectedVariantId = null;
 let selectedVariantType = null;
 let variantInjectAmount = 0;
@@ -1328,9 +1414,10 @@ document.getElementById('btn-confirm-variant').onclick = () => {
         updateType: selectedVariantType,
         isOpenSource: parent.isOpenSource,
         weeksLeft: time,
-        researchBonus: variantInjectAmount, // Apply Bonus
+        researchBonus: variantInjectAmount,
         contracts: [],
-        apiConfig: { active: false, price: 0, limit: 100 }
+        apiConfig: { active: false, price: 0, limit: 100 },
+        capabilities: parent.capabilities || "General Purpose Variant"
     });
     
     variantModal.classList.add('hidden');
@@ -1339,7 +1426,7 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     showToast(`Developing variant...`, 'success');
 };
 
-// --- UPDATE MODAL LOGIC (NEW) ---
+// --- UPDATE MODAL LOGIC (Unchanged) ---
 const updateModal = document.getElementById('update-modal');
 let selectedUpdateId = null;
 let selectedUpdateType = null;
@@ -1358,7 +1445,6 @@ function openUpdateModal(productId, type) {
     document.getElementById('update-inject-val').textContent = "0 PTS";
     document.getElementById('update-quality-boost').textContent = "0";
     
-    // Set max based on current RP
     document.getElementById('update-research-slider').max = gameState.researchPts;
     
     updateModal.classList.remove('hidden');
@@ -1385,7 +1471,7 @@ document.getElementById('btn-confirm-update').onclick = () => {
     p.isUpdating = true;
     p.updateType = selectedUpdateType;
     p.weeksLeft = selectedUpdateType === 'major' ? 6 : 2;
-    p.researchBonus = updateInjectAmount; // Store bonus for later
+    p.researchBonus = updateInjectAmount;
     
     updateModal.classList.add('hidden');
     renderTab('dash');
@@ -1393,7 +1479,7 @@ document.getElementById('btn-confirm-update').onclick = () => {
     showToast(`Update started for ${p.name}`);
 };
 
-// --- API MODAL LOGIC ---
+// --- API MODAL LOGIC (Unchanged) ---
 const apiModal = document.getElementById('api-modal');
 let selectedApiId = null;
 
@@ -1404,7 +1490,6 @@ function openApiModal(productId) {
     selectedApiId = productId;
     if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
     
-    // UI State
     const statusBtn = document.getElementById('btn-toggle-api-status');
     const dot = statusBtn.querySelector('div');
     const statusText = document.getElementById('api-status-text');
@@ -1421,7 +1506,6 @@ function openApiModal(productId) {
         statusText.className = "text-[10px] text-slate-500";
     }
 
-    // Inputs
     document.getElementById('api-price-input').value = p.apiConfig.price;
     document.getElementById('api-price-slider').value = p.apiConfig.price;
     
@@ -1431,7 +1515,6 @@ function openApiModal(productId) {
     apiModal.classList.remove('hidden');
 }
 
-// SYNC LOGIC
 const priceInput = document.getElementById('api-price-input');
 const priceSlider = document.getElementById('api-price-slider');
 priceInput.oninput = () => { priceSlider.value = priceInput.value; };
@@ -1545,6 +1628,12 @@ undoBtn.addEventListener('click', () => {
 
 // God Mode Toggle
 godModeToggle.addEventListener('click', () => {
+    // SECURITY CHECK AGAIN
+    if (!currentUser || currentUser.email !== ADMIN_EMAIL) {
+        showToast('ACCESS DENIED', 'error');
+        return;
+    }
+
     godMode = !godMode;
     const dot = godModeToggle.querySelector('div');
     
@@ -1558,7 +1647,7 @@ godModeToggle.addEventListener('click', () => {
         godModeStatus.classList.add('hidden');
     }
     
-    updateHUD(); // Refresh HUD to show/hide icons
+    updateHUD(); 
     const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-    if(activeTab === 'dash') renderTab('dash'); // Refresh Dash to show/hide product rename icons
+    if(activeTab === 'dash') renderTab('dash'); 
 });
