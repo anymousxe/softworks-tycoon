@@ -44,7 +44,7 @@ const RESEARCH = [
     { id: 'quantum_tech', name: 'Quantum Supremacy', cost: 5000, desc: 'Unlock Quantum Servers' }
 ];
 
-// UPDATED PRODUCT LIST - NO MORE ROBOTS/AGI
+// UPDATED PRODUCT LIST - ONLY LLM, IMAGE, AUDIO, VIDEO
 const PRODUCTS = [
     { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5, specs: ['Chatbot', 'Coding', 'Writing'] },
     { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15, specs: ['Realistic', 'Anime', 'Logo'] },
@@ -86,12 +86,12 @@ auth.onAuthStateChanged(user => {
 });
 
 function checkAdminAccess() {
-    const godWrapper = document.getElementById('btn-toggle-godmode').parentElement;
+    const godWrapper = document.getElementById('godmode-control-wrapper');
     if (currentUser && currentUser.email === ADMIN_EMAIL) {
         godWrapper.classList.remove('hidden');
     } else {
         godWrapper.classList.add('hidden');
-        // Force disable if somehow enabled
+        // Force disable if somehow enabled by non-admin
         if(godMode) {
              godMode = false;
              updateHUD();
@@ -208,7 +208,7 @@ function startGame(id, data) {
         gameState.products.forEach(p => {
             if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
             if(!p.contracts) p.contracts = [];
-            // Ensure capabilities exist
+            // Ensure capabilities field exists for new feature
             if(!p.capabilities) p.capabilities = "General Purpose Model";
         });
     }
@@ -245,7 +245,7 @@ document.getElementById('btn-close-changelog').onclick = () => {
     document.getElementById('changelog-modal').classList.add('hidden');
 };
 
-// --- TUTORIAL SYSTEM (Unchanged) ---
+// --- TUTORIAL SYSTEM ---
 const tutorialOverlay = document.getElementById('tutorial-overlay');
 const tutorialHighlight = document.getElementById('tutorial-highlight');
 const tutorialText = document.getElementById('tutorial-text');
@@ -355,8 +355,8 @@ function updateHUD() {
     document.getElementById('hud-research').textContent = Math.floor(gameState.researchPts) + ' PTS';
     document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`;
 
-    // CHECK ADMIN AGAIN ON HUD UPDATE
-    const godWrapper = document.getElementById('btn-toggle-godmode').parentElement;
+    // SECURITY CHECK AGAIN ON HUD UPDATE for God Mode Toggle Wrapper
+    const godWrapper = document.getElementById('godmode-control-wrapper');
     if (currentUser && currentUser.email === ADMIN_EMAIL) {
         godWrapper.classList.remove('hidden');
     } else {
@@ -523,6 +523,7 @@ function generateReviews() {
         showToast(`New review for ${p.name}`, 'info');
     }
 }
+
 
 // --- NEXT WEEK LOGIC ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
@@ -838,7 +839,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- STATS TAB (FIXED ICONS) ---
+    // --- STATS TAB (Fixed Icon Issue) ---
     if(tab === 'stats') {
         content.innerHTML = `
             <div class="flex justify-between items-center mb-6">
@@ -905,8 +906,8 @@ function renderTab(tab) {
             list.appendChild(el);
         });
         
-        // CRITICAL: CALL ICONS AT THE END
-        setTimeout(() => lucide.createIcons(), 50);
+        // CRITICAL: Call lucide.createIcons() after adding all elements for rendering them correctly
+        setTimeout(() => lucide.createIcons(), 50); 
     }
 
     if(tab === 'rivals') {
@@ -990,7 +991,7 @@ function renderTab(tab) {
                 };
                 if(owned > 0) {
                     el.querySelector('.btn-sell').onclick = () => {
-                        const hw = gameState.hardware.find(x => x.typeId === h.id);
+                        const hw = gameState.hardware.find(x => x.id === h.id);
                         if(hw && hw.count > 0) {
                             hw.count--;
                             gameState.cash += Math.floor(h.cost * 0.5); 
@@ -1031,7 +1032,7 @@ function renderTab(tab) {
                     <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-4 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="e.g. Skynet v1">
                     
                     <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Specialization / Capabilities</label>
-                    <textarea id="new-proj-specs" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-mono text-sm h-24 resize-none" placeholder="e.g. Specialized in Python coding, fast image processing, analysis..."></textarea>
+                    <textarea id="new-proj-specs" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-mono text-sm h-24 resize-none" placeholder="e.g. Editing images, analyzing code, summarizing documents, extremely fast..."></textarea>
                     
                     <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
                         <div class="flex justify-between text-xs font-bold text-purple-300 mb-2">
@@ -1275,6 +1276,7 @@ function renderTab(tab) {
         });
     }
 
+    // --- REVIEWS TAB (Fixed visibility/rendering) ---
     if(tab === 'reviews') {
         content.innerHTML = `
             <h2 class="text-3xl font-black text-white mb-6 tracking-tight">PUBLIC SENTIMENT</h2>
@@ -1282,6 +1284,7 @@ function renderTab(tab) {
         `;
         if(gameState.reviews) {
             const list = document.getElementById('reviews-list');
+            // Show latest reviews first
             gameState.reviews.forEach(r => {
                 const el = document.createElement('div');
                 el.className = 'glass-panel p-4 rounded-xl flex gap-4 animate-in';
@@ -1426,7 +1429,7 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     showToast(`Developing variant...`, 'success');
 };
 
-// --- UPDATE MODAL LOGIC (Unchanged) ---
+// --- UPDATE MODAL LOGIC ---
 const updateModal = document.getElementById('update-modal');
 let selectedUpdateId = null;
 let selectedUpdateType = null;
@@ -1479,7 +1482,7 @@ document.getElementById('btn-confirm-update').onclick = () => {
     showToast(`Update started for ${p.name}`);
 };
 
-// --- API MODAL LOGIC (Unchanged) ---
+// --- API MODAL LOGIC ---
 const apiModal = document.getElementById('api-modal');
 let selectedApiId = null;
 
