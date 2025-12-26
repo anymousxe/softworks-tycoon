@@ -2,7 +2,7 @@
 
 // --- 1. CONFIG & AUTH ---
 const firebaseConfig = {
-    apiKey: "AIzaSyD0FKEuORJd63FPGbM_P3gThpZknVsytsU", // Same key as AI Tycoon
+    apiKey: "AIzaSyD0FKEuORJd63FPGbM_P3gThpZknVsytsU", 
     authDomain: "softworks-tycoon.firebaseapp.com",
     projectId: "softworks-tycoon",
     storageBucket: "softworks-tycoon.firebasestorage.app",
@@ -10,7 +10,16 @@ const firebaseConfig = {
     appId: "1:591489940224:web:9e355e8a43dc06446a91e5"
 };
 
-try { firebase.initializeApp(firebaseConfig); } catch (e) {}
+// Check if Firebase loaded
+if (typeof firebase === 'undefined') {
+    alert("CRITICAL ERROR: Firebase failed to load. Check your internet connection.");
+}
+// Check if Data file loaded
+if (typeof GENRES === 'undefined') {
+    alert("CRITICAL ERROR: 'moviestar_data.js' is missing or has an error. Make sure it is in the movie-star folder.");
+}
+
+try { firebase.initializeApp(firebaseConfig); } catch (e) { console.error(e); }
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -26,18 +35,29 @@ const DEFAULT_STATE = {
     fame: 0,
     talent: 0,
     week: 1,
-    jobIndex: 0, // 0 = Extra
-    inventory: [], // Houses, cars
-    movies: [], // Produced movies
+    jobIndex: 0, 
+    inventory: [], 
+    movies: [], 
     streaming: { active: false, subs: 0, library: [], price: 10 },
     contracts: [],
     logs: []
 };
 
 // --- 3. AUTH LOGIC ---
-document.getElementById('btn-login').addEventListener('click', () => {
-    auth.signInAnonymously().catch(e => alert(e.message));
-});
+const loginBtn = document.getElementById('btn-login');
+if(loginBtn) {
+    loginBtn.addEventListener('click', () => {
+        // Visual feedback so you know it was clicked
+        loginBtn.innerHTML = `CONNECTING...`;
+        loginBtn.disabled = true;
+
+        auth.signInAnonymously().catch(e => {
+            alert("Login Failed: " + e.message);
+            loginBtn.innerHTML = `TRY AGAIN`;
+            loginBtn.disabled = false;
+        });
+    });
+}
 
 auth.onAuthStateChanged(u => {
     user = u;
@@ -48,62 +68,93 @@ auth.onAuthStateChanged(u => {
 });
 
 function loadGame() {
+    console.log("Loading game for user:", user.uid);
     const docRef = db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save');
     
     docRef.get().then(doc => {
         if (doc.exists) {
+            console.log("Save found!");
             gameState = doc.data();
             initGame();
         } else {
+            console.log("No save found, opening character creator.");
             document.getElementById('create-screen').classList.remove('hidden');
+        }
+    }).catch(error => {
+        console.error("Firestore Error:", error);
+        alert("DATABASE ERROR: " + error.message + "\n\n(If this says 'Missing permissions', your Database Rules need to allow 'moviestar_saves')");
+        // Show login again so they aren't stuck on black screen
+        document.getElementById('login-screen').classList.remove('hidden');
+        if(loginBtn) {
+            loginBtn.innerHTML = `ENTER HOLLYWOOD`;
+            loginBtn.disabled = false;
         }
     });
 }
 
 // --- 4. CHARACTER CREATION ---
 let sandboxMode = false;
-document.getElementById('btn-toggle-sandbox').onclick = function() {
-    sandboxMode = !sandboxMode;
-    this.classList.toggle('border-yellow-500');
-    this.querySelector('.text-white').classList.toggle('text-yellow-400');
-};
+const sandboxBtn = document.getElementById('btn-toggle-sandbox');
+if(sandboxBtn) {
+    sandboxBtn.onclick = function() {
+        sandboxMode = !sandboxMode;
+        this.classList.toggle('border-yellow-500');
+        this.querySelector('.text-white').classList.toggle('text-yellow-400');
+    };
+}
 
-document.getElementById('btn-start-game').onclick = () => {
-    const f = document.getElementById('inp-first-name').value;
-    const l = document.getElementById('inp-last-name').value;
-    if(!f || !l) return alert("Enter a name!");
+const startBtn = document.getElementById('btn-start-game');
+if(startBtn) {
+    startBtn.onclick = () => {
+        const f = document.getElementById('inp-first-name').value;
+        const l = document.getElementById('inp-last-name').value;
+        if(!f || !l) return alert("Enter a name!");
 
-    gameState = { ...DEFAULT_STATE };
-    gameState.name = `${f} ${l}`;
-    gameState.isSandbox = sandboxMode;
-    
-    if(sandboxMode) {
-        gameState.cash = 100000000;
-        gameState.talent = 1000;
-        gameState.fame = 5000;
-    }
+        gameState = { ...DEFAULT_STATE };
+        gameState.name = `${f} ${l}`;
+        gameState.isSandbox = sandboxMode;
+        
+        if(sandboxMode) {
+            gameState.cash = 100000000;
+            gameState.talent = 1000;
+            gameState.fame = 5000;
+        }
 
-    db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save').set(gameState);
-    
-    document.getElementById('create-screen').classList.add('hidden');
-    initGame();
-};
+        // Save immediately
+        db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save')
+            .set(gameState)
+            .then(() => {
+                document.getElementById('create-screen').classList.add('hidden');
+                initGame();
+            })
+            .catch(e => alert("Could not create save: " + e.message));
+    };
+}
 
 // --- 5. MAIN GAME LOOP & UI ---
 function initGame() {
-    document.getElementById('game-screen').classList.remove('hidden');
-    document.getElementById('hud-avatar').textContent = gameState.name[0];
-    updateHUD();
-    renderTab('career'); // Default tab
-    
-    saveInterval = setInterval(() => {
-        if(gameState) db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save').set(gameState);
-    }, 10000);
+    try {
+        document.getElementById('game-screen').classList.remove('hidden');
+        document.getElementById('hud-avatar').textContent = gameState.name ? gameState.name[0] : '?';
+        updateHUD();
+        renderTab('career'); // Default tab
+        
+        if(saveInterval) clearInterval(saveInterval);
+        saveInterval = setInterval(() => {
+            if(gameState && user) {
+                db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save').set(gameState);
+            }
+        }, 10000);
+    } catch(err) {
+        console.error(err);
+        alert("Game Init Error: " + err.message);
+    }
 }
 
 function updateHUD() {
+    if(!gameState) return;
     document.getElementById('hud-name').textContent = gameState.name;
-    document.getElementById('hud-rank').textContent = JOB_TITLES[gameState.jobIndex].title;
+    document.getElementById('hud-rank').textContent = JOB_TITLES[gameState.jobIndex] ? JOB_TITLES[gameState.jobIndex].title : 'Unknown';
     document.getElementById('hud-cash').textContent = '$' + Math.floor(gameState.cash).toLocaleString();
     document.getElementById('hud-fame').textContent = Math.floor(gameState.fame).toLocaleString();
     document.getElementById('hud-talent').textContent = Math.floor(gameState.talent).toLocaleString();
@@ -112,6 +163,7 @@ function updateHUD() {
 
 function showToast(msg, type='info') {
     const c = document.getElementById('toast-container');
+    if(!c) return;
     const d = document.createElement('div');
     const color = type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-pink-600');
     d.className = `toast-enter p-4 rounded-xl text-white font-bold text-sm shadow-xl ${color}`;
@@ -124,8 +176,10 @@ function showToast(msg, type='info') {
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         if(btn.id === 'btn-save') {
-             db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save').set(gameState);
-             showToast("Game Saved!", "success");
+             if(user && gameState) {
+                 db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save').set(gameState);
+                 showToast("Game Saved!", "success");
+             }
              return;
         }
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -136,6 +190,8 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 
 function renderTab(tab) {
     const area = document.getElementById('content-area');
+    if(!area) return;
+    
     area.innerHTML = '';
     area.className = 'animate-in';
 
