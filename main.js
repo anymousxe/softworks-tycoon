@@ -66,6 +66,8 @@ const SHOP_ITEMS = [
 auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
+        // Only hide login screen if user is already authenticated
+        // But keep menu/game hidden until Landing Screen decision
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('menu-screen').classList.remove('hidden');
         
@@ -1653,4 +1655,38 @@ godModeToggle.addEventListener('click', () => {
     updateHUD(); 
     const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
     if(activeTab === 'dash') renderTab('dash'); 
+});
+
+// --- NEW: MODE SELECTION LOGIC ---
+document.addEventListener('DOMContentLoaded', () => {
+    const landingScreen = document.getElementById('landing-screen');
+    const btnAI = document.getElementById('btn-mode-ai');
+    const btnMovie = document.getElementById('btn-mode-movie');
+
+    // Option 1: AI Tycoon (Remove overlay to reveal existing game)
+    if(btnAI) {
+        btnAI.addEventListener('click', () => {
+            // Smoothly animate out
+            landingScreen.classList.add('fade-out-up');
+            
+            // Allow interactions with the game underneath immediately
+            setTimeout(() => {
+                landingScreen.classList.add('hidden');
+            }, 500);
+        });
+    }
+
+    // Option 2: Movie Star (Redirect)
+    if(btnMovie) {
+        btnMovie.addEventListener('click', () => {
+            // Visual feedback
+            btnMovie.style.transform = 'scale(0.98)';
+            btnMovie.style.borderColor = '#ec4899'; // Pink
+            
+            // Redirect
+            setTimeout(() => {
+                window.location.href = 'https://softworks-tycoon.xyz/movie-star';
+            }, 150);
+        });
+    }
 });
