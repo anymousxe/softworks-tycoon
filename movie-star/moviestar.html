@@ -1,214 +1,519 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Softworks: Movie Star</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="moviestar_style.css">
-    <link rel="icon" type="image/png" href="icon.png" />
-    <meta name="theme-color" content="#be185d">
-</head>
-<body class="bg-[#050505] text-pink-50 font-sans selection:bg-pink-500 selection:text-white overflow-hidden">
+// moviestar_main.js
 
-    <!-- TOASTS -->
-    <div id="toast-container" class="fixed top-24 right-6 z-[200] flex flex-col gap-2 pointer-events-none"></div>
+// --- 1. CONFIG & AUTH ---
+const firebaseConfig = {
+    apiKey: "AIzaSyD0FKEuORJd63FPGbM_P3gThpZknVsytsU", // Same key as AI Tycoon
+    authDomain: "softworks-tycoon.firebaseapp.com",
+    projectId: "softworks-tycoon",
+    storageBucket: "softworks-tycoon.firebasestorage.app",
+    messagingSenderId: "591489940224",
+    appId: "1:591489940224:web:9e355e8a43dc06446a91e5"
+};
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=2525&auto=format&fit=crop')] bg-cover bg-center">
-        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
-        <div class="relative glass-panel p-12 rounded-3xl max-w-md w-full text-center border-pink-500/30">
-            <div class="mb-6 inline-block p-4 rounded-full bg-pink-600 shadow-[0_0_30px_rgba(236,72,153,0.5)]">
-                <i data-lucide="clapperboard" class="w-12 h-12 text-white"></i>
-            </div>
-            <h1 class="text-6xl font-black text-white mb-2 tracking-tighter">MOVIE STAR</h1>
-            <p class="text-pink-400 font-mono mb-10 text-sm tracking-[0.3em] uppercase">Softworks Simulation B-2</p>
-            
-            <button id="btn-login" class="w-full bg-white hover:bg-pink-400 text-black font-black py-4 rounded-xl transition-all flex items-center justify-center gap-3 shadow-lg hover:scale-105">
-                <i data-lucide="play-circle"></i> ENTER HOLLYWOOD
-            </button>
-            <p class="mt-8 text-[10px] text-slate-500 font-mono">POWERED BY FIREBASE</p>
-        </div>
-    </div>
+try { firebase.initializeApp(firebaseConfig); } catch (e) {}
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-    <!-- CHARACTER CREATION -->
-    <div id="create-screen" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
-        <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative border border-pink-500/30">
-            <h2 class="text-3xl font-black text-white mb-6">CASTING CALL</h2>
-            
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-2">First Name</label>
-                    <input id="inp-first-name" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-pink-500 outline-none font-bold" placeholder="e.g. Brad">
-                </div>
-                <div>
-                    <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-2">Last Name</label>
-                    <input id="inp-last-name" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-pink-500 outline-none font-bold" placeholder="e.g. Pitt">
-                </div>
-            </div>
+let user = null;
+let gameState = null;
+let saveInterval = null;
 
-            <div id="btn-toggle-sandbox" class="flex items-center gap-4 p-4 rounded-xl border border-slate-700 cursor-pointer hover:bg-slate-800 transition-all mb-8">
-                <div class="p-2 bg-yellow-500/10 rounded-lg text-yellow-500"><i data-lucide="infinity"></i></div>
-                <div>
-                    <div class="text-white font-bold text-sm">Sandbox Mode</div>
-                    <div class="text-[10px] text-slate-500">Unlimited money. Instant Talent.</div>
-                </div>
-            </div>
+// --- 2. GAME STATE & DEFAULTS ---
+const DEFAULT_STATE = {
+    name: "Unknown",
+    isSandbox: false,
+    cash: 500,
+    fame: 0,
+    talent: 0,
+    week: 1,
+    jobIndex: 0, // 0 = Extra
+    inventory: [], // Houses, cars
+    movies: [], // Produced movies
+    streaming: { active: false, subs: 0, library: [], price: 10 },
+    contracts: [],
+    logs: []
+};
 
-            <button id="btn-start-game" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black py-4 rounded-xl text-sm transition-all tracking-widest shadow-[0_0_20px_rgba(236,72,153,0.3)]">
-                ACTION!
-            </button>
-        </div>
-    </div>
+// --- 3. AUTH LOGIC ---
+document.getElementById('btn-login').addEventListener('click', () => {
+    auth.signInAnonymously().catch(e => alert(e.message));
+});
 
-    <!-- MAIN GAME UI -->
-    <div id="game-screen" class="hidden flex flex-col h-screen bg-[#050505]">
-        <!-- HUD -->
-        <header class="h-20 border-b border-white/5 bg-black/40 flex items-center justify-between px-6 z-10 backdrop-blur-xl">
-            <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-pink-600 flex items-center justify-center font-bold text-lg shadow-lg shadow-pink-500/20" id="hud-avatar">?</div>
-                <div>
-                    <div id="hud-name" class="font-black text-xl text-white leading-none tracking-tight">Player Name</div>
-                    <div class="text-[10px] text-pink-400 font-mono mt-1 flex items-center gap-2">
-                        <span id="hud-rank">Aspiring Actor</span>
-                    </div>
-                </div>
-            </div>
+auth.onAuthStateChanged(u => {
+    user = u;
+    if (user) {
+        document.getElementById('login-screen').classList.add('hidden');
+        loadGame();
+    }
+});
 
-            <div class="flex items-center gap-8 font-mono text-sm">
-                <div class="text-right">
-                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Net Worth</div>
-                    <span id="hud-cash" class="text-green-400 text-lg font-bold">$0</span>
-                </div>
-                <div class="text-right">
-                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Fame</div>
-                    <span id="hud-fame" class="text-pink-400 text-lg font-bold">0</span>
-                </div>
-                <div class="text-right">
-                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Talent</div>
-                    <span id="hud-talent" class="text-blue-400 text-lg font-bold">0</span>
-                </div>
-                
-                <div class="h-8 w-px bg-white/10 mx-2"></div>
-                
-                <div class="text-right">
-                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Timeline</div>
-                    <span id="hud-week" class="text-white">Week 1</span>
-                </div>
-                <button id="btn-next-week" class="bg-white hover:bg-pink-400 text-black px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-white/20">
-                    <i data-lucide="calendar-clock" class="w-4 h-4"></i> Next Week
-                </button>
-            </div>
-        </header>
-
-        <div class="flex flex-1 overflow-hidden">
-            <!-- SIDEBAR -->
-            <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-8 gap-3 z-10 backdrop-blur-md overflow-y-auto">
-                <button class="nav-btn active" data-tab="career"><i data-lucide="user"></i><span>Career</span></button>
-                <button class="nav-btn" data-tab="auditions"><i data-lucide="video"></i><span>Auditions</span></button>
-                <button class="nav-btn" data-tab="studio"><i data-lucide="clapperboard"></i><span>Studio</span></button>
-                <button class="nav-btn" data-tab="streaming"><i data-lucide="tv"></i><span>Stream</span></button>
-                <button class="nav-btn" data-tab="inventory"><i data-lucide="package"></i><span>Assets</span></button>
-                <div class="flex-1"></div>
-                <button id="btn-save" class="nav-btn text-pink-500"><i data-lucide="save"></i><span>Save</span></button>
-            </aside>
-
-            <!-- MAIN CONTENT -->
-            <main id="main-view" class="flex-1 overflow-y-auto bg-[#050505] p-8 relative">
-                <!-- Background Glow -->
-                <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-pink-900/10 rounded-full blur-[120px] pointer-events-none"></div>
-                
-                <div class="max-w-6xl mx-auto relative z-10" id="content-area">
-                    <!-- Content injected by JS -->
-                </div>
-            </main>
-        </div>
-    </div>
-
-    <!-- AUDITION MINI-GAME MODAL -->
-    <div id="audition-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-black/95 backdrop-blur-xl">
-        <div class="w-full max-w-2xl p-8 text-center relative">
-            <h2 class="text-4xl font-black text-white mb-2">AUDITION IN PROGRESS</h2>
-            <p class="text-pink-400 font-mono mb-12">Stop the marker in the GREEN zone!</p>
-            
-            <div class="relative w-full h-16 bg-slate-800 rounded-full overflow-hidden border-2 border-slate-700 mb-12">
-                <!-- Zones -->
-                <div class="absolute top-0 bottom-0 left-[40%] width-[20%] bg-green-500/20 border-l border-r border-green-500/50 w-[20%] z-0" id="game-target"></div>
-                <!-- Marker -->
-                <div id="game-marker" class="absolute top-0 bottom-0 w-2 bg-white shadow-[0_0_15px_white] translate-x-0 transition-none z-10"></div>
-            </div>
-
-            <button id="btn-audition-action" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-black text-2xl py-8 rounded-2xl shadow-[0_0_50px_rgba(219,39,119,0.4)] hover:scale-[1.02] transition-all">
-                ACT!
-            </button>
-        </div>
-    </div>
-
-    <!-- PRODUCTION MODAL -->
-    <div id="production-modal" class="hidden fixed inset-0 z-[140] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
-        <div class="glass-panel p-8 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative border border-pink-500/20">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-black text-white">DEVELOP NEW PROJECT</h2>
-                <button onclick="document.getElementById('production-modal').classList.add('hidden')" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div class="space-y-6">
-                    <div>
-                        <label class="label-text">Working Title</label>
-                        <div class="flex gap-2">
-                            <input id="prod-title" class="input-box flex-1" placeholder="Movie Title...">
-                            <button id="btn-rand-title" class="p-3 bg-slate-800 rounded-xl hover:bg-pink-600"><i data-lucide="dices"></i></button>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="label-text">Genre</label>
-                        <div id="genre-select" class="grid grid-cols-3 gap-2"></div>
-                    </div>
-
-                    <div>
-                        <label class="label-text">Type</label>
-                        <select id="prod-type" class="input-box">
-                            <option value="movie">Feature Film</option>
-                            <option value="show">TV Series (10 Eps)</option>
-                            <option value="book">Novel Adaption</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="label-text">Production Budget</label>
-                        <input type="range" id="prod-budget-slider" min="10000" max="100000000" step="10000" class="w-full accent-pink-500">
-                        <div class="text-right text-green-400 font-mono font-bold mt-1" id="prod-budget-display">$10,000</div>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <label class="label-text">Cast & Crew</label>
-                    <div id="cast-list" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar bg-slate-900/30 p-4 rounded-xl border border-slate-800">
-                        <!-- Actors added here -->
-                        <button id="btn-add-actor" class="w-full py-3 border border-dashed border-slate-700 text-slate-500 rounded-lg hover:border-pink-500 hover:text-pink-400 transition-colors text-xs font-bold uppercase tracking-widest">+ Scout Actor</button>
-                    </div>
-
-                    <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-800 mt-4">
-                        <div class="flex justify-between text-xs text-slate-400 mb-1"><span>Total Cost</span><span id="prod-total-cost" class="text-white font-bold">$0</span></div>
-                        <div class="flex justify-between text-xs text-slate-400"><span>Est. Quality</span><span id="prod-est-quality" class="text-pink-400 font-bold">Low</span></div>
-                    </div>
-
-                    <button id="btn-start-production" class="w-full bg-white text-black font-black py-4 rounded-xl hover:bg-pink-500 transition-all shadow-lg mt-4">GREENLIGHT PROJECT</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- FIREBASE & LOGIC -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+function loadGame() {
+    const docRef = db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save');
     
-    <script src="moviestar_data.js"></script>
-    <script src="moviestar_main.js"></script>
-</body>
-</html>
+    docRef.get().then(doc => {
+        if (doc.exists) {
+            gameState = doc.data();
+            initGame();
+        } else {
+            document.getElementById('create-screen').classList.remove('hidden');
+        }
+    });
+}
+
+// --- 4. CHARACTER CREATION ---
+let sandboxMode = false;
+document.getElementById('btn-toggle-sandbox').onclick = function() {
+    sandboxMode = !sandboxMode;
+    this.classList.toggle('border-yellow-500');
+    this.querySelector('.text-white').classList.toggle('text-yellow-400');
+};
+
+document.getElementById('btn-start-game').onclick = () => {
+    const f = document.getElementById('inp-first-name').value;
+    const l = document.getElementById('inp-last-name').value;
+    if(!f || !l) return alert("Enter a name!");
+
+    gameState = { ...DEFAULT_STATE };
+    gameState.name = `${f} ${l}`;
+    gameState.isSandbox = sandboxMode;
+    
+    if(sandboxMode) {
+        gameState.cash = 100000000;
+        gameState.talent = 1000;
+        gameState.fame = 5000;
+    }
+
+    db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save').set(gameState);
+    
+    document.getElementById('create-screen').classList.add('hidden');
+    initGame();
+};
+
+// --- 5. MAIN GAME LOOP & UI ---
+function initGame() {
+    document.getElementById('game-screen').classList.remove('hidden');
+    document.getElementById('hud-avatar').textContent = gameState.name[0];
+    updateHUD();
+    renderTab('career'); // Default tab
+    
+    saveInterval = setInterval(() => {
+        if(gameState) db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save').set(gameState);
+    }, 10000);
+}
+
+function updateHUD() {
+    document.getElementById('hud-name').textContent = gameState.name;
+    document.getElementById('hud-rank').textContent = JOB_TITLES[gameState.jobIndex].title;
+    document.getElementById('hud-cash').textContent = '$' + Math.floor(gameState.cash).toLocaleString();
+    document.getElementById('hud-fame').textContent = Math.floor(gameState.fame).toLocaleString();
+    document.getElementById('hud-talent').textContent = Math.floor(gameState.talent).toLocaleString();
+    document.getElementById('hud-week').textContent = `Week ${gameState.week}`;
+}
+
+function showToast(msg, type='info') {
+    const c = document.getElementById('toast-container');
+    const d = document.createElement('div');
+    const color = type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-pink-600');
+    d.className = `toast-enter p-4 rounded-xl text-white font-bold text-sm shadow-xl ${color}`;
+    d.innerHTML = msg;
+    c.appendChild(d);
+    setTimeout(() => d.remove(), 3000);
+}
+
+// --- 6. NAVIGATION ---
+document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        if(btn.id === 'btn-save') {
+             db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save').set(gameState);
+             showToast("Game Saved!", "success");
+             return;
+        }
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTab(btn.dataset.tab);
+    });
+});
+
+function renderTab(tab) {
+    const area = document.getElementById('content-area');
+    area.innerHTML = '';
+    area.className = 'animate-in';
+
+    if(tab === 'career') {
+        const job = JOB_TITLES[gameState.jobIndex];
+        area.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-panel p-8 rounded-2xl border-l-4 border-pink-500">
+                    <h2 class="text-2xl font-black text-white mb-2">CURRENT GIG</h2>
+                    <div class="text-4xl font-bold text-pink-400 mb-6">${job.title}</div>
+                    <div class="flex justify-between text-sm font-mono text-slate-400 mb-6">
+                        <span>Weekly Wage:</span> <span class="text-white">$${job.wage}</span>
+                    </div>
+                    <button class="w-full bg-slate-800 text-slate-500 cursor-not-allowed font-bold py-4 rounded-xl">Work happens automatically weekly</button>
+                </div>
+                
+                <div class="glass-panel p-8 rounded-2xl">
+                    <h2 class="text-2xl font-black text-white mb-6">IMPROVE CRAFT</h2>
+                    <div class="space-y-4" id="classes-list"></div>
+                </div>
+            </div>
+        `;
+        
+        CLASSES.forEach(cls => {
+            const btn = document.createElement('button');
+            btn.className = "w-full flex justify-between items-center p-4 bg-slate-900/50 hover:bg-slate-800 border border-slate-700 rounded-xl transition-all";
+            btn.innerHTML = `
+                <div class="text-left">
+                    <div class="font-bold text-white">${cls.name}</div>
+                    <div class="text-xs text-slate-500">+${cls.talentGain} Talent</div>
+                </div>
+                <div class="font-mono text-pink-400 font-bold">$${cls.cost.toLocaleString()}</div>
+            `;
+            btn.onclick = () => {
+                if(gameState.cash >= cls.cost) {
+                    gameState.cash -= cls.cost;
+                    gameState.talent += cls.talentGain;
+                    updateHUD();
+                    showToast(`Completed ${cls.name}!`, 'success');
+                } else showToast("Too expensive!", "error");
+            };
+            document.getElementById('classes-list').appendChild(btn);
+        });
+    }
+
+    if(tab === 'auditions') {
+        area.innerHTML = `<h2 class="text-3xl font-black text-white mb-6">CASTING CALLS</h2><div id="audition-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>`;
+        
+        // Next available job
+        if(gameState.jobIndex < JOB_TITLES.length - 1) {
+            const nextJob = JOB_TITLES[gameState.jobIndex + 1];
+            const locked = gameState.fame < nextJob.reqFame || gameState.talent < nextJob.reqTalent;
+            
+            const card = document.createElement('div');
+            card.className = `glass-panel p-6 rounded-2xl border ${locked ? 'border-red-500/30' : 'border-green-500/50'}`;
+            card.innerHTML = `
+                <div class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Promotion Audition</div>
+                <h3 class="text-2xl font-black text-white mb-4">${nextJob.title}</h3>
+                <div class="space-y-2 mb-6 text-sm font-mono">
+                    <div class="flex justify-between ${gameState.fame >= nextJob.reqFame ? 'text-green-400' : 'text-red-400'}"><span>Req Fame:</span><span>${nextJob.reqFame}</span></div>
+                    <div class="flex justify-between ${gameState.talent >= nextJob.reqTalent ? 'text-green-400' : 'text-red-400'}"><span>Req Talent:</span><span>${nextJob.reqTalent}</span></div>
+                </div>
+                <button class="w-full py-3 bg-white text-black font-black rounded-xl hover:scale-105 transition-transform" ${locked ? 'disabled style="opacity:0.5"' : ''} id="btn-audition">AUDITION</button>
+            `;
+            document.getElementById('audition-grid').appendChild(card);
+            
+            if(!locked) {
+                card.querySelector('#btn-audition').onclick = () => startAudition(gameState.jobIndex + 1);
+            }
+        } else {
+            area.innerHTML += `<div class="text-white text-xl">You are at the top of the acting world! Time to start a studio.</div>`;
+        }
+    }
+
+    if(tab === 'studio') {
+        const canAfford = gameState.cash >= 100000;
+        area.innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-black text-white">PRODUCTION STUDIO</h2>
+                <button id="btn-new-movie" class="bg-pink-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-pink-500 flex items-center gap-2"><i data-lucide="plus"></i> New Project</button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="movies-grid"></div>
+        `;
+        
+        if(gameState.movies.length === 0) {
+            document.getElementById('movies-grid').innerHTML = `<div class="col-span-full text-center p-12 text-slate-500">No productions yet. Start your first film!</div>`;
+        } else {
+            gameState.movies.forEach(m => {
+                const el = document.createElement('div');
+                el.className = 'glass-panel p-4 rounded-xl relative overflow-hidden group hover:border-pink-500/50 transition-all';
+                el.innerHTML = `
+                    <div class="absolute top-0 right-0 bg-pink-600 text-white text-[10px] px-2 py-1 font-bold rounded-bl-lg">${m.type.toUpperCase()}</div>
+                    <h3 class="font-bold text-white text-lg leading-tight mb-1">${m.title}</h3>
+                    <div class="text-xs text-slate-500 mb-4">${m.genre} • Q: ${m.quality}/100</div>
+                    <div class="grid grid-cols-2 gap-2 text-xs font-mono">
+                        <div>Cost: <span class="text-red-400">$${(m.budget/1000000).toFixed(1)}M</span></div>
+                        <div>Rev: <span class="text-green-400">$${(m.revenue/1000000).toFixed(1)}M</span></div>
+                    </div>
+                    ${m.sequelCount ? `<div class="mt-2 text-[10px] text-pink-400 text-center border border-pink-500/30 rounded py-1">Franchise Active</div>` : ''}
+                `;
+                document.getElementById('movies-grid').appendChild(el);
+            });
+        }
+
+        document.getElementById('btn-new-movie').onclick = () => openProductionModal();
+    }
+    
+    // STREAMING TAB LOGIC
+    if(tab === 'streaming') {
+        if(!gameState.streaming.active) {
+            area.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full p-12 text-center">
+                    <i data-lucide="tv" class="w-24 h-24 text-slate-700 mb-6"></i>
+                    <h2 class="text-4xl font-black text-white mb-4">LAUNCH PLATFORM</h2>
+                    <p class="text-slate-400 max-w-md mb-8">Start your own streaming service to compete with Netflix. Host your own movies and buy rights to others.</p>
+                    <button id="btn-start-stream" class="bg-white text-black px-8 py-4 rounded-xl font-black text-xl hover:bg-pink-400 transition-all">LAUNCH ($1,000,000)</button>
+                </div>
+            `;
+            setTimeout(() => {
+                const btn = document.getElementById('btn-start-stream');
+                if(btn) btn.onclick = () => {
+                    if(gameState.cash >= 1000000) {
+                        gameState.cash -= 1000000;
+                        gameState.streaming.active = true;
+                        updateHUD(); renderTab('streaming');
+                        showToast("Streaming Service Live!", "success");
+                    } else showToast("Need $1M Cash", "error");
+                };
+            }, 100);
+        } else {
+            area.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="glass-panel p-6 rounded-2xl border-t-4 border-pink-500">
+                        <div class="text-xs font-bold text-slate-500 uppercase">Subscribers</div>
+                        <div class="text-3xl font-black text-white">${gameState.streaming.subs.toLocaleString()}</div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl border-t-4 border-green-500">
+                        <div class="text-xs font-bold text-slate-500 uppercase">Monthly Rev</div>
+                        <div class="text-3xl font-black text-green-400">$${(gameState.streaming.subs * gameState.streaming.price).toLocaleString()}</div>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl border-t-4 border-blue-500">
+                        <div class="text-xs font-bold text-slate-500 uppercase">Library Size</div>
+                        <div class="text-3xl font-black text-white">${gameState.streaming.library.length} Titles</div>
+                    </div>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-4">Content Acquisitions</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="contracts-grid"></div>
+            `;
+            
+            // Generate random contracts to buy
+            for(let i=0; i<3; i++) {
+                const title = generateMovieTitle();
+                const cost = Math.floor(Math.random() * 500000) + 50000;
+                const subs = Math.floor(cost / 10); // Subs gained
+                
+                const el = document.createElement('div');
+                el.className = 'glass-panel p-6 rounded-2xl hover:bg-slate-900/50 transition-colors';
+                el.innerHTML = `
+                    <h4 class="font-bold text-white text-lg mb-1">${title}</h4>
+                    <div class="text-xs text-slate-500 mb-4">Exclusive Rights</div>
+                    <button class="w-full border border-slate-600 text-white py-2 rounded-lg hover:bg-white hover:text-black font-bold text-xs" id="btn-buy-rights-${i}">BUY $${cost.toLocaleString()}</button>
+                `;
+                document.getElementById('contracts-grid').appendChild(el);
+                
+                setTimeout(() => {
+                    document.getElementById(`btn-buy-rights-${i}`).onclick = () => {
+                        if(gameState.cash >= cost) {
+                            gameState.cash -= cost;
+                            gameState.streaming.library.push(title);
+                            gameState.streaming.subs += subs;
+                            updateHUD(); renderTab('streaming');
+                            showToast(`Acquired ${title}`, 'success');
+                        } else showToast("Insufficient Funds", "error");
+                    };
+                }, 100);
+            }
+        }
+    }
+
+    lucide.createIcons();
+}
+
+// --- 7. AUDITION MINI-GAME ---
+let auditionInterval = null;
+let markerPos = 0;
+let direction = 1;
+let currentTargetJob = 0;
+
+function startAudition(jobIdx) {
+    currentTargetJob = jobIdx;
+    document.getElementById('audition-modal').classList.remove('hidden');
+    
+    const marker = document.getElementById('game-marker');
+    markerPos = 0;
+    direction = 1;
+    
+    // Difficulty speed based on job level
+    const speed = 1 + (jobIdx * 0.5); 
+
+    if(auditionInterval) clearInterval(auditionInterval);
+    auditionInterval = setInterval(() => {
+        markerPos += (speed * direction);
+        if(markerPos >= 100) direction = -1;
+        if(markerPos <= 0) direction = 1;
+        marker.style.left = `${markerPos}%`;
+    }, 16);
+}
+
+document.getElementById('btn-audition-action').onclick = () => {
+    clearInterval(auditionInterval);
+    // Green zone is 40% to 60%
+    if(markerPos >= 40 && markerPos <= 60) {
+        showToast("NAILED IT!", "success");
+        gameState.jobIndex = currentTargetJob;
+        gameState.fame += 50;
+        updateHUD();
+        setTimeout(() => {
+            document.getElementById('audition-modal').classList.add('hidden');
+            renderTab('career');
+        }, 1000);
+    } else {
+        showToast("You bombed the audition...", "error");
+        setTimeout(() => {
+            document.getElementById('audition-modal').classList.add('hidden');
+        }, 1000);
+    }
+};
+
+// --- 8. PRODUCTION LOGIC ---
+let prodCast = [];
+let prodBudget = 10000;
+
+function openProductionModal() {
+    document.getElementById('production-modal').classList.remove('hidden');
+    document.getElementById('prod-title').value = generateMovieTitle();
+    
+    const genreDiv = document.getElementById('genre-select');
+    genreDiv.innerHTML = '';
+    GENRES.forEach(g => {
+        const btn = document.createElement('button');
+        btn.className = 'p-2 text-xs font-bold border border-slate-700 rounded hover:bg-pink-600 hover:border-pink-500 transition-colors genre-opt';
+        btn.textContent = g.name;
+        btn.dataset.val = g.id;
+        btn.onclick = () => {
+            document.querySelectorAll('.genre-opt').forEach(b => b.classList.remove('bg-pink-600'));
+            btn.classList.add('bg-pink-600');
+        };
+        genreDiv.appendChild(btn);
+    });
+    
+    prodCast = [];
+    updateCastList();
+}
+
+document.getElementById('btn-rand-title').onclick = () => {
+    document.getElementById('prod-title').value = generateMovieTitle();
+};
+
+document.getElementById('prod-budget-slider').oninput = function() {
+    prodBudget = parseInt(this.value);
+    document.getElementById('prod-budget-display').textContent = '$' + prodBudget.toLocaleString();
+    updateProdStats();
+};
+
+document.getElementById('btn-add-actor').onclick = () => {
+    // Generate 3 random choices
+    // In a real app we'd make a modal, here we just add a random one for flow
+    const actor = generateRandomActor(Math.ceil(prodBudget / 1000000) || 1);
+    prodCast.push(actor);
+    updateCastList();
+};
+
+function updateCastList() {
+    const list = document.getElementById('cast-list');
+    // Keep the "Add" button, remove others
+    Array.from(list.children).forEach(c => { if(c.id !== 'btn-add-actor') c.remove(); });
+    
+    prodCast.forEach((a, i) => {
+        const el = document.createElement('div');
+        el.className = 'flex justify-between items-center bg-black p-3 rounded-lg mb-2';
+        el.innerHTML = `
+            <div>
+                <div class="font-bold text-white text-sm">${a.name}</div>
+                <div class="text-[10px] text-slate-500">Talent: ${a.talent} | Fame: ${a.fame}</div>
+            </div>
+            <div class="text-right">
+                <div class="text-pink-400 font-mono text-xs">$${a.cost.toLocaleString()}</div>
+                <button class="text-red-500 text-[10px] hover:underline btn-remove-cast" data-idx="${i}">Remove</button>
+            </div>
+        `;
+        list.insertBefore(el, document.getElementById('btn-add-actor'));
+    });
+    
+    // Re-bind removes
+    document.querySelectorAll('.btn-remove-cast').forEach(b => {
+        b.onclick = () => { prodCast.splice(b.dataset.idx, 1); updateCastList(); };
+    });
+    updateProdStats();
+}
+
+function updateProdStats() {
+    const castCost = prodCast.reduce((s, a) => s + a.cost, 0);
+    const total = prodBudget + castCost;
+    document.getElementById('prod-total-cost').textContent = '$' + total.toLocaleString();
+    
+    // Quality Calc
+    const budgetFactor = Math.min(100, prodBudget / 100000);
+    const talentFactor = prodCast.reduce((s,a) => s + a.talent, 0) / (prodCast.length || 1);
+    const estQ = Math.min(100, Math.floor((budgetFactor * 0.4) + (talentFactor * 0.4) + (Math.random() * 20)));
+    document.getElementById('prod-est-quality').textContent = estQ + "/100";
+}
+
+document.getElementById('btn-start-production').onclick = () => {
+    const title = document.getElementById('prod-title').value;
+    const genre = document.querySelector('.genre-opt.bg-pink-600')?.dataset.val || 'drama';
+    const type = document.getElementById('prod-type').value;
+    
+    const castCost = prodCast.reduce((s, a) => s + a.cost, 0);
+    const totalCost = prodBudget + castCost;
+    
+    if(gameState.cash < totalCost) return showToast("Insufficient Funds!", "error");
+    
+    gameState.cash -= totalCost;
+    
+    // Calculate outcome
+    const talentSum = prodCast.reduce((s,a) => s + a.talent, 0) + (gameState.talent * 0.5); // Player director talent
+    const fameSum = prodCast.reduce((s,a) => s + a.fame, 0);
+    
+    const baseQ = Math.floor((Math.log10(prodBudget)*10) + (talentSum / 10));
+    const quality = Math.min(100, Math.max(10, baseQ + Math.floor(Math.random()*20 - 10)));
+    
+    // Revenue logic
+    const hype = fameSum + (prodBudget / 1000) + (gameState.fame / 10);
+    const multiplier = GENRES.find(g => g.id === genre).multiplier;
+    const revenue = Math.floor(hype * quality * multiplier * 100 * (type === 'movie' ? 1 : 1.5)); // Shows earn more over time logic usually, simplify here
+    
+    const newMovie = {
+        id: Date.now(),
+        title, genre, type, quality, budget: totalCost, revenue,
+        sequelCount: 0
+    };
+    
+    gameState.movies.unshift(newMovie);
+    gameState.cash += revenue;
+    gameState.fame += Math.floor(revenue / 10000);
+    
+    updateHUD();
+    document.getElementById('production-modal').classList.add('hidden');
+    renderTab('studio');
+    showToast(`Released "${title}"! Box Office: $${revenue.toLocaleString()}`, revenue > totalCost ? 'success' : 'error');
+};
+
+
+// --- 9. WEEKLY TICKER ---
+document.getElementById('btn-next-week').onclick = () => {
+    gameState.week++;
+    
+    // Pay Wages
+    const wage = JOB_TITLES[gameState.jobIndex].wage;
+    gameState.cash += wage;
+    
+    // Streaming Income
+    if(gameState.streaming.active) {
+        // Churn and Growth
+        const qualityAvg = gameState.streaming.library.length * 5; // Simplified
+        const growth = Math.floor(qualityAvg * 10 * Math.random());
+        gameState.streaming.subs += growth;
+        const streamRev = gameState.streaming.subs * gameState.streaming.price;
+        gameState.cash += streamRev;
+        showToast(`Streaming Rev: +$${streamRev.toLocaleString()}`);
+    } else {
+        showToast(`Job Pay: +$${wage}`);
+    }
+
+    updateHUD();
+    
+    // Update active tab if needed
+    const active = document.querySelector('.nav-btn.active');
+    if(active && active.dataset.tab === 'streaming') renderTab('streaming');
+};
