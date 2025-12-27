@@ -4,28 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Softworks: Movie Star</title>
-    
-    <!-- TAILWIND & ICONS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- FONTS -->
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
-    
-    <!-- FIXED PATH: CSS -->
     <link rel="stylesheet" href="/movie-star/moviestar_style.css">
-    
-    <!-- FIXED PATH: ICON (Assumes you uploaded moviestar.png to the folder, otherwise use /icon.png) -->
     <link rel="icon" type="image/png" href="/movie-star/moviestar.png" />
-    
     <meta name="theme-color" content="#be185d">
 </head>
 <body class="bg-[#050505] text-pink-50 font-sans selection:bg-pink-500 selection:text-white overflow-hidden">
 
-    <!-- TOASTS -->
     <div id="toast-container" class="fixed top-24 right-6 z-[200] flex flex-col gap-2 pointer-events-none"></div>
 
-    <!-- LOGIN SCREEN -->
+    <!-- LOGIN -->
     <div id="login-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=2525&auto=format&fit=crop')] bg-cover bg-center">
         <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
         <div class="relative glass-panel p-12 rounded-3xl max-w-md w-full text-center border-pink-500/30">
@@ -34,27 +24,30 @@
             </div>
             <h1 class="text-6xl font-black text-white mb-2 tracking-tighter">MOVIE STAR</h1>
             <p class="text-pink-400 font-mono mb-10 text-sm tracking-[0.3em] uppercase">Softworks Simulation B-2</p>
-            
             <button id="btn-login" class="w-full bg-white hover:bg-pink-400 text-black font-black py-4 rounded-xl transition-all flex items-center justify-center gap-3 shadow-lg hover:scale-105">
                 <i data-lucide="play-circle"></i> ENTER HOLLYWOOD
             </button>
-            <p class="mt-8 text-[10px] text-slate-500 font-mono">POWERED BY FIREBASE</p>
         </div>
     </div>
 
-    <!-- CHARACTER CREATION -->
-    <div id="create-screen" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4">
+    <!-- CREATE CHAR -->
+    <div id="create-screen" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-black/95 backdrop-blur-xl p-4 overflow-y-auto">
         <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative border border-pink-500/30">
             <h2 class="text-3xl font-black text-white mb-6">CASTING CALL</h2>
             
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                    <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-2">First Name</label>
-                    <input id="inp-first-name" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-pink-500 outline-none font-bold" placeholder="e.g. Brad">
+            <div class="flex justify-center mb-6">
+                <img id="pfp-preview" src="" class="w-24 h-24 rounded-full border-4 border-pink-500 shadow-xl bg-slate-800">
+            </div>
+
+            <div class="space-y-4 mb-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="label-text">First Name</label><input id="inp-first-name" class="input-box" placeholder="e.g. Brad"></div>
+                    <div><label class="label-text">Last Name</label><input id="inp-last-name" class="input-box" placeholder="e.g. Pitt"></div>
                 </div>
                 <div>
-                    <label class="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-2">Last Name</label>
-                    <input id="inp-last-name" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-pink-500 outline-none font-bold" placeholder="e.g. Pitt">
+                    <label class="label-text">Profile Picture URL</label>
+                    <input id="inp-pfp" class="input-box text-xs" placeholder="https://...">
+                    <p class="text-[10px] text-slate-500 mt-1">Leave blank for random avatar.</p>
                 </div>
             </div>
 
@@ -66,23 +59,18 @@
                 </div>
             </div>
 
-            <button id="btn-start-game" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black py-4 rounded-xl text-sm transition-all tracking-widest shadow-[0_0_20px_rgba(236,72,153,0.3)]">
-                ACTION!
-            </button>
+            <button id="btn-start-game" class="w-full bg-pink-500 hover:bg-pink-400 text-white font-black py-4 rounded-xl text-sm transition-all tracking-widest shadow-[0_0_20px_rgba(236,72,153,0.3)]">ACTION!</button>
         </div>
     </div>
 
-    <!-- MAIN GAME UI -->
+    <!-- GAME UI -->
     <div id="game-screen" class="hidden flex flex-col h-screen bg-[#050505]">
-        <!-- HUD -->
         <header class="h-20 border-b border-white/5 bg-black/40 flex items-center justify-between px-6 z-10 backdrop-blur-xl">
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-pink-600 flex items-center justify-center font-bold text-lg shadow-lg shadow-pink-500/20" id="hud-avatar">?</div>
+                <img id="hud-avatar-img" src="" class="w-10 h-10 rounded-full border border-pink-500 bg-slate-800 object-cover">
                 <div>
-                    <div id="hud-name" class="font-black text-xl text-white leading-none tracking-tight">Player Name</div>
-                    <div class="text-[10px] text-pink-400 font-mono mt-1 flex items-center gap-2">
-                        <span id="hud-rank">Aspiring Actor</span>
-                    </div>
+                    <div id="hud-name" class="font-black text-xl text-white leading-none tracking-tight">Player</div>
+                    <div class="text-[10px] text-pink-400 font-mono mt-1"><span id="hud-rank">Rank</span></div>
                 </div>
             </div>
 
@@ -99,11 +87,11 @@
                     <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Talent</div>
                     <span id="hud-talent" class="text-blue-400 text-lg font-bold">0</span>
                 </div>
-                
                 <div class="h-8 w-px bg-white/10 mx-2 hidden md:block"></div>
-                
-                <div class="text-right">
-                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Timeline</div>
+                <div class="text-right flex flex-col items-end">
+                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                        Timeline <i data-lucide="refresh-cw" id="auto-save-icon" class="w-3 h-3 text-slate-600 animate-spin opacity-0 transition-opacity"></i>
+                    </div>
                     <span id="hud-week" class="text-white">Week 1</span>
                 </div>
                 <button id="btn-next-week" class="bg-white hover:bg-pink-400 text-black px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-all shadow-lg hover:shadow-white/20">
@@ -113,110 +101,61 @@
         </header>
 
         <div class="flex flex-1 overflow-hidden">
-            <!-- SIDEBAR -->
             <aside class="w-24 bg-black/60 border-r border-white/5 flex flex-col items-center py-8 gap-3 z-10 backdrop-blur-md overflow-y-auto">
-                <button class="nav-btn active" data-tab="career"><i data-lucide="user"></i><span>Career</span></button>
+                <button class="nav-btn active" data-tab="career"><i data-lucide="user"></i><span>My Star</span></button>
+                <button class="nav-btn" data-tab="education"><i data-lucide="graduation-cap"></i><span>School</span></button>
                 <button class="nav-btn" data-tab="auditions"><i data-lucide="video"></i><span>Auditions</span></button>
                 <button class="nav-btn" data-tab="studio"><i data-lucide="clapperboard"></i><span>Studio</span></button>
                 <button class="nav-btn" data-tab="streaming"><i data-lucide="tv"></i><span>Stream</span></button>
                 <div class="flex-1"></div>
                 <button id="btn-save" class="nav-btn text-pink-500"><i data-lucide="save"></i><span>Save</span></button>
             </aside>
-
-            <!-- MAIN CONTENT -->
             <main id="main-view" class="flex-1 overflow-y-auto bg-[#050505] p-8 relative">
-                <!-- Background Glow -->
                 <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-pink-900/10 rounded-full blur-[120px] pointer-events-none"></div>
-                
-                <div class="max-w-6xl mx-auto relative z-10" id="content-area">
-                    <!-- Content injected by JS -->
-                </div>
+                <div class="max-w-6xl mx-auto relative z-10" id="content-area"></div>
             </main>
         </div>
     </div>
 
-    <!-- AUDITION MINI-GAME MODAL -->
+    <!-- MODALS (AUDITION & PRODUCTION) REMAIN SAME AS BEFORE BUT INCLUDED FOR COMPLETENESS -->
     <div id="audition-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center bg-black/95 backdrop-blur-xl">
         <div class="w-full max-w-2xl p-8 text-center relative">
             <h2 class="text-4xl font-black text-white mb-2">AUDITION IN PROGRESS</h2>
-            <p class="text-pink-400 font-mono mb-12">Stop the marker in the GREEN zone!</p>
-            
-            <div class="relative w-full h-16 bg-slate-800 rounded-full overflow-hidden border-2 border-slate-700 mb-12">
-                <!-- Zones -->
+            <div class="relative w-full h-16 bg-slate-800 rounded-full overflow-hidden border-2 border-slate-700 mb-12 mt-12">
                 <div class="absolute top-0 bottom-0 left-[40%] width-[20%] bg-green-500/20 border-l border-r border-green-500/50 w-[20%] z-0" id="game-target"></div>
-                <!-- Marker -->
                 <div id="game-marker" class="absolute top-0 bottom-0 w-2 bg-white shadow-[0_0_15px_white] translate-x-0 transition-none z-10"></div>
             </div>
-
-            <button id="btn-audition-action" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-black text-2xl py-8 rounded-2xl shadow-[0_0_50px_rgba(219,39,119,0.4)] hover:scale-[1.02] transition-all">
-                ACT!
-            </button>
+            <button id="btn-audition-action" class="w-full bg-pink-600 hover:bg-pink-500 text-white font-black text-2xl py-8 rounded-2xl shadow-[0_0_50px_rgba(219,39,119,0.4)] hover:scale-[1.02] transition-all">ACT!</button>
         </div>
     </div>
 
-    <!-- PRODUCTION MODAL -->
     <div id="production-modal" class="hidden fixed inset-0 z-[140] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
         <div class="glass-panel p-8 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative border border-pink-500/20">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-3xl font-black text-white">DEVELOP NEW PROJECT</h2>
                 <button onclick="document.getElementById('production-modal').classList.add('hidden')" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button>
             </div>
-            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="space-y-6">
-                    <div>
-                        <label class="label-text">Working Title</label>
-                        <div class="flex gap-2">
-                            <input id="prod-title" class="input-box flex-1" placeholder="Movie Title...">
-                            <button id="btn-rand-title" class="p-3 bg-slate-800 rounded-xl hover:bg-pink-600"><i data-lucide="dices"></i></button>
-                        </div>
-                    </div>
-                    
-                    <div>
-                        <label class="label-text">Genre</label>
-                        <div id="genre-select" class="grid grid-cols-3 gap-2"></div>
-                    </div>
-
-                    <div>
-                        <label class="label-text">Type</label>
-                        <select id="prod-type" class="input-box">
-                            <option value="movie">Feature Film</option>
-                            <option value="show">TV Series (10 Eps)</option>
-                            <option value="book">Novel Adaption</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="label-text">Production Budget</label>
-                        <input type="range" id="prod-budget-slider" min="10000" max="100000000" step="10000" class="w-full accent-pink-500">
-                        <div class="text-right text-green-400 font-mono font-bold mt-1" id="prod-budget-display">$10,000</div>
-                    </div>
+                    <div><label class="label-text">Working Title</label><div class="flex gap-2"><input id="prod-title" class="input-box flex-1" placeholder="Movie Title..."><button id="btn-rand-title" class="p-3 bg-slate-800 rounded-xl hover:bg-pink-600"><i data-lucide="dices"></i></button></div></div>
+                    <div><label class="label-text">Genre</label><div id="genre-select" class="grid grid-cols-3 gap-2"></div></div>
+                    <div><label class="label-text">Type</label><select id="prod-type" class="input-box"><option value="movie">Feature Film</option><option value="show">TV Series (10 Eps)</option><option value="book">Novel Adaption</option></select></div>
+                    <div><label class="label-text">Production Budget</label><input type="range" id="prod-budget-slider" min="10000" max="100000000" step="10000" class="w-full accent-pink-500"><div class="text-right text-green-400 font-mono font-bold mt-1" id="prod-budget-display">$10,000</div></div>
                 </div>
-
                 <div class="space-y-6">
                     <label class="label-text">Cast & Crew</label>
-                    <div id="cast-list" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar bg-slate-900/30 p-4 rounded-xl border border-slate-800">
-                        <!-- Actors added here -->
-                        <button id="btn-add-actor" class="w-full py-3 border border-dashed border-slate-700 text-slate-500 rounded-lg hover:border-pink-500 hover:text-pink-400 transition-colors text-xs font-bold uppercase tracking-widest">+ Scout Actor</button>
-                    </div>
-
-                    <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-800 mt-4">
-                        <div class="flex justify-between text-xs text-slate-400 mb-1"><span>Total Cost</span><span id="prod-total-cost" class="text-white font-bold">$0</span></div>
-                        <div class="flex justify-between text-xs text-slate-400"><span>Est. Quality</span><span id="prod-est-quality" class="text-pink-400 font-bold">Low</span></div>
-                    </div>
-
+                    <div id="cast-list" class="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar bg-slate-900/30 p-4 rounded-xl border border-slate-800"><button id="btn-add-actor" class="w-full py-3 border border-dashed border-slate-700 text-slate-500 rounded-lg hover:border-pink-500 hover:text-pink-400 transition-colors text-xs font-bold uppercase tracking-widest">+ Scout Actor</button></div>
+                    <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-800 mt-4"><div class="flex justify-between text-xs text-slate-400 mb-1"><span>Total Cost</span><span id="prod-total-cost" class="text-white font-bold">$0</span></div><div class="flex justify-between text-xs text-slate-400"><span>Est. Quality</span><span id="prod-est-quality" class="text-pink-400 font-bold">Low</span></div></div>
                     <button id="btn-start-production" class="w-full bg-white text-black font-black py-4 rounded-xl hover:bg-pink-500 transition-all shadow-lg mt-4">GREENLIGHT PROJECT</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- FIREBASE -->
+    <!-- SCRIPTS -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
-    <!-- FIXED PATHS: DATA & MAIN -->
     <script src="/movie-star/moviestar_data.js"></script>
     <script src="/movie-star/moviestar_main.js"></script>
 </body>
