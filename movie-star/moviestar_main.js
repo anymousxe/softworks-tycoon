@@ -2,7 +2,7 @@
 
 // --- 1. CONFIG & AUTH ---
 const firebaseConfig = {
-    apiKey: "AIzaSyD0FKEuORJd63FPGbM_P3gThpZknVsytsU", 
+    apiKey: "AIzaSyD0FKEuORJd63FPGbM_P3gThpZknVsytsU",
     authDomain: "softworks-tycoon.firebaseapp.com",
     projectId: "softworks-tycoon",
     storageBucket: "softworks-tycoon.firebasestorage.app",
@@ -10,10 +10,9 @@ const firebaseConfig = {
     appId: "1:591489940224:web:9e355e8a43dc06446a91e5"
 };
 
-if (typeof firebase === 'undefined') alert("CRITICAL ERROR: Firebase failed to load.");
-if (typeof GENRES === 'undefined') alert("CRITICAL ERROR: 'moviestar_data.js' is missing.");
-
-try { firebase.initializeApp(firebaseConfig); } catch (e) { console.error(e); }
+// Safety Check
+if (typeof firebase === 'undefined') console.error("Firebase not loaded");
+try { firebase.initializeApp(firebaseConfig); } catch (e) { console.log("Firebase already init"); }
 const auth = firebase.auth();
 const db = firebase.firestore();
 
@@ -27,33 +26,26 @@ const DEFAULT_STATE = {
     pfp: "https://api.dicebear.com/7.x/avataaars/svg?seed=Star",
     age: 18,
     isSandbox: false,
-    cash: 500,
+    cash: 2500,
     fame: 0,
-    talent: 0,
     week: 1,
-    jobIndex: 0, 
-    inventory: [], 
-    staff: [], // hired agents, etc.
-    studio: { 
-        active: false,
-        employees: 0,
-        morale: 100,
-        movies: [] 
-    },
-    streaming: { active: false, subs: 0, library: [], price: 10 },
-    contracts: []
+    jobIndex: 0,
+    inventory: [], // IDs of owned items
+    staff: [], // Specific hired NPC objects
+    activeProjects: [], // Movies/Shows currently in production
+    releasedProjects: [], // Finished history
+    streaming: { active: false, subs: 0, library: [], price: 10, marketingBudget: 0 }
 };
 
-// --- 3. AUTH LOGIC ---
+// --- 3. AUTH & STARTUP ---
 const loginBtn = document.getElementById('btn-login');
 if(loginBtn) {
     loginBtn.addEventListener('click', () => {
-        loginBtn.innerHTML = `CONNECTING...`;
-        loginBtn.disabled = true;
+        loginBtn.innerHTML = `<i class="animate-spin" data-lucide="loader-2"></i> LOADING...`;
+        lucide.createIcons();
         auth.signInAnonymously().catch(e => {
             alert("Login Failed: " + e.message);
             loginBtn.innerHTML = `TRY AGAIN`;
-            loginBtn.disabled = false;
         });
     });
 }
@@ -67,42 +59,35 @@ auth.onAuthStateChanged(u => {
 });
 
 function loadGame() {
-    const docRef = db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save');
+    const docRef = db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save_v2');
     docRef.get().then(doc => {
         if (doc.exists) {
-            gameState = { ...DEFAULT_STATE, ...doc.data() }; // Merge to ensure new fields exist
-            // Fix legacy structure if 'movies' was top level in old save
-            if(gameState.movies && !gameState.studio.movies) gameState.studio.movies = gameState.movies;
+            gameState = { ...DEFAULT_STATE, ...doc.data() };
             initGame();
         } else {
             document.getElementById('create-screen').classList.remove('hidden');
-            // Set random PFP seed
-            document.getElementById('inp-pfp').value = `https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.floor(Math.random()*1000)}`;
-            document.getElementById('pfp-preview').src = document.getElementById('inp-pfp').value;
+            randomizePfp();
         }
-    }).catch(error => {
-        alert("DATABASE ERROR: " + error.message);
-        document.getElementById('login-screen').classList.remove('hidden');
-    });
+    }).catch(e => console.error(e));
 }
 
 // --- 4. CHARACTER CREATION ---
 let sandboxMode = false;
-const sandboxBtn = document.getElementById('btn-toggle-sandbox');
-if(sandboxBtn) {
-    sandboxBtn.onclick = function() {
-        sandboxMode = !sandboxMode;
-        this.classList.toggle('border-yellow-500');
-        this.querySelector('.text-white').classList.toggle('text-yellow-400');
-    };
-}
+document.getElementById('btn-toggle-sandbox').onclick = function() {
+    sandboxMode = !sandboxMode;
+    this.classList.toggle('bg-white/20');
+};
 
-// PFP Preview Logic
 const pfpInput = document.getElementById('inp-pfp');
-if(pfpInput) {
-    pfpInput.addEventListener('input', (e) => {
-        document.getElementById('pfp-preview').src = e.target.value || "https://api.dicebear.com/7.x/avataaars/svg?seed=Star";
-    });
+pfpInput.addEventListener('input', (e) => {
+    document.getElementById('pfp-preview').src = e.target.value || "https://api.dicebear.com/7.x/avataaars/svg?seed=Star";
+});
+
+function randomizePfp() {
+    const seed = Math.floor(Math.random() * 10000);
+    const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+    document.getElementById('inp-pfp').value = url;
+    document.getElementById('pfp-preview').src = url;
 }
 
 document.getElementById('btn-start-game').onclick = () => {
@@ -118,15 +103,15 @@ document.getElementById('btn-start-game').onclick = () => {
     gameState.isSandbox = sandboxMode;
     
     if(sandboxMode) {
-        gameState.cash = 100000000;
-        gameState.talent = 1000;
-        gameState.fame = 5000;
+        gameState.cash = 500000000;
+        gameState.fame = 100000;
+        gameState.inventory.push('studio_vol', 'cam_imax');
     }
 
     saveGame(true);
 };
 
-// --- 5. MAIN GAME LOOP & UI ---
+// --- 5. MAIN LOOP & UI ---
 function initGame() {
     document.getElementById('create-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -134,54 +119,46 @@ function initGame() {
     document.getElementById('hud-avatar-img').src = gameState.pfp;
     
     updateHUD();
-    renderTab('career'); 
+    renderTab('career');
     
     if(saveInterval) clearInterval(saveInterval);
-    saveInterval = setInterval(() => saveGame(), 5000); // Auto-save every 5s
+    saveInterval = setInterval(() => saveGame(), 10000); 
+    lucide.createIcons();
 }
 
 function saveGame(isFirst = false) {
     if(!user || !gameState) return;
-    
     const saveIcon = document.getElementById('auto-save-icon');
-    if(saveIcon) saveIcon.classList.remove('opacity-0');
-
-    db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save')
+    saveIcon.classList.remove('opacity-0');
+    
+    db.collection('artifacts').doc('softworks-tycoon').collection('users').doc(user.uid).collection('moviestar_saves').doc('main_save_v2')
         .set(gameState)
         .then(() => {
             if(isFirst) initGame();
-            if(saveIcon) setTimeout(() => saveIcon.classList.add('opacity-0'), 1000);
-        })
-        .catch(e => console.error("Save Error:", e));
+            setTimeout(() => saveIcon.classList.add('opacity-0'), 1000);
+        });
 }
 
 function updateHUD() {
     if(!gameState) return;
     document.getElementById('hud-name').textContent = gameState.name;
-    document.getElementById('hud-rank').textContent = JOB_TITLES[gameState.jobIndex] ? JOB_TITLES[gameState.jobIndex].title : 'Unknown';
+    document.getElementById('hud-rank').textContent = JOB_TITLES[gameState.jobIndex].title;
     document.getElementById('hud-cash').textContent = '$' + Math.floor(gameState.cash).toLocaleString();
     document.getElementById('hud-fame').textContent = Math.floor(gameState.fame).toLocaleString();
-    document.getElementById('hud-talent').textContent = Math.floor(gameState.talent).toLocaleString();
-    
-    // Age Calc
-    const yearsAdded = Math.floor(gameState.week / 52);
-    const displayAge = gameState.age + yearsAdded;
-    
-    document.getElementById('hud-week').innerHTML = `<span class="text-pink-400">Age ${displayAge}</span> • Week ${gameState.week % 52 || 52}`;
+    document.getElementById('hud-week').textContent = `Week ${gameState.week}`;
 }
 
 function showToast(msg, type='info') {
     const c = document.getElementById('toast-container');
-    if(!c) return;
     const d = document.createElement('div');
-    const color = type === 'success' ? 'bg-green-600' : (type === 'error' ? 'bg-red-600' : 'bg-pink-600');
-    d.className = `toast-enter p-4 rounded-xl text-white font-bold text-sm shadow-xl ${color}`;
+    const color = type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-red-600' : 'bg-pink-600');
+    d.className = `p-4 rounded-xl text-white font-bold text-sm shadow-xl backdrop-blur-md border border-white/10 ${color} animate-in`;
     d.innerHTML = msg;
     c.appendChild(d);
-    setTimeout(() => d.remove(), 3000);
+    setTimeout(() => d.remove(), 4000);
 }
 
-// --- 6. NAVIGATION ---
+// --- 6. NAVIGATION & TABS ---
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         if(btn.id === 'btn-save') { saveGame(); showToast("Game Saved!", "success"); return; }
@@ -195,398 +172,579 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
 function renderTab(tab) {
     const area = document.getElementById('content-area');
     area.innerHTML = '';
-    area.className = 'animate-in';
+    area.className = 'max-w-7xl mx-auto pb-20 animate-in';
 
-    // --- CAREER (Stats, PFP, Team, PR) ---
+    // --- CAREER ---
     if(tab === 'career') {
         const job = JOB_TITLES[gameState.jobIndex];
         area.innerHTML = `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div class="glass-panel p-8 rounded-2xl flex items-center gap-6">
-                    <img src="${gameState.pfp}" class="w-24 h-24 rounded-full border-4 border-pink-500 shadow-xl">
+                <div class="glass-panel p-8 rounded-3xl flex items-center gap-6">
+                    <img src="${gameState.pfp}" class="w-24 h-24 rounded-full border-4 border-pink-500 shadow-xl object-cover">
                     <div>
                         <div class="text-3xl font-black text-white">${gameState.name}</div>
                         <div class="text-pink-400 font-bold">${job.title}</div>
-                        <div class="text-slate-500 text-xs mt-1">Age: ${gameState.age + Math.floor(gameState.week/52)}</div>
+                        <div class="text-gray-400 text-xs mt-2">Net Worth: $${(gameState.cash + (gameState.inventory.length * 1000)).toLocaleString()}</div>
                     </div>
                 </div>
-                <div class="glass-panel p-8 rounded-2xl border-l-4 border-pink-500">
-                     <div class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Weekly Income</div>
-                     <div class="text-4xl font-black text-white">$${job.wage.toLocaleString()}</div>
-                     <div class="text-xs text-green-400 mt-2">+ Bonuses from Staff/Streaming</div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div>
-                    <h3 class="text-xl font-bold text-white mb-4">Management Team</h3>
-                    <div class="space-y-4" id="staff-list"></div>
-                </div>
-                <div>
-                    <h3 class="text-xl font-bold text-white mb-4">Marketing & PR</h3>
-                    <div class="grid grid-cols-2 gap-4" id="marketing-list"></div>
-                </div>
-            </div>
-        `;
-
-        // Render Staff
-        STAFF_TYPES.forEach(staff => {
-            const owned = (gameState.staff || []).includes(staff.id);
-            const el = document.createElement('div');
-            el.className = `p-4 rounded-xl border flex justify-between items-center transition-all ${owned ? 'bg-pink-900/20 border-pink-500' : 'bg-slate-900/50 border-slate-700'}`;
-            el.innerHTML = `
-                <div>
-                    <div class="font-bold text-white">${staff.name}</div>
-                    <div class="text-[10px] text-slate-400">${staff.desc}</div>
-                </div>
-                ${owned ? '<span class="text-pink-400 font-bold text-xs">HIRED</span>' : `<button class="px-4 py-2 bg-white text-black text-xs font-bold rounded-lg hover:bg-pink-400 btn-hire" data-id="${staff.id}" data-cost="${staff.cost}">$${staff.cost.toLocaleString()}</button>`}
-            `;
-            document.getElementById('staff-list').appendChild(el);
-        });
-
-        // Render Marketing
-        MARKETING_CAMPAIGNS.forEach(ad => {
-            const el = document.createElement('button');
-            el.className = 'glass-panel p-4 rounded-xl hover:border-pink-500 transition-all text-left';
-            el.innerHTML = `
-                <div class="font-bold text-white text-sm">${ad.name}</div>
-                <div class="text-xs text-slate-500">+${ad.fameGain} Fame</div>
-                <div class="mt-2 font-mono text-pink-400 font-bold">$${ad.cost.toLocaleString()}</div>
-            `;
-            el.onclick = () => {
-                if(gameState.cash >= ad.cost) {
-                    gameState.cash -= ad.cost;
-                    gameState.fame += ad.fameGain;
-                    updateHUD();
-                    showToast(`Launched ${ad.name}! Fame +${ad.fameGain}`, 'success');
-                } else showToast("Insufficient Funds", "error");
-            };
-            document.getElementById('marketing-list').appendChild(el);
-        });
-
-        // Hire Logic
-        document.querySelectorAll('.btn-hire').forEach(b => {
-            b.onclick = (e) => {
-                const cost = parseInt(e.target.dataset.cost);
-                const id = e.target.dataset.id;
-                if(gameState.cash >= cost) {
-                    gameState.cash -= cost;
-                    if(!gameState.staff) gameState.staff = [];
-                    gameState.staff.push(id);
-                    updateHUD();
-                    renderTab('career');
-                    showToast("Staff Hired!", "success");
-                } else showToast("Too expensive!", "error");
-            };
-        });
-    }
-
-    if(tab === 'education') {
-        area.innerHTML = `<h2 class="text-3xl font-black text-white mb-6">ACTING SCHOOL</h2><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="classes-list"></div>`;
-        CLASSES.forEach(cls => {
-            const btn = document.createElement('button');
-            btn.className = "glass-panel p-6 rounded-2xl hover:border-pink-500 transition-all text-left flex flex-col h-full justify-between";
-            btn.innerHTML = `
-                <div>
-                    <div class="font-bold text-white text-lg">${cls.name}</div>
-                    <div class="text-xs text-slate-500 mb-4">${cls.desc}</div>
-                </div>
-                <div>
-                    <div class="text-sm text-green-400 font-bold mb-1">+${cls.talentGain} Talent</div>
-                    <div class="w-full py-3 bg-slate-800 text-center rounded-xl font-mono text-white text-sm group-hover:bg-pink-600">$${cls.cost.toLocaleString()}</div>
-                </div>
-            `;
-            btn.onclick = () => {
-                if(gameState.cash >= cls.cost) {
-                    gameState.cash -= cls.cost;
-                    gameState.talent += cls.talentGain;
-                    updateHUD();
-                    showToast(`Completed ${cls.name}!`, 'success');
-                } else showToast("Too expensive!", "error");
-            };
-            document.getElementById('classes-list').appendChild(btn);
-        });
-    }
-
-    if(tab === 'auditions') {
-        area.innerHTML = `<h2 class="text-3xl font-black text-white mb-6">CASTING CALLS</h2><div id="audition-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>`;
-        if(gameState.jobIndex < JOB_TITLES.length - 1) {
-            const nextJob = JOB_TITLES[gameState.jobIndex + 1];
-            const locked = gameState.fame < nextJob.reqFame || gameState.talent < nextJob.reqTalent;
-            const card = document.createElement('div');
-            card.className = `glass-panel p-6 rounded-2xl border ${locked ? 'border-red-500/30' : 'border-green-500/50'}`;
-            card.innerHTML = `
-                <div class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Promotion Audition</div>
-                <h3 class="text-2xl font-black text-white mb-4">${nextJob.title}</h3>
-                <div class="space-y-2 mb-6 text-sm font-mono">
-                    <div class="flex justify-between ${gameState.fame >= nextJob.reqFame ? 'text-green-400' : 'text-red-400'}"><span>Req Fame:</span><span>${nextJob.reqFame}</span></div>
-                    <div class="flex justify-between ${gameState.talent >= nextJob.reqTalent ? 'text-green-400' : 'text-red-400'}"><span>Req Talent:</span><span>${nextJob.reqTalent}</span></div>
-                </div>
-                <button class="w-full py-3 bg-white text-black font-black rounded-xl hover:scale-105 transition-transform" ${locked ? 'disabled style="opacity:0.5"' : ''} id="btn-audition">AUDITION</button>
-            `;
-            document.getElementById('audition-grid').appendChild(card);
-            if(!locked) card.querySelector('#btn-audition').onclick = () => startAudition(gameState.jobIndex + 1);
-        } else {
-            area.innerHTML += `<div class="text-white text-xl">You are at the top of the acting world!</div>`;
-        }
-    }
-
-    if(tab === 'studio') {
-        const studio = gameState.studio;
-        area.innerHTML = `
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-black text-white">MY STUDIO</h2>
-                <div class="flex gap-2">
-                    <button id="btn-studio-party" class="bg-purple-600 text-white px-4 py-2 rounded-xl font-bold text-xs">OFFICE PARTY ($5k)</button>
-                    <button id="btn-new-movie" class="bg-pink-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform"><i data-lucide="plus"></i> New Project</button>
+                <div class="glass-panel p-8 rounded-3xl border-l-4 border-pink-500 flex flex-col justify-center">
+                     <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Current Weekly Wage</div>
+                     <div class="text-5xl font-black text-white">$${job.wage.toLocaleString()}</div>
                 </div>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                 <div class="glass-panel p-4 rounded-xl border-t-4 border-blue-500">
-                    <div class="text-xs text-slate-500 font-bold uppercase">Staff Count</div>
-                    <div class="text-2xl font-black text-white">${studio.employees || 0}</div>
-                    <div class="flex gap-2 mt-2">
-                        <button id="btn-hire-staff" class="text-green-400 text-xs font-bold hover:underline">HIRE (+1)</button>
-                        <button id="btn-fire-staff" class="text-red-400 text-xs font-bold hover:underline">FIRE (-1)</button>
-                    </div>
-                 </div>
-                 <div class="glass-panel p-4 rounded-xl border-t-4 border-yellow-500">
-                    <div class="text-xs text-slate-500 font-bold uppercase">Staff Morale</div>
-                    <div class="text-2xl font-black ${studio.morale > 80 ? 'text-green-400' : 'text-red-500'}">${studio.morale || 100}%</div>
-                 </div>
-                 <div class="glass-panel p-4 rounded-xl border-t-4 border-pink-500">
-                    <div class="text-xs text-slate-500 font-bold uppercase">Productions</div>
-                    <div class="text-2xl font-black text-white">${studio.movies.length}</div>
-                 </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="movies-grid"></div>
+            <h3 class="text-2xl font-bold text-white mb-4">Inventory</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="inventory-grid"></div>
         `;
-
-        // Render Movies
-        if(studio.movies.length === 0) {
-            document.getElementById('movies-grid').innerHTML = `<div class="col-span-full text-center p-12 text-slate-500">No productions yet. Start your first film!</div>`;
-        } else {
-            studio.movies.forEach(m => {
+        
+        gameState.inventory.forEach(itemId => {
+            const item = SHOP_ITEMS.find(i => i.id === itemId);
+            if(item) {
                 const el = document.createElement('div');
-                el.className = 'glass-panel p-4 rounded-xl relative overflow-hidden group hover:border-pink-500/50 transition-all';
+                el.className = 'glass-panel p-4 rounded-2xl flex flex-col items-center text-center';
                 el.innerHTML = `
-                    <div class="absolute top-0 right-0 bg-pink-600 text-white text-[10px] px-2 py-1 font-bold rounded-bl-lg">${m.type.toUpperCase()}</div>
-                    <h3 class="font-bold text-white text-lg leading-tight mb-1">${m.title}</h3>
-                    <div class="text-xs text-slate-500 mb-4">${m.genre} • Q: ${m.quality}/100</div>
-                    <div class="grid grid-cols-2 gap-2 text-xs font-mono">
-                        <div>Cost: <span class="text-red-400">$${(m.budget/1000000).toFixed(1)}M</span></div>
-                        <div>Rev: <span class="text-green-400">$${(m.revenue/1000000).toFixed(1)}M</span></div>
+                    <div class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center mb-2"><i data-lucide="box" class="text-pink-400"></i></div>
+                    <div class="text-xs font-bold text-white">${item.name}</div>
+                    <div class="text-[10px] text-gray-500">${item.category}</div>
+                `;
+                document.getElementById('inventory-grid').appendChild(el);
+            }
+        });
+        if(gameState.inventory.length === 0) document.getElementById('inventory-grid').innerHTML = `<div class="text-gray-500 text-sm">Inventory is empty. Go shopping!</div>`;
+    }
+
+    // --- SHOP ---
+    if(tab === 'shop') {
+        area.innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-black text-white">EQUIPMENT STORE</h2>
+                <div class="text-emerald-400 font-mono font-bold">$${gameState.cash.toLocaleString()}</div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
+        `;
+        
+        SHOP_ITEMS.forEach(item => {
+            const owned = gameState.inventory.includes(item.id);
+            const el = document.createElement('div');
+            el.className = `glass-panel p-6 rounded-2xl border ${owned ? 'border-emerald-500/50' : 'border-white/10'} hover:border-pink-500 transition-all`;
+            el.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-white/5 rounded-xl"><i data-lucide="shopping-bag" class="text-white"></i></div>
+                    ${owned ? '<span class="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded uppercase">Owned</span>' : ''}
+                </div>
+                <h3 class="font-bold text-white text-lg">${item.name}</h3>
+                <p class="text-xs text-gray-400 mb-4">${item.category} • +${item.qualityBonus} Quality</p>
+                <button class="w-full py-3 rounded-xl font-bold text-sm ${owned ? 'bg-white/5 text-gray-500 cursor-not-allowed' : 'bg-white text-black hover:bg-pink-400'}" ${owned ? 'disabled' : ''}>
+                    ${owned ? 'PURCHASED' : '$' + item.cost.toLocaleString()}
+                </button>
+            `;
+            if(!owned) {
+                el.querySelector('button').onclick = () => {
+                    if(gameState.cash >= item.cost) {
+                        gameState.cash -= item.cost;
+                        gameState.inventory.push(item.id);
+                        updateHUD();
+                        renderTab('shop');
+                        showToast(`Bought ${item.name}!`, 'success');
+                    } else showToast("Insufficient Funds", "error");
+                };
+            }
+            document.getElementById('shop-grid').appendChild(el);
+        });
+    }
+
+    // --- STUDIO ---
+    if(tab === 'studio') {
+        area.innerHTML = `
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-4xl font-black text-white">PRODUCTION STUDIO</h2>
+                    <p class="text-gray-400 text-sm mt-1">Manage your empire.</p>
+                </div>
+                <button id="btn-start-wiz" class="liquid-button bg-pink-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2 text-lg shadow-[0_0_30px_rgba(219,39,119,0.4)]">
+                    <i data-lucide="plus-circle"></i> NEW PROJECT
+                </button>
+            </div>
+            
+            <h3 class="text-xl font-bold text-white mb-4">Released Projects</h3>
+            <div class="grid grid-cols-1 gap-4" id="released-list"></div>
+        `;
+        
+        const list = document.getElementById('released-list');
+        if(gameState.releasedProjects.length === 0) list.innerHTML = `<div class="p-8 text-center text-gray-500 glass-panel rounded-2xl">No released projects yet. Start cooking!</div>`;
+        
+        gameState.releasedProjects.forEach(p => {
+            const profit = p.revenue - p.totalCost;
+            const isHit = profit > 0;
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-6 rounded-2xl flex items-center justify-between border-l-4 ' + (isHit ? 'border-emerald-500' : 'border-red-500');
+            el.innerHTML = `
+                <div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-bold uppercase px-2 py-1 bg-white/10 rounded text-gray-300">${p.type}</span>
+                        <h4 class="text-xl font-bold text-white">${p.title}</h4>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1">${p.genre} • Rating: <span class="${p.quality > 80 ? 'text-emerald-400' : 'text-white'} font-bold">${p.quality}/100</span></div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-gray-500 uppercase font-bold">Profit</div>
+                    <div class="text-xl font-mono font-bold ${isHit ? 'text-emerald-400' : 'text-red-400'}">${profit > 0 ? '+' : ''}$${Math.floor(profit).toLocaleString()}</div>
+                </div>
+            `;
+            list.appendChild(el);
+        });
+
+        document.getElementById('btn-start-wiz').onclick = openProductionWizard;
+    }
+
+    // --- ACTIVE PROJECTS (Dashboard) ---
+    if(tab === 'active-projects') {
+        area.innerHTML = `<h2 class="text-3xl font-black text-white mb-6">ONGOING PRODUCTIONS</h2><div class="space-y-6" id="active-list"></div>`;
+        
+        if(gameState.activeProjects.length === 0) {
+            document.getElementById('active-list').innerHTML = `<div class="text-center p-12 text-gray-500">No active productions. Go to Studio to start one.</div>`;
+        }
+        
+        gameState.activeProjects.forEach((proj, idx) => {
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-6 rounded-3xl relative overflow-hidden';
+            
+            // Logic based on type
+            let actions = '';
+            let status = '';
+            
+            if(proj.type === 'movie' || proj.type === 'book') {
+                const pct = Math.min(100, (proj.progress / proj.weeksNeeded) * 100);
+                status = `
+                    <div class="w-full bg-gray-800 h-4 rounded-full mt-4 overflow-hidden">
+                        <div class="bg-pink-500 h-full transition-all duration-500" style="width: ${pct}%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs mt-2 font-mono text-gray-400">
+                        <span>Week ${proj.progress} / ${proj.weeksNeeded}</span>
+                        <span>${Math.floor(pct)}% Complete</span>
                     </div>
                 `;
-                document.getElementById('movies-grid').appendChild(el);
-            });
-        }
+                if(proj.progress >= proj.weeksNeeded) {
+                    actions = `<button class="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-emerald-400 mt-4 btn-release" data-idx="${idx}">RELEASE PROJECT</button>`;
+                } else {
+                     actions = `<div class="text-center text-xs text-pink-400 mt-4 font-bold animate-pulse">PRODUCTION IN PROGRESS...</div>`;
+                }
+            } else if(proj.type === 'show') {
+                status = `
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="bg-black/30 p-3 rounded-xl">
+                            <div class="text-[10px] text-gray-500 uppercase">Season</div>
+                            <div class="text-xl font-bold text-white">${proj.season}</div>
+                        </div>
+                        <div class="bg-black/30 p-3 rounded-xl">
+                            <div class="text-[10px] text-gray-500 uppercase">Episodes</div>
+                            <div class="text-xl font-bold text-white">${proj.episodes}</div>
+                        </div>
+                    </div>
+                `;
+                actions = `
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <button class="py-3 bg-white/10 hover:bg-white text-white hover:text-black font-bold rounded-xl btn-produce-ep" data-idx="${idx}">+ Make Episode ($${proj.weeklyCost.toLocaleString()})</button>
+                        <button class="py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-xl btn-release-season" data-idx="${idx}" ${proj.episodes < 1 ? 'disabled style="opacity:0.5"' : ''}>Finish Season</button>
+                    </div>
+                `;
+            }
 
-        // Logic
-        document.getElementById('btn-new-movie').onclick = () => openProductionModal();
-        document.getElementById('btn-studio-party').onclick = () => {
-            if(gameState.cash >= 5000) {
-                gameState.cash -= 5000;
-                gameState.studio.morale = Math.min(100, gameState.studio.morale + 10);
-                updateHUD(); renderTab('studio');
-                showToast("Party Success! Morale +10", "success");
-            } else showToast("Need Cash", "error");
-        };
-        document.getElementById('btn-hire-staff').onclick = () => {
-             if(gameState.cash >= 1000) {
-                 gameState.cash -= 1000;
-                 gameState.studio.employees = (gameState.studio.employees || 0) + 1;
-                 updateHUD(); renderTab('studio');
-             }
-        };
-        document.getElementById('btn-fire-staff').onclick = () => {
-             if(gameState.studio.employees > 0) {
-                 gameState.studio.employees--;
-                 gameState.studio.morale -= 10;
-                 updateHUD(); renderTab('studio');
-             }
-        };
-    }
-    
-    // STREAMING (Unchanged mostly, just ensure it renders)
-    if(tab === 'streaming') {
-        if(!gameState.streaming.active) {
-            area.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full p-12 text-center">
-                    <i data-lucide="tv" class="w-24 h-24 text-slate-700 mb-6"></i>
-                    <h2 class="text-4xl font-black text-white mb-4">LAUNCH PLATFORM</h2>
-                    <p class="text-slate-400 max-w-md mb-8">Start your own streaming service to compete with Netflix.</p>
-                    <button id="btn-start-stream" class="bg-white text-black px-8 py-4 rounded-xl font-black text-xl hover:bg-pink-400 transition-all">LAUNCH ($1,000,000)</button>
-                </div>
-            `;
-            setTimeout(() => {
-                const btn = document.getElementById('btn-start-stream');
-                if(btn) btn.onclick = () => {
-                    if(gameState.cash >= 1000000) {
-                        gameState.cash -= 1000000;
-                        gameState.streaming.active = true;
-                        updateHUD(); renderTab('streaming');
-                        showToast("Streaming Service Live!", "success");
-                    } else showToast("Need $1M Cash", "error");
-                };
-            }, 100);
-        } else {
-             area.innerHTML = `
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="glass-panel p-6 rounded-2xl border-t-4 border-pink-500">
-                        <div class="text-xs font-bold text-slate-500 uppercase">Subscribers</div>
-                        <div class="text-3xl font-black text-white">${gameState.streaming.subs.toLocaleString()}</div>
+            el.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h3 class="text-2xl font-bold text-white">${proj.title}</h3>
+                        <div class="text-sm text-pink-400 font-bold uppercase">${proj.type} • ${proj.genre}</div>
                     </div>
-                    <div class="glass-panel p-6 rounded-2xl border-t-4 border-green-500">
-                        <div class="text-xs font-bold text-slate-500 uppercase">Monthly Rev</div>
-                        <div class="text-3xl font-black text-green-400">$${(gameState.streaming.subs * gameState.streaming.price).toLocaleString()}</div>
-                    </div>
-                    <div class="glass-panel p-6 rounded-2xl border-t-4 border-blue-500">
-                        <div class="text-xs font-bold text-slate-500 uppercase">Library Size</div>
-                        <div class="text-3xl font-black text-white">${gameState.streaming.library.length} Titles</div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-500 uppercase">Weekly Burn</div>
+                        <div class="text-red-400 font-mono font-bold">-$${proj.weeklyCost.toLocaleString()}</div>
                     </div>
                 </div>
+                ${status}
+                ${actions}
             `;
-        }
+            document.getElementById('active-list').appendChild(el);
+        });
+
+        // Bind Actions
+        document.querySelectorAll('.btn-release').forEach(b => {
+            b.onclick = () => releaseProject(parseInt(b.dataset.idx));
+        });
+        document.querySelectorAll('.btn-produce-ep').forEach(b => {
+            b.onclick = () => produceEpisode(parseInt(b.dataset.idx));
+        });
+        document.querySelectorAll('.btn-release-season').forEach(b => {
+            b.onclick = () => finishSeason(parseInt(b.dataset.idx));
+        });
     }
+
     lucide.createIcons();
 }
 
-// --- 7. AUDITION & PRODUCTION LOGIC (Simplified for length) ---
-// (Copy previous Audition Logic here, it works fine)
-let auditionInterval = null;
-let markerPos = 0;
-let direction = 1;
-let currentTargetJob = 0;
-function startAudition(jobIdx) {
-    currentTargetJob = jobIdx;
-    document.getElementById('audition-modal').classList.remove('hidden');
-    const marker = document.getElementById('game-marker');
-    markerPos = 0; direction = 1;
-    const speed = 1 + (jobIdx * 0.5); 
-    if(auditionInterval) clearInterval(auditionInterval);
-    auditionInterval = setInterval(() => {
-        markerPos += (speed * direction);
-        if(markerPos >= 100) direction = -1;
-        if(markerPos <= 0) direction = 1;
-        marker.style.left = `${markerPos}%`;
-    }, 16);
+// --- 7. HIRING & PRODUCTION WIZARD ---
+
+// Global Wizard State
+let wizState = {
+    step: 1,
+    type: 'movie',
+    title: '',
+    genre: '',
+    source: null,
+    crew: { director: null, editor: null },
+    cast: []
+};
+
+function openProductionWizard() {
+    wizState = { step: 1, type: 'movie', title: '', genre: 'action', source: null, crew: { director: null, editor: null }, cast: [] };
+    document.getElementById('production-modal').classList.remove('hidden');
+    renderWizard();
 }
-document.getElementById('btn-audition-action').onclick = () => {
-    clearInterval(auditionInterval);
-    if(markerPos >= 40 && markerPos <= 60) {
-        showToast("NAILED IT!", "success");
-        gameState.jobIndex = currentTargetJob;
-        gameState.fame += 500;
-        updateHUD();
-        setTimeout(() => {
-            document.getElementById('audition-modal').classList.add('hidden');
-            renderTab('career');
-        }, 1000);
-    } else {
-        showToast("You bombed the audition...", "error");
-        setTimeout(() => document.getElementById('audition-modal').classList.add('hidden'), 1000);
+
+function renderWizard() {
+    // Nav Steps
+    document.querySelectorAll('.step-btn').forEach(b => {
+        b.classList.remove('active');
+        if(parseInt(b.dataset.step) === wizState.step) b.classList.add('active');
+    });
+
+    // Show Content
+    document.querySelectorAll('.wizard-step').forEach(d => d.classList.add('hidden'));
+    document.getElementById(`step-${wizState.step}`).classList.remove('hidden');
+    
+    // Step 1 Logic: Populate Genres & Sources
+    if(wizState.step === 1) {
+        document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+        // Find the card matching type and select it (simplified selector)
+        // ... (Skipping verbose DOM manipulation for brevity, handled by setProdType)
+        
+        const genreList = document.getElementById('prod-genre-list');
+        genreList.innerHTML = '';
+        GENRES.forEach(g => {
+            const b = document.createElement('button');
+            b.className = `px-4 py-2 rounded-lg border text-xs font-bold transition-all ${wizState.genre === g.id ? 'bg-pink-600 border-pink-500 text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'}`;
+            b.textContent = g.name;
+            b.onclick = () => { wizState.genre = g.id; renderWizard(); };
+            genreList.appendChild(b);
+        });
+
+        const adaptSelect = document.getElementById('prod-adaptation');
+        adaptSelect.innerHTML = `<option value="">Original Screenplay</option>`;
+        gameState.releasedProjects.filter(p => p.type === 'book').forEach(book => {
+            adaptSelect.innerHTML += `<option value="${book.id}">Adapt: ${book.title}</option>`;
+        });
+        adaptSelect.onchange = (e) => wizState.source = e.target.value;
+    }
+
+    // Step 3: Cast List
+    if(wizState.step === 3) {
+        const cContainer = document.getElementById('cast-list-container');
+        cContainer.innerHTML = '';
+        wizState.cast.forEach((role, idx) => {
+            const el = document.createElement('div');
+            el.className = 'flex items-center gap-4 bg-white/5 p-4 rounded-xl border border-white/5';
+            el.innerHTML = `
+                <img src="${role.actor.pfp}" class="w-12 h-12 rounded-full object-cover">
+                <div class="flex-1">
+                    <div class="text-white font-bold">${role.actor.name}</div>
+                    <div class="text-xs text-pink-400">${role.roleName} (${role.roleType})</div>
+                </div>
+                <div class="text-right text-xs text-gray-400">
+                    <div>Talent: ${role.actor.stats.talent}</div>
+                    <div>Wage: $${role.actor.cost.toLocaleString()}/wk</div>
+                </div>
+                <button class="p-2 text-red-500 hover:bg-white/10 rounded" onclick="removeCast(${idx})"><i data-lucide="trash-2"></i></button>
+            `;
+            cContainer.appendChild(el);
+        });
+        lucide.createIcons();
+    }
+
+    // Step 4: Review
+    if(wizState.step === 4) {
+        document.getElementById('review-title').textContent = document.getElementById('prod-title').value || "Untitled Project";
+        document.getElementById('review-type').textContent = wizState.type.toUpperCase();
+        document.getElementById('review-genre').textContent = GENRES.find(g=>g.id===wizState.genre).name;
+        document.getElementById('review-cast-count').textContent = wizState.cast.length;
+        
+        const cost = calculateWeeklyCost();
+        document.getElementById('review-cost').textContent = '$' + cost.toLocaleString();
+        document.getElementById('prod-current-cost').textContent = '$' + cost.toLocaleString() + ' / wk';
+    }
+}
+
+// Helpers
+window.setProdType = (t) => { wizState.type = t; document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected')); event.currentTarget.classList.add('selected'); };
+window.randomizeTitle = () => document.getElementById('prod-title').value = generateMovieTitle();
+window.closeModal = (id) => document.getElementById(id).classList.add('hidden');
+
+// Navigation
+document.getElementById('btn-next-step').onclick = () => {
+    if(wizState.step < 4) {
+        if(wizState.step === 1 && !document.getElementById('prod-title').value) return showToast("Enter a title!", "error");
+        wizState.step++;
+        renderWizard();
+    }
+};
+document.getElementById('btn-prev-step').onclick = () => {
+    if(wizState.step > 1) {
+        wizState.step--;
+        renderWizard();
     }
 };
 
-// Production Logic (Re-implemented with Studio Morale factor)
-let prodCast = [];
-let prodBudget = 10000;
-function openProductionModal() {
-    document.getElementById('production-modal').classList.remove('hidden');
-    document.getElementById('prod-title').value = generateMovieTitle();
-    const genreDiv = document.getElementById('genre-select');
-    genreDiv.innerHTML = '';
-    GENRES.forEach(g => {
-        const btn = document.createElement('button');
-        btn.className = 'p-2 text-xs font-bold border border-slate-700 rounded hover:bg-pink-600 hover:border-pink-500 transition-colors genre-opt';
-        btn.textContent = g.name;
-        btn.dataset.val = g.id;
-        btn.onclick = () => { document.querySelectorAll('.genre-opt').forEach(b => b.classList.remove('bg-pink-600')); btn.classList.add('bg-pink-600'); };
-        genreDiv.appendChild(btn);
-    });
-    prodCast = [];
-    updateCastList();
-}
-document.getElementById('btn-rand-title').onclick = () => document.getElementById('prod-title').value = generateMovieTitle();
-document.getElementById('prod-budget-slider').oninput = function() { prodBudget = parseInt(this.value); document.getElementById('prod-budget-display').textContent = '$' + prodBudget.toLocaleString(); updateProdStats(); };
-document.getElementById('btn-add-actor').onclick = () => { prodCast.push(generateRandomActor(Math.ceil(prodBudget / 1000000) || 1)); updateCastList(); };
-function updateCastList() {
-    const list = document.getElementById('cast-list');
-    Array.from(list.children).forEach(c => { if(c.id !== 'btn-add-actor') c.remove(); });
-    prodCast.forEach((a, i) => {
-        const el = document.createElement('div');
-        el.className = 'flex justify-between items-center bg-black p-3 rounded-lg mb-2';
-        el.innerHTML = `<div><div class="font-bold text-white text-sm">${a.name}</div><div class="text-[10px] text-slate-500">Talent: ${a.talent}</div></div><button class="text-red-500 text-[10px] btn-remove-cast" data-idx="${i}">Remove</button>`;
-        list.insertBefore(el, document.getElementById('btn-add-actor'));
-    });
-    document.querySelectorAll('.btn-remove-cast').forEach(b => b.onclick = () => { prodCast.splice(b.dataset.idx, 1); updateCastList(); });
-    updateProdStats();
-}
-function updateProdStats() {
-    const castCost = prodCast.reduce((s, a) => s + a.cost, 0);
-    document.getElementById('prod-total-cost').textContent = '$' + (prodBudget + castCost).toLocaleString();
-}
-document.getElementById('btn-start-production').onclick = () => {
-    const title = document.getElementById('prod-title').value;
-    const genre = document.querySelector('.genre-opt.bg-pink-600')?.dataset.val || 'drama';
-    const type = document.getElementById('prod-type').value;
-    const totalCost = prodBudget + prodCast.reduce((s, a) => s + a.cost, 0);
+// --- HIRING SYSTEM ---
+let hiringTarget = ''; // 'director', 'editor', 'actor'
+
+window.openHiring = (target) => {
+    hiringTarget = target;
+    document.getElementById('hiring-modal').classList.remove('hidden');
+    const list = document.getElementById('hiring-list');
+    list.innerHTML = '';
     
-    if(gameState.cash < totalCost) return showToast("Insufficient Funds!", "error");
-    gameState.cash -= totalCost;
-    
-    // Quality Logic
-    let q = Math.floor(Math.random() * 50) + 20; 
-    q += Math.floor(gameState.talent / 50); // Player talent
-    if(gameState.studio.morale > 80) q += 10; // Studio Morale Bonus
-    if(gameState.studio.morale < 30) q -= 20; // Low Morale Penalty
-    
-    const revenue = Math.floor(totalCost * (q/40) * GENRES.find(g=>g.id===genre).multiplier);
-    
-    gameState.studio.movies.unshift({ id: Date.now(), title, genre, type, quality: q, budget: totalCost, revenue });
-    gameState.cash += revenue;
-    
-    updateHUD(); document.getElementById('production-modal').classList.add('hidden'); renderTab('studio');
-    showToast(`Released ${title}! Rev: $${revenue.toLocaleString()}`, revenue > totalCost ? 'success' : 'info');
+    // Generate Candidates
+    const count = 12;
+    for(let i=0; i<count; i++) {
+        const person = generatePerson(target);
+        const el = document.createElement('button');
+        el.className = 'glass-panel p-4 rounded-xl flex items-center gap-4 text-left hover:border-pink-500 transition-all group';
+        el.innerHTML = `
+            <img src="${person.pfp}" class="w-16 h-16 rounded-xl object-cover bg-gray-800">
+            <div class="flex-1">
+                <div class="font-bold text-white group-hover:text-pink-400">${person.name}</div>
+                <div class="text-xs text-gray-400 flex gap-2 mt-1">
+                    <span class="bg-white/10 px-2 py-0.5 rounded">Talent: ${person.stats.talent}</span>
+                    <span class="bg-white/10 px-2 py-0.5 rounded">Fame: ${person.stats.fame}</span>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-emerald-400 font-mono font-bold">$${person.cost.toLocaleString()}</div>
+                <div class="text-[10px] text-gray-500">/ week</div>
+            </div>
+        `;
+        el.onclick = () => selectCandidate(person);
+        list.appendChild(el);
+    }
 };
 
-// --- 8. WEEKLY TICKER ---
+function generatePerson(role) {
+    const f = FIRST_NAMES[Math.floor(Math.random()*FIRST_NAMES.length)];
+    const l = LAST_NAMES[Math.floor(Math.random()*LAST_NAMES.length)];
+    const talent = Math.floor(Math.random() * 100) + (gameState.fame/100);
+    const fame = Math.floor(Math.random() * 100);
+    const cost = Math.floor((talent * 200) + (fame * 50));
+    return {
+        id: Date.now() + Math.random(),
+        name: `${f} ${l}`,
+        role,
+        pfp: `https://api.dicebear.com/7.x/avataaars/svg?seed=${f}${l}`,
+        stats: { talent, fame },
+        cost: Math.max(500, cost)
+    };
+}
+
+function selectCandidate(person) {
+    document.getElementById('hiring-modal').classList.add('hidden');
+    if(hiringTarget === 'director') {
+        wizState.crew.director = person;
+        document.getElementById('director-select').innerHTML = `
+            <div class="p-4 bg-pink-900/20 border border-pink-500/50 rounded-xl flex justify-between items-center">
+                <span class="font-bold text-white">${person.name}</span>
+                <span class="text-xs text-emerald-400">$${person.cost}/wk</span>
+            </div>`;
+    } else if(hiringTarget === 'editor') {
+        wizState.crew.editor = person;
+        document.getElementById('editor-select').innerHTML = `
+            <div class="p-4 bg-pink-900/20 border border-pink-500/50 rounded-xl flex justify-between items-center">
+                <span class="font-bold text-white">${person.name}</span>
+                <span class="text-xs text-emerald-400">$${person.cost}/wk</span>
+            </div>`;
+    } else if(hiringTarget === 'actor') {
+        // Open Role Details
+        document.getElementById('role-modal').classList.remove('hidden');
+        // Hacky way to pass person to the confirm button
+        document.getElementById('btn-confirm-role').onclick = () => {
+            const roleName = document.getElementById('role-char-name').value || "Unnamed";
+            const roleType = document.getElementById('role-type').value || "Extra";
+            wizState.cast.push({ actor: person, roleName, roleType });
+            document.getElementById('role-modal').classList.add('hidden');
+            renderWizard();
+        };
+    }
+}
+
+window.removeCast = (idx) => {
+    wizState.cast.splice(idx, 1);
+    renderWizard();
+};
+
+function calculateWeeklyCost() {
+    let cost = 0;
+    if(wizState.crew.director) cost += wizState.crew.director.cost;
+    if(wizState.crew.editor) cost += wizState.crew.editor.cost;
+    wizState.cast.forEach(c => cost += c.actor.cost);
+    
+    // Base production cost based on type
+    if(wizState.type === 'movie') cost += 5000;
+    if(wizState.type === 'show') cost += 10000;
+    
+    return cost;
+}
+
+// --- GREENLIGHT ---
+document.getElementById('btn-greenlight').onclick = () => {
+    const cost = calculateWeeklyCost();
+    if(gameState.cash < cost * 2) return showToast("You need at least 2 weeks of budget!", "error");
+    
+    const genreData = GENRES.find(g => g.id === wizState.genre);
+    
+    const newProject = {
+        id: Date.now(),
+        title: document.getElementById('prod-title').value,
+        type: wizState.type,
+        genre: genreData.name,
+        genreId: genreData.id,
+        crew: wizState.crew,
+        cast: wizState.cast,
+        weeklyCost: cost,
+        progress: 0,
+        weeksNeeded: wizState.type === 'movie' ? 12 : (wizState.type === 'book' ? 20 : 0), // Movies need 12 weeks, Shows are infinite
+        season: 1,
+        episodes: 0, // for shows
+        quality: 0,
+        totalCost: 0
+    };
+    
+    gameState.activeProjects.push(newProject);
+    document.getElementById('production-modal').classList.add('hidden');
+    updateHUD();
+    renderTab('active-projects');
+    showToast("Project Greenlit!", "success");
+};
+
+// --- SHOW LOGIC ---
+function produceEpisode(idx) {
+    const proj = gameState.activeProjects[idx];
+    if(gameState.cash < proj.weeklyCost) return showToast("Insufficient Funds!", "error");
+    
+    gameState.cash -= proj.weeklyCost;
+    proj.totalCost += proj.weeklyCost;
+    proj.episodes++;
+    
+    // Quality Calc
+    let epQuality = Math.floor(Math.random() * 50);
+    // Add bonuses from cast/crew
+    if(proj.crew.director) epQuality += (proj.crew.director.stats.talent / 5);
+    proj.cast.forEach(c => epQuality += (c.actor.stats.talent / 10));
+    
+    // Add bonuses from items
+    gameState.inventory.forEach(id => {
+        const item = SHOP_ITEMS.find(i=>i.id===id);
+        if(item) epQuality += item.qualityBonus;
+    });
+
+    proj.quality = (proj.quality * (proj.episodes-1) + epQuality) / proj.episodes; // Average quality
+    
+    updateHUD();
+    renderTab('active-projects');
+    showToast(`Episode ${proj.episodes} Produced!`, 'success');
+}
+
+function finishSeason(idx) {
+    const proj = gameState.activeProjects[idx];
+    
+    // Calculate Revenue
+    const genreMod = GENRES.find(g=>g.id===proj.genreId).multiplier;
+    const baseRev = (proj.quality * 1000) * proj.episodes;
+    const revenue = Math.floor(baseRev * genreMod * (1 + gameState.fame/500));
+    
+    gameState.cash += revenue;
+    gameState.fame += Math.floor(proj.quality * proj.episodes);
+    
+    showToast(`Season Wrapped! Revenue: $${revenue.toLocaleString()}`, 'success');
+    
+    // Move to history but keep "IP" alive (simplified: just archiving for now, in a real game we'd keep it renewable)
+    // For this version: Shows stay active but season resets or you can cancel. 
+    // Let's archive it to history as a "Season" entry and keep it active for next season.
+    
+    gameState.releasedProjects.unshift({
+        ...proj,
+        title: `${proj.title} (S${proj.season})`,
+        revenue
+    });
+    
+    proj.season++;
+    proj.episodes = 0;
+    proj.totalCost = 0; // Reset cost tracker for new season
+    
+    updateHUD();
+    renderTab('active-projects');
+}
+
+// --- PROJECT UPDATE LOGIC (NEXT WEEK) ---
 document.getElementById('btn-next-week').onclick = () => {
     gameState.week++;
     
-    let wage = JOB_TITLES[gameState.jobIndex].wage;
-    if((gameState.staff||[]).includes('agent')) wage *= 1.1; // Agent Bonus
+    // Wages
+    gameState.cash += JOB_TITLES[gameState.jobIndex].wage;
     
-    gameState.cash += wage;
-    
-    // Staff Upkeep
-    let upkeep = 0;
-    (gameState.staff||[]).forEach(id => {
-        const s = STAFF_TYPES.find(x => x.id === id);
-        if(s) upkeep += s.upkeep;
+    // Update Active Movies/Books (Progress Bars)
+    gameState.activeProjects.forEach((proj, i) => {
+        if(proj.type === 'movie' || proj.type === 'book') {
+            if(proj.progress < proj.weeksNeeded) {
+                if(gameState.cash >= proj.weeklyCost) {
+                    gameState.cash -= proj.weeklyCost;
+                    proj.totalCost += proj.weeklyCost;
+                    proj.progress++;
+                } else {
+                    showToast(`Production stalled on ${proj.title}: No Cash`, 'error');
+                }
+            }
+        }
     });
-    // Studio Staff Upkeep
-    if(gameState.studio.employees) upkeep += (gameState.studio.employees * 1000);
-    
-    gameState.cash -= upkeep;
-    
-    // Passive Gains
-    if((gameState.staff||[]).includes('publicist')) gameState.fame += 5;
-    if((gameState.staff||[]).includes('trainer')) gameState.talent += 5;
-    
-    // Streaming
-    if(gameState.streaming.active) {
-        const streamRev = gameState.streaming.subs * gameState.streaming.price;
-        gameState.cash += streamRev;
-    }
-    
-    saveGame();
+
     updateHUD();
     
-    // Refresh Tab
-    const active = document.querySelector('.nav-btn.active');
-    if(active) renderTab(active.dataset.tab);
+    // Refresh current tab if needed
+    const activeBtn = document.querySelector('.nav-btn.active');
+    if(activeBtn && activeBtn.dataset.tab === 'active-projects') renderTab('active-projects');
 };
+
+function releaseProject(idx) {
+    const proj = gameState.activeProjects[idx];
+    
+    // Final Quality Calc
+    let baseQ = 50;
+    if(proj.crew.director) baseQ += (proj.crew.director.stats.talent / 4);
+    if(proj.crew.editor) baseQ += (proj.crew.editor.stats.talent / 4);
+    proj.cast.forEach(c => baseQ += (c.actor.stats.talent / 8));
+    gameState.inventory.forEach(id => {
+        const item = SHOP_ITEMS.find(i=>i.id===id);
+        if(item) baseQ += item.qualityBonus;
+    });
+    
+    proj.quality = Math.min(100, Math.floor(baseQ));
+    
+    // Revenue
+    const genreMod = GENRES.find(g=>g.id===proj.genreId).multiplier;
+    const revenue = Math.floor(proj.totalCost * (proj.quality/40) * genreMod * (Math.random() + 0.5));
+    
+    gameState.cash += revenue;
+    gameState.fame += (proj.quality * 10);
+    
+    // Archive
+    gameState.releasedProjects.unshift({ ...proj, revenue });
+    gameState.activeProjects.splice(idx, 1);
+    
+    showToast(`${proj.title} Released! Box Office: $${revenue.toLocaleString()}`, 'success');
+    renderTab('studio');
+    updateHUD();
+}
+
+// --- HELPERS ---
+function generateMovieTitle() {
+    // Uses the arrays from data.js
+    const p = MOVIE_PREFIXES[Math.floor(Math.random() * MOVIE_PREFIXES.length)];
+    const n = MOVIE_NOUNS[Math.floor(Math.random() * MOVIE_NOUNS.length)];
+    return `${p} ${n}`;
+}
