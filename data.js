@@ -15,7 +15,7 @@ const HARDWARE_DB = [
     { id: 'quantum', name: 'Q-Bit Array', cost: 1500000, compute: 10000, upkeep: 5000, reqTech: 'quantum_tech' }
 ];
 
-// Companies to pitch to (Contract Grid)
+// Companies
 const COMPANIES_DB = [
     { name: 'Indie Devs', budget: 1500 }, 
     { name: 'Startup Inc', budget: 3500 },
@@ -36,7 +36,7 @@ const COMPANIES_DB = [
     { name: 'Global Gov', budget: 500000 }
 ];
 
-// Marketing Cameos & Methods
+// Campaigns
 const CAMPAIGNS_DB = [
     { id: 'social_ads', name: 'Social Media Blast', cost: 2000, hype: 15, duration: 2, type: 'basic' },
     { id: 'influencer', name: 'Tech Influencer', cost: 15000, hype: 40, duration: 4, type: 'basic' },
@@ -48,7 +48,7 @@ const CAMPAIGNS_DB = [
     { id: 'superbowl', name: 'Super Bowl Commercial', cost: 5000000, hype: 5000, duration: 12, type: 'basic' }
 ];
 
-// --- MASSIVE RIVALS LIST ---
+// Extended Rivals
 const RIVALS_DB = [
     { name: 'OpenAI', strength: 98, color: 'text-green-400' },
     { name: 'Anthropic', strength: 92, color: 'text-yellow-400' },
@@ -69,23 +69,46 @@ const RIVALS_DB = [
     { name: 'Amazon AGI', strength: 88, color: 'text-yellow-600' },
     { name: 'IBM Watson', strength: 50, color: 'text-blue-800' },
     { name: 'Tesla AI', strength: 75, color: 'text-red-500' },
-    { name: 'Nvidia Research', strength: 99, color: 'text-green-500' }
+    { name: 'Nvidia Research', strength: 99, color: 'text-green-500' },
+    { name: 'Sora Video', strength: 95, color: 'text-red-400' },
+    { name: 'Runway ML', strength: 70, color: 'text-pink-500' }
 ];
 
-// NAME GENERATOR PARTS (Updated with more variety)
+// NEW: Review Database for Variety
+const REVIEWS_DB = {
+    low: [
+        "Trash. Absolute garbage.", "Hallucinates more than my uncle.", "Waste of API credits.", 
+        "Slow, dumb, and expensive.", "Can't even code a Hello World properly.", 
+        "The generated images look like nightmares.", "Refund requested.", "Zero coherence.",
+        "Why is this so popular? It breaks constantly."
+    ],
+    mid: [
+        "It's okay, not great.", "Good for basic drafts, bad for final.", "A bit slow but works.",
+        "Better than the last version, but still buggy.", "Serviceable.", "Meh.",
+        "The video generation is choppy but cool concept.", "Decent logic reasoning."
+    ],
+    high: [
+        "Actually really good.", "Saves me 5 hours a day.", "Code generation is spot on.",
+        "The 3D models are usable in production!", "Video consistency is improved.",
+        "My workflow is changed forever.", "Solid performance.", "Best in class for the price."
+    ],
+    god: [
+        "AGI ACHIEVED?!", "This feels illegal it's so good.", "Consciousness simulated.",
+        "The quality is indistinguishable from reality.", "Goodbye Hollywood.", 
+        "I asked it to solve physics and it did.", "Absolute SOTA.", "Unbelievable details."
+    ]
+};
+
 const MODEL_PREFIXES = [
     "Super", "Ultra", "Hyper", "Mega", "Omni", "Quantum", "Cyber", "Neo", "Flux", "Astro", "Deep", 
     "Brain", "Neural", "Synapse", "Void", "Star", "Nexus", "Titan", "Giga", "Terra", "Galactic", 
-    "Cosmic", "Infinite", "Alpha", "Omega", "Zeta", "Prime", "Core", "Apex", "Zenith", "Horizon", 
-    "Vector", "Tensor", "Scalar", "Logic", "Reason", "Thought", "Mind", "Soul", "Spirit", "Ghost",
-    "Spark", "Nova", "Pulse", "Vortex", "Aether", "Chronos", "Helios", "Atlas", "Orion", "Cipher"
+    "Cosmic", "Infinite", "Alpha", "Omega", "Zeta", "Prime", "Core", "Apex", "Zenith", "Horizon"
 ];
 
 const MODEL_SUFFIXES = [
     "Mind", "Core", "Flow", "Net", "GPT", "Vision", "Voice", "Sim", "X", "Prime", "Max", "Pro", 
     "One", "Zero", "Alpha", "Beta", "Gamma", "Delta", "Sigma", "Turbo", "V", "XL", "XS", "Nano", 
-    "Heavy", "Light", "Chat", "Code", "Art", "Imagine", "Real", "Dream", "Nightmare", "Pulse", 
-    "Wave", "Signal", "Node", "Link", "Chain", "Graph", "Matrix", "Engine", "Lab", "Studio", "Gen"
+    "Heavy", "Light", "Chat", "Code", "Art", "Imagine", "Real", "Dream", "Nightmare", "Pulse"
 ];
 
-const MODEL_VERSIONS = ["1.0", "2.0", "3.0", "3.5", "4.0", "4o", "5", "X", "Pro", "Ultra", "Max", "Turbo", "Preview"];
+const MODEL_VERSIONS = ["1.0", "2.0", "3.0", "3.5", "4.0", "4o", "5", "X", "Pro", "Ultra", "Max", "Turbo", "Preview", "Final"];
