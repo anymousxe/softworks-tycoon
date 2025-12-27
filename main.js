@@ -29,6 +29,7 @@ const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
 const COMPANIES = (typeof COMPANIES_DB !== 'undefined') ? COMPANIES_DB : [];
 const CAMPAIGNS = (typeof CAMPAIGNS_DB !== 'undefined') ? CAMPAIGNS_DB : [];
 const RIVALS_LIST = (typeof RIVALS_DB !== 'undefined') ? RIVALS_DB : [];
+const SHOP_ITEMS = (typeof SHOP_ITEMS_DB !== 'undefined') ? SHOP_ITEMS_DB : []; // RESTORED SHOP ITEMS
 const PREFIXES = (typeof MODEL_PREFIXES !== 'undefined') ? MODEL_PREFIXES : ['Super'];
 const SUFFIXES = (typeof MODEL_SUFFIXES !== 'undefined') ? MODEL_SUFFIXES : ['GPT'];
 const VERSIONS = (typeof MODEL_VERSIONS !== 'undefined') ? MODEL_VERSIONS : ['1.0'];
@@ -49,15 +50,6 @@ const PRODUCTS = [
     { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 10, specs: ['Music', 'Voice', 'SFX'] },
     { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40, specs: ['Deepfake', 'Cinema', 'VFX'] },
     { id: 'agi', name: 'AGI Core', cost: 5000000, time: 24, compute: 5000, reqTech: 'agi_theory', specs: ['Sentience', 'Omniscience', 'Singularity'] }
-];
-
-const SHOP_ITEMS = [
-    { id: 'data_s', name: 'Data Set (Small)', cost: 5000, effect: 'Research +100', type: 'consumable', amount: 100 },
-    { id: 'data_m', name: 'Data Set (Medium)', cost: 15000, effect: 'Research +350', type: 'consumable', amount: 350 },
-    { id: 'data_l', name: 'Data Set (Large)', cost: 40000, effect: 'Research +1000', type: 'consumable', amount: 1000 },
-    { id: 'consultant', name: 'AI Consultant', cost: 10000, effect: 'Dev Speed Boost (Instant)', type: 'consumable', amount: 0 },
-    { id: 'coffee', name: 'Premium Coffee', cost: 2000, effect: 'Employees: +10 Morale', type: 'consumable_emp', amount: 10 },
-    { id: 'party', name: 'Office Party', cost: 5000, effect: 'Employees: +30 Morale', type: 'consumable_emp', amount: 30 }
 ];
 
 // --- AUTH & SETUP ---
@@ -192,13 +184,14 @@ function startGame(id, data) {
     if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
     if(!gameState.marketModels) gameState.marketModels = []; 
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
+    if(!gameState.purchasedItems) gameState.purchasedItems = [];
     
-    // Ensure "staged" property exists
     if(gameState.products) {
         gameState.products.forEach(p => {
             if(p.isStaged === undefined) p.isStaged = false;
             if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
             if(!p.contracts) p.contracts = [];
+            if(!p.capabilities) p.capabilities = "General Purpose Model";
         });
     }
 
@@ -424,7 +417,7 @@ function generateReviews() {
     }
 }
 
-// --- NEXT WEEK LOGIC ---
+// --- NEXT WEEK LOGIC (FIXED RELEASE LOOP) ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
     const btn = document.getElementById('btn-next-week');
     btn.disabled = true;
@@ -456,30 +449,36 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
             if (gameState.products) {
                 gameState.products.forEach(p => {
-                    // Update Development
-                    if(!p.released && p.weeksLeft > 0 && !p.isStaged) {
-                        const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
-                        p.weeksLeft -= (1 * speedMult);
+                    // Update Development Logic (Fixed)
+                    if(!p.released && !p.isStaged) {
+                        if(p.weeksLeft > 0) {
+                            const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
+                            p.weeksLeft -= (1 * speedMult);
+                        }
                         
+                        // Check if finished
                         if(p.weeksLeft <= 0) {
-                            if(p.updateType) {
-                                // Variants / Updates auto release (simplified)
+                            p.weeksLeft = 0;
+                            if(p.isUpdating) {
+                                // Auto-release updates
                                 p.released = true;
                                 p.isUpdating = false;
-                                p.weeksLeft = 0;
                                 if(p.updateType === 'major') {
                                     p.version = parseFloat((p.version + 1.0).toFixed(1));
                                     p.quality += 15 + (p.researchBonus || 0);
                                 } else if (p.updateType !== 'minor') {
-                                    // It's a variant
+                                    // Variants
                                     p.version = 1.0;
                                     p.quality += (p.researchBonus || 0);
+                                } else {
+                                    // Minor
+                                    p.version = parseFloat((p.version + 0.1).toFixed(1));
+                                    p.quality += 5 + (p.researchBonus || 0);
                                 }
                                 p.hype = 100;
-                                showToast(`${p.name} Released!`, 'success');
+                                showToast(`${p.name} Update Released!`, 'success');
                             } else {
-                                // New Product -> Staging
-                                p.weeksLeft = 0;
+                                // New Product -> Go to Staging
                                 p.isStaged = true;
                                 showToast(`${p.name} ready for release!`, 'success');
                             }
@@ -671,6 +670,7 @@ function renderTab(tab) {
                                 <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3"></i> API</div>
                                 ${p.customFeatures ? p.customFeatures.map(f => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${f}</div>`).join('') : ''}
                             </div>
+                            <div class="text-xs text-slate-400 mt-2 italic max-w-xs leading-tight">"${p.capabilities || 'Standard Model'}"</div>
                         </div>
                         <div class="text-right mt-2">
                             <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Weekly Rev</div>
@@ -693,7 +693,6 @@ function renderTab(tab) {
                          <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH</button>
                          <button class="bg-white text-black px-3 py-3 text-[10px] font-bold hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v${Math.floor(p.version)+1}.0</button>
                     </div>
-                    <!-- RESTORED EXTEND LINE & API BUTTONS -->
                     <div class="grid grid-cols-2 gap-2">
                          <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
                          <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-green-500 btn-api rounded-xl tracking-wider transition-colors" data-id="${p.id}">CONFIG API</button>
@@ -702,8 +701,8 @@ function renderTab(tab) {
                 `;
                 card.querySelector('.btn-patch').onclick = () => openUpdateModal(p.id, 'minor');
                 card.querySelector('.btn-major').onclick = () => openUpdateModal(p.id, 'major');
-                card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id); // Restored
-                card.querySelector('.btn-api').onclick = () => openApiModal(p.id); // Restored
+                card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id); 
+                card.querySelector('.btn-api').onclick = () => openApiModal(p.id); 
                 card.querySelector('.btn-delete').onclick = () => { if(confirm('Discontinue?')) { gameState.products = gameState.products.filter(x => x.id !== p.id); saveGame(); renderTab('dash'); }};
             } 
             // --- IN DEVELOPMENT ---
@@ -722,7 +721,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- RESTORED STATS TAB ---
+    // --- STATS TAB (Restored) ---
     if(tab === 'stats') {
         content.innerHTML = `
             <div class="flex justify-between items-center mb-6">
@@ -773,7 +772,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- RESTORED RIVALS TAB ---
+    // --- RIVALS TAB (Restored) ---
     if(tab === 'rivals') {
         content.innerHTML = `
             <h2 class="text-3xl font-black text-white mb-6 tracking-tight">MARKET LEADERBOARD</h2>
@@ -811,7 +810,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- RESTORED MANAGE TAB ---
+    // --- MANAGE TAB (Restored) ---
     if(tab === 'biz') {
         const empCount = (gameState.employees && gameState.employees.count) || 1;
         const morale = (gameState.employees && gameState.employees.morale) || 100;
@@ -874,7 +873,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- DEV TAB (Updated for Custom Models & AGI) ---
+    // --- DEV TAB (Updated for Custom Models & Description) ---
     if(tab === 'dev') {
         content.innerHTML = `
             <h2 class="text-3xl font-black text-white mb-6 tracking-tight">NEW PROJECT</h2>
@@ -884,6 +883,9 @@ function renderTab(tab) {
                     <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Codename</label>
                     <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-4 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="Project Name">
                     
+                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Specialization / Description</label>
+                    <textarea id="new-proj-specs" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-mono text-sm h-20 resize-none" placeholder="e.g. Best for coding Python..."></textarea>
+
                     <!-- DYNAMIC SETTINGS AREA -->
                     <div id="custom-settings" class="mb-6 hidden space-y-3 p-4 bg-slate-900/50 rounded-xl border border-slate-700">
                         <div class="text-[10px] text-slate-400 font-bold uppercase">Model Settings</div>
@@ -954,6 +956,7 @@ function renderTab(tab) {
 
         document.getElementById('btn-start-dev').onclick = () => {
             const name = document.getElementById('new-proj-name').value;
+            const specs = document.getElementById('new-proj-specs').value; // Get Description
             if(!name || !selectedType) return showToast('Select project type and name!', 'error');
             
             let extraCost = 0, extraTime = 0, extraCompute = 0, features = [];
@@ -965,13 +968,17 @@ function renderTab(tab) {
                 features.push('Image-to-3D'); extraCost += 30000; extraTime += 3; extraCompute += 15;
             }
 
-            const totalCost = selectedType.cost + extraCost;
-            const totalCompute = selectedType.compute + extraCompute;
-
-            if(gameState.cash < totalCost && !gameState.isSandbox) return showToast('Insufficient Funds!', 'error');
-            if(getCompute() < totalCompute) return showToast('Need more Compute!', 'error');
+            // RESOURCE SCALING LOGIC (More Compute/Research for higher starting quality)
+            let baseCost = selectedType.cost + extraCost;
+            let baseCompute = selectedType.compute + extraCompute;
             
-            gameState.cash -= totalCost;
+            if(injectAmount > 500) { baseCompute += 50; baseCost += 100000; }
+            if(injectAmount > 2000) { baseCompute += 200; baseCost += 500000; }
+
+            if(gameState.cash < baseCost && !gameState.isSandbox) return showToast('Insufficient Funds!', 'error');
+            if(getCompute() < baseCompute) return showToast('Need more Compute!', 'error');
+            
+            gameState.cash -= baseCost;
             gameState.researchPts -= injectAmount;
             
             let baseQ = Math.floor(Math.random() * 40) + 50;
@@ -982,14 +989,15 @@ function renderTab(tab) {
                 quality: baseQ + injectAmount, revenue: 0, hype: 0, 
                 released: false, isUpdating: false, isStaged: false,
                 weeksLeft: selectedType.time + extraTime, 
-                researchBonus: 0, customFeatures: features, isOpenSource: false 
+                researchBonus: 0, customFeatures: features, isOpenSource: false,
+                capabilities: specs || "General Purpose Model"
             });
             updateHUD(); showToast('Development Started', 'success'); renderTab('dash');
         };
         lucide.createIcons();
     }
 
-    // --- MARKET TAB (Same) ---
+    // --- MARKET TAB (Restored) ---
     if(tab === 'market') {
         content.innerHTML = `
             <h2 class="text-3xl font-black text-white mb-6 tracking-tight">HARDWARE MARKET</h2>
@@ -1022,11 +1030,42 @@ function renderTab(tab) {
                 };
                 if(owned > 0) {
                     el.querySelector('.btn-sell').onclick = () => {
-                        const hw = gameState.hardware.find(x => x.id === h.id);
-                        if(hw && hw.count > 0) { hw.count--; gameState.cash += Math.floor(h.cost*0.5); updateHUD(); renderTab('market'); }
+                        const hw = gameState.hardware.find(x => x.typeId === h.id);
+                        if(hw && hw.count > 0) { hw.count--; gameState.cash += Math.floor(h.cost*0.5); updateHUD(); renderTab('market'); showToast(`Sold ${h.name}`, 'info'); }
                     };
                 }
             }
+            grid.appendChild(el);
+        });
+        lucide.createIcons();
+    }
+
+    // --- SHOP TAB (Restored) ---
+    if(tab === 'shop') {
+        content.innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-black text-white tracking-tight">CORPORATE ASSETS</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
+        `;
+        const grid = document.getElementById('shop-grid');
+        const availableItems = SHOP_ITEMS.filter(item => {
+            if(item.type.includes('consumable')) return true;
+            return !(gameState.purchasedItems || []).includes(item.id);
+        });
+        availableItems.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-6 rounded-2xl hover:border-cyan-500/50 transition-colors';
+            el.innerHTML = `<h3 class="font-bold text-white text-lg mb-1">${item.name}</h3><div class="text-xs text-cyan-400 mb-4 font-mono">${item.effect}</div><button class="w-full border border-slate-700 text-white font-bold py-3 rounded-xl hover:bg-white hover:text-black transition-colors">BUY $${item.cost.toLocaleString()}</button>`;
+            el.querySelector('button').onclick = () => {
+                if(gameState.cash >= item.cost) {
+                    gameState.cash -= item.cost;
+                    if(item.type === 'consumable') { if(item.amount > 0) gameState.researchPts += item.amount; }
+                    else if(item.type === 'consumable_emp') { if(!gameState.employees) gameState.employees = { morale: 100 }; gameState.employees.morale = Math.min(100, gameState.employees.morale + item.amount); showToast(`Staff Morale Increased!`, 'success'); }
+                    else { if(!gameState.purchasedItems) gameState.purchasedItems = []; gameState.purchasedItems.push(item.id); }
+                    updateHUD(); showToast('Purchased!', 'success'); saveGame(); renderTab('shop');
+                } else showToast('Insufficient Funds!', 'error');
+            };
             grid.appendChild(el);
         });
         lucide.createIcons();
