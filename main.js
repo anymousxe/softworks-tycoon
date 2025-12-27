@@ -43,7 +43,6 @@ const RESEARCH = [
     { id: 'agi_theory', name: 'AGI Theory', cost: 15000, desc: 'Unlock AGI Model Development' }
 ];
 
-// UPDATED PRODUCT LIST - Includes AGI
 const PRODUCTS = [
     { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5, specs: ['Chatbot', 'Coding', 'Writing'] },
     { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15, specs: ['Realistic', 'Anime', 'Logo'] },
@@ -66,8 +65,6 @@ const SHOP_ITEMS = [
 auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
-        // Only hide login screen if user is already authenticated
-        // The landing screen will still cover this until clicked
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('menu-screen').classList.remove('hidden');
         
@@ -196,10 +193,11 @@ function startGame(id, data) {
     if(!gameState.marketModels) gameState.marketModels = []; 
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
     
-    // Ensure "staged" property exists
     if(gameState.products) {
         gameState.products.forEach(p => {
             if(p.isStaged === undefined) p.isStaged = false;
+            if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+            if(!p.contracts) p.contracts = [];
         });
     }
 
@@ -353,7 +351,6 @@ function generateRivalRelease() {
     const types = ['text', 'image', 'audio', 'video'];
     const type = types[Math.floor(Math.random() * types.length)];
 
-    // Uncapped Quality Logic
     let baseQ = 50 + (gameState.year - 2025) * 20; 
     const quality = Math.floor(baseQ + Math.random() * 50);
 
@@ -404,7 +401,6 @@ function generateReviews() {
             rating = Math.random() > 0.5 ? 2 : 1;
         }
 
-        // Custom Features Check
         if(p.customFeatures && p.customFeatures.includes('Image-to-Video') && rating > 3) {
             sentimentPool.push("The Image-to-Video feature is revolutionary!");
         }
@@ -436,7 +432,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
     setTimeout(() => {
         try {
-            // History Snapshot
             if (gameState) {
                 historyStack.push(JSON.parse(JSON.stringify(gameState)));
                 if (historyStack.length > 6) historyStack.shift();
@@ -448,7 +443,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             if(Math.random() > 0.7) generateRivalRelease();
             generateReviews();
 
-            // Costs
             const wages = (gameState.employees.count || 1) * 800;
             gameState.cash -= wages;
             const upkeep = gameState.hardware.reduce((sum, hw) => {
@@ -457,10 +451,8 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             }, 0);
             gameState.cash -= upkeep;
 
-            // Research Gain
             gameState.researchPts += Math.floor(gameState.reputation / 5) + Math.floor(getCompute() * 0.05) + 5;
 
-            // Product Logic
             if (gameState.products) {
                 gameState.products.forEach(p => {
                     // Update Development
@@ -468,22 +460,37 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
                         p.weeksLeft -= (1 * speedMult);
                         
-                        // Finished Development -> Go to Staging
                         if(p.weeksLeft <= 0) {
-                            p.weeksLeft = 0;
-                            p.isStaged = true; // NEW: Enters staging mode instead of auto-release
-                            showToast(`${p.name} ready for release!`, 'success');
+                            if(p.updateType) {
+                                // Variants / Updates auto release (simplified)
+                                p.released = true;
+                                p.isUpdating = false;
+                                p.weeksLeft = 0;
+                                if(p.updateType === 'major') {
+                                    p.version = parseFloat((p.version + 1.0).toFixed(1));
+                                    p.quality += 15 + (p.researchBonus || 0);
+                                } else if (p.updateType !== 'minor') {
+                                    // It's a variant
+                                    p.version = 1.0;
+                                    p.quality += (p.researchBonus || 0);
+                                }
+                                p.hype = 100;
+                                showToast(`${p.name} Released!`, 'success');
+                            } else {
+                                // New Product -> Staging
+                                p.weeksLeft = 0;
+                                p.isStaged = true;
+                                showToast(`${p.name} ready for release!`, 'success');
+                            }
                         }
                     }
 
                     // Live Product Logic
                     if(p.released && !p.isUpdating) {
                         let weeklyRev = 0;
-                        // NO CAP on Hype (was 250)
                         const organicUsers = Math.floor((p.quality * p.hype * 25)); 
                         let organicRev = Math.floor(organicUsers * 0.5); 
                         
-                        // Feature Revenue Multipliers
                         if (p.customFeatures) {
                             if(p.customFeatures.includes('Image-to-Video')) organicRev *= 1.5;
                             if(p.customFeatures.includes('Image-to-3D')) organicRev *= 1.3;
@@ -492,7 +499,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
                         weeklyRev += organicRev;
                         
-                        // Contracts
                         if(p.contracts) {
                             p.contracts.forEach(cName => {
                                 const comp = COMPANIES.find(c => c.name === cName);
@@ -503,7 +509,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         // API
                         if(p.apiConfig && p.apiConfig.active) {
                             if(p.apiConfig.price === 0) {
-                                p.hype = Math.min(500, p.hype + 5); // Max Hype raised to 500
+                                p.hype = Math.min(500, p.hype + 5); 
                                 const limitMult = p.apiConfig.limit / 100;
                                 gameState.cash -= (200 * limitMult); 
                             } else {
@@ -527,7 +533,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                 });
             }
 
-            // Budget inflation
             if(gameState.week % 4 === 0) {
                COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*500)-100)));
             }
@@ -627,24 +632,18 @@ function renderTab(tab) {
                     </div>
                     <p class="text-[10px] text-slate-500 mt-3 text-center">Polishing improves quality but delays revenue.</p>
                 `;
-
-                // POLISH ACTION
                 card.querySelector('.btn-train-more').onclick = () => {
-                    const polishCost = Math.floor(p.quality * 50); // Cost increases with quality
+                    const polishCost = Math.floor(p.quality * 50); 
                     if(gameState.cash >= polishCost) {
                         gameState.cash -= polishCost;
                         p.isStaged = false;
-                        p.weeksLeft = 2; // Add 2 weeks training
-                        p.researchBonus = (p.researchBonus || 0) + 25; // Guarantee boost
-                        p.quality += 10; // Instant boost
+                        p.weeksLeft = 2; 
+                        p.researchBonus = (p.researchBonus || 0) + 25; 
+                        p.quality += 10; 
                         updateHUD(); renderTab('dash');
                         showToast(`${p.name} returned to training lab!`, 'success');
-                    } else {
-                        showToast(`Need $${polishCost} to polish`, 'error');
-                    }
+                    } else { showToast(`Need $${polishCost} to polish`, 'error'); }
                 };
-
-                // LAUNCH ACTION
                 card.querySelector('.btn-launch').onclick = () => {
                     p.released = true;
                     p.isStaged = false;
@@ -657,7 +656,9 @@ function renderTab(tab) {
             } 
             // --- LIVE PRODUCT ---
             else if(p.released && !p.isUpdating) {
-                // ... Existing Live Product UI ...
+                const apiActive = p.apiConfig && p.apiConfig.active;
+                const apiStatus = apiActive ? (p.apiConfig.price === 0 ? 'text-purple-400' : 'text-green-400') : 'text-slate-600';
+
                 card.innerHTML += `
                     <div class="flex justify-between items-start mb-6">
                         <div>
@@ -666,6 +667,7 @@ function renderTab(tab) {
                             </div>
                             <div class="flex flex-wrap gap-2 mt-2">
                                 <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${p.type.toUpperCase()}</div>
+                                <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3"></i> API</div>
                                 ${p.customFeatures ? p.customFeatures.map(f => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${f}</div>`).join('') : ''}
                             </div>
                         </div>
@@ -690,10 +692,17 @@ function renderTab(tab) {
                          <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH</button>
                          <button class="bg-white text-black px-3 py-3 text-[10px] font-bold hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v${Math.floor(p.version)+1}.0</button>
                     </div>
+                    <!-- RESTORED EXTEND LINE & API BUTTONS -->
+                    <div class="grid grid-cols-2 gap-2">
+                         <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
+                         <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-green-500 btn-api rounded-xl tracking-wider transition-colors" data-id="${p.id}">CONFIG API</button>
+                    </div>
                     <button class="w-full mt-2 text-slate-500 hover:text-red-500 text-[10px] font-bold py-2 btn-delete transition-colors">DISCONTINUE</button>
                 `;
                 card.querySelector('.btn-patch').onclick = () => openUpdateModal(p.id, 'minor');
                 card.querySelector('.btn-major').onclick = () => openUpdateModal(p.id, 'major');
+                card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id); // Restored
+                card.querySelector('.btn-api').onclick = () => openApiModal(p.id); // Restored
                 card.querySelector('.btn-delete').onclick = () => { if(confirm('Discontinue?')) { gameState.products = gameState.products.filter(x => x.id !== p.id); saveGame(); renderTab('dash'); }};
             } 
             // --- IN DEVELOPMENT ---
@@ -708,6 +717,57 @@ function renderTab(tab) {
                 `;
             }
             list.appendChild(card);
+        });
+        lucide.createIcons();
+    }
+
+    // --- RESTORED STATS TAB ---
+    if(tab === 'stats') {
+        content.innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-black text-white tracking-tight">GLOBAL LEADERBOARD</h2>
+                <div class="text-xs text-slate-500 font-mono">RANKING BY QUALITY</div>
+            </div>
+            <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+                <div class="grid grid-cols-6 bg-slate-900/80 p-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                    <div>Rank</div>
+                    <div>Type</div>
+                    <div class="col-span-2">Model Name</div>
+                    <div>Developer</div>
+                    <div class="text-right">Quality</div>
+                </div>
+                <div id="stats-list" class="divide-y divide-slate-800/50"></div>
+            </div>
+        `;
+        
+        const list = document.getElementById('stats-list');
+        const userModels = (gameState.products || []).filter(p => p.released).map(p => ({
+            name: p.name, company: gameState.companyName, quality: p.quality, type: p.type, isUser: true, color: 'text-cyan-400'
+        }));
+        
+        const marketModels = (gameState.marketModels || []).map(m => ({
+            ...m, type: m.modelType || 'text', isUser: false
+        }));
+        
+        const allModels = [...userModels, ...marketModels].sort((a,b) => b.quality - a.quality);
+        
+        const getIcon = (t) => {
+            switch(t) {
+                case 'text': return 'message-square'; case 'image': return 'image'; case 'audio': return 'music'; case 'video': return 'video'; default: return 'help-circle';
+            }
+        };
+
+        allModels.forEach((m, i) => {
+            const el = document.createElement('div');
+            el.className = `grid grid-cols-6 p-4 items-center text-sm ${m.isUser ? 'bg-cyan-900/10' : 'hover:bg-slate-900/30'} transition-colors`;
+            el.innerHTML = `
+                <div class="font-mono text-slate-500">#${i+1}</div>
+                <div class="text-slate-400 flex items-center gap-2"><i data-lucide="${getIcon(m.type)}" class="w-4 h-4"></i><span class="text-[9px] font-bold uppercase tracking-wider text-slate-600">${m.type.substring(0,4)}</span></div>
+                <div class="col-span-2 font-bold text-white flex items-center">${m.name}</div>
+                <div class="${m.color || 'text-slate-400'} text-xs font-bold">${m.company}</div>
+                <div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>
+            `;
+            list.appendChild(el);
         });
         lucide.createIcons();
     }
@@ -749,7 +809,6 @@ function renderTab(tab) {
         const typeContainer = document.getElementById('dev-types');
         const settingsDiv = document.getElementById('custom-settings');
         
-        // Render Products
         PRODUCTS.forEach(p => {
             const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
             const btn = document.createElement('div');
@@ -771,7 +830,6 @@ function renderTab(tab) {
                     btn.classList.add('border-cyan-500', 'bg-cyan-900/20');
                     selectedType = p;
 
-                    // Toggle Custom Settings
                     settingsDiv.classList.add('hidden');
                     document.getElementById('chk-container-video').classList.add('hidden');
                     document.getElementById('chk-container-3d').classList.add('hidden');
@@ -786,39 +844,23 @@ function renderTab(tab) {
             typeContainer.appendChild(btn);
         });
 
-        // Slider logic
         document.getElementById('research-inject').oninput = (e) => {
             injectAmount = parseInt(e.target.value);
             document.getElementById('inject-val').textContent = `${injectAmount} PTS`;
             document.getElementById('quality-boost').textContent = injectAmount; 
         };
 
-        // Initialize Logic
         document.getElementById('btn-start-dev').onclick = () => {
             const name = document.getElementById('new-proj-name').value;
             if(!name || !selectedType) return showToast('Select project type and name!', 'error');
             
-            // Check Custom Features
-            let extraCost = 0;
-            let extraTime = 0;
-            let extraCompute = 0;
-            let features = [];
+            let extraCost = 0, extraTime = 0, extraCompute = 0, features = [];
 
-            if(selectedType.id === 'video') {
-                if(document.getElementById('chk-img-to-vid').checked) {
-                    features.push('Image-to-Video');
-                    extraCost += 50000;
-                    extraTime += 4;
-                    extraCompute += 20;
-                }
+            if(selectedType.id === 'video' && document.getElementById('chk-img-to-vid').checked) {
+                features.push('Image-to-Video'); extraCost += 50000; extraTime += 4; extraCompute += 20;
             }
-            if(selectedType.id === 'image') {
-                if(document.getElementById('chk-img-to-3d').checked) {
-                    features.push('Image-to-3D');
-                    extraCost += 30000;
-                    extraTime += 3;
-                    extraCompute += 15;
-                }
+            if(selectedType.id === 'image' && document.getElementById('chk-img-to-3d').checked) {
+                features.push('Image-to-3D'); extraCost += 30000; extraTime += 3; extraCompute += 15;
             }
 
             const totalCost = selectedType.cost + extraCost;
@@ -830,22 +872,17 @@ function renderTab(tab) {
             gameState.cash -= totalCost;
             gameState.researchPts -= injectAmount;
             
-            // Uncapped Quality Base
             let baseQ = Math.floor(Math.random() * 40) + 50;
-            if(selectedType.id === 'agi') baseQ = 500; // AGI starts huge
+            if(selectedType.id === 'agi') baseQ = 500; 
 
             gameState.products.push({ 
                 id: Date.now().toString(), name, type: selectedType.id, version: 1.0, 
-                quality: baseQ + injectAmount, 
-                revenue: 0, hype: 0, 
-                released: false, isUpdating: false, isStaged: false, // Start developing
+                quality: baseQ + injectAmount, revenue: 0, hype: 0, 
+                released: false, isUpdating: false, isStaged: false,
                 weeksLeft: selectedType.time + extraTime, 
-                researchBonus: 0,
-                customFeatures: features,
-                isOpenSource: false 
+                researchBonus: 0, customFeatures: features, isOpenSource: false 
             });
-            updateHUD(); showToast('Development Started', 'success'); 
-            renderTab('dash');
+            updateHUD(); showToast('Development Started', 'success'); renderTab('dash');
         };
         lucide.createIcons();
     }
@@ -983,6 +1020,194 @@ document.getElementById('btn-confirm-update').onclick = () => {
     updateHUD();
     showToast(`Update started for ${p.name}`);
 };
+
+// --- RESTORED API MODAL LOGIC ---
+const apiModal = document.getElementById('api-modal');
+let selectedApiId = null;
+
+function openApiModal(productId) {
+    const p = gameState.products.find(x => x.id === productId);
+    if(!p) return;
+    selectedApiId = productId;
+    if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+    
+    const statusBtn = document.getElementById('btn-toggle-api-status');
+    const dot = statusBtn.querySelector('div');
+    const statusText = document.getElementById('api-status-text');
+    
+    if(p.apiConfig.active) {
+        statusBtn.classList.replace('bg-slate-700', 'bg-green-500');
+        dot.classList.replace('left-1', 'left-7');
+        statusText.textContent = "API Online";
+        statusText.className = "text-[10px] text-green-400";
+    } else {
+        statusBtn.classList.replace('bg-green-500', 'bg-slate-700');
+        dot.classList.replace('left-7', 'left-1');
+        statusText.textContent = "Currently Offline";
+        statusText.className = "text-[10px] text-slate-500";
+    }
+
+    document.getElementById('api-price-input').value = p.apiConfig.price;
+    document.getElementById('api-price-slider').value = p.apiConfig.price;
+    document.getElementById('api-limit-input').value = p.apiConfig.limit;
+    document.getElementById('api-limit-slider').value = p.apiConfig.limit;
+    
+    apiModal.classList.remove('hidden');
+}
+
+const priceInput = document.getElementById('api-price-input');
+const priceSlider = document.getElementById('api-price-slider');
+if(priceInput) priceInput.oninput = () => { priceSlider.value = priceInput.value; };
+if(priceSlider) priceSlider.oninput = () => { priceInput.value = priceSlider.value; };
+
+const limitInput = document.getElementById('api-limit-input');
+const limitSlider = document.getElementById('api-limit-slider');
+if(limitInput) limitInput.oninput = () => { limitSlider.value = limitInput.value; };
+if(limitSlider) limitSlider.oninput = () => { limitInput.value = limitSlider.value; };
+
+document.getElementById('btn-toggle-api-status').onclick = (e) => {
+    const btn = e.currentTarget;
+    const dot = btn.querySelector('div');
+    const isActive = btn.classList.contains('bg-green-500');
+    const statusText = document.getElementById('api-status-text');
+    
+    if(isActive) {
+        btn.classList.replace('bg-green-500', 'bg-slate-700');
+        dot.classList.replace('left-7', 'left-1');
+        statusText.textContent = "Currently Offline";
+        statusText.className = "text-[10px] text-slate-500";
+    } else {
+        btn.classList.replace('bg-slate-700', 'bg-green-500');
+        dot.classList.replace('left-1', 'left-7');
+        statusText.textContent = "API Online";
+        statusText.className = "text-[10px] text-green-400";
+    }
+};
+
+document.getElementById('btn-save-api').onclick = () => {
+    if(!selectedApiId) return;
+    const p = gameState.products.find(x => x.id === selectedApiId);
+    if(p) {
+        const isActive = document.getElementById('btn-toggle-api-status').classList.contains('bg-green-500');
+        p.apiConfig = {
+            active: isActive,
+            price: parseFloat(document.getElementById('api-price-input').value),
+            limit: parseInt(document.getElementById('api-limit-input').value)
+        };
+        showToast('API Configuration Deployed', 'success');
+        apiModal.classList.add('hidden');
+        renderTab('dash');
+    }
+};
+document.getElementById('btn-close-api').onclick = () => apiModal.classList.add('hidden');
+
+// --- RESTORED VARIANT MODAL LOGIC ---
+const variantModal = document.getElementById('variant-modal');
+let selectedVariantId = null;
+let selectedVariantType = null;
+let variantInjectAmount = 0;
+
+function openVariantModal(productId) {
+    const p = gameState.products.find(x => x.id === productId);
+    if(!p) return;
+    selectedVariantId = productId;
+    selectedVariantType = null;
+    variantInjectAmount = 0;
+    
+    document.getElementById('variant-research-slider').value = 0;
+    document.getElementById('variant-inject-val').textContent = "0 PTS";
+    document.getElementById('variant-quality-boost').textContent = "0";
+    document.getElementById('variant-base-name').textContent = p.name;
+    document.getElementById('custom-variant-input').classList.add('hidden');
+    
+    document.querySelectorAll('.variant-opt').forEach(b => {
+         b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
+         b.classList.add('border-slate-700');
+    });
+    
+    document.getElementById('btn-confirm-variant').disabled = true;
+    document.getElementById('btn-confirm-variant').classList.add('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
+    
+    variantModal.classList.remove('hidden');
+}
+
+document.getElementById('variant-research-slider').oninput = (e) => {
+    variantInjectAmount = parseInt(e.target.value);
+    document.getElementById('variant-inject-val').textContent = `${variantInjectAmount} PTS`;
+    document.getElementById('variant-quality-boost').textContent = variantInjectAmount;
+};
+
+document.querySelectorAll('.variant-opt').forEach(btn => {
+    btn.onclick = () => {
+        selectedVariantType = btn.dataset.type;
+        document.querySelectorAll('.variant-opt').forEach(b => {
+             b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
+             b.classList.add('border-slate-700');
+        });
+        
+        btn.classList.remove('border-slate-700');
+        if(selectedVariantType === 'lite') btn.classList.add('border-green-500', 'bg-slate-800');
+        if(selectedVariantType === 'flash') btn.classList.add('border-yellow-500', 'bg-slate-800');
+        if(selectedVariantType === 'pro') btn.classList.add('border-cyan-500', 'bg-slate-800');
+        if(selectedVariantType === 'ultra') btn.classList.add('border-purple-500', 'bg-slate-800');
+        if(selectedVariantType === 'custom') {
+            btn.classList.add('border-pink-500', 'bg-slate-800');
+            document.getElementById('custom-variant-input').classList.remove('hidden');
+        } else {
+            document.getElementById('custom-variant-input').classList.add('hidden');
+        }
+
+        const confirmBtn = document.getElementById('btn-confirm-variant');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = `INITIALIZE VARIANT`;
+        confirmBtn.classList.remove('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
+        confirmBtn.classList.add('text-black', 'bg-white', 'hover:bg-cyan-400');
+    }
+});
+document.getElementById('btn-close-variant').onclick = () => variantModal.classList.add('hidden');
+
+document.getElementById('btn-confirm-variant').onclick = () => {
+    if(!selectedVariantId || !selectedVariantType) return;
+    const parent = gameState.products.find(x => x.id === selectedVariantId);
+    
+    let costMult = 1; let time = 2; let suffix = "";
+    if(selectedVariantType === 'lite') { costMult = 0.5; time = 2; suffix = "[Lite]"; }
+    if(selectedVariantType === 'flash') { costMult = 0.8; time = 1; suffix = "[Flash]"; }
+    if(selectedVariantType === 'pro') { costMult = 1.2; time = 4; suffix = "[Pro]"; }
+    if(selectedVariantType === 'ultra') { costMult = 2.0; time = 8; suffix = "[Ultra]"; }
+    if(selectedVariantType === 'custom') {
+        const customName = document.getElementById('inp-custom-variant').value;
+        if(!customName) return showToast('Enter a custom name!', 'error');
+        costMult = 1.5; time = 5; suffix = `[${customName}]`;
+    }
+
+    const cost = Math.floor(50000 * costMult); 
+    if((gameState.cash < cost || gameState.researchPts < variantInjectAmount) && !gameState.isSandbox) {
+        showToast('Insufficient Funds/Research', 'error'); return;
+    }
+
+    gameState.cash -= cost;
+    gameState.researchPts -= variantInjectAmount;
+    
+    gameState.products.push({
+        id: Date.now().toString(),
+        name: `${parent.name} ${suffix}`,
+        type: parent.type,
+        version: 1.0,
+        quality: parent.quality,
+        revenue: 0, hype: 0, released: false,
+        isUpdating: true, updateType: selectedVariantType,
+        isOpenSource: parent.isOpenSource,
+        weeksLeft: time,
+        researchBonus: variantInjectAmount,
+        contracts: [], apiConfig: { active: false, price: 0, limit: 100 },
+        customFeatures: parent.customFeatures
+    });
+    
+    variantModal.classList.add('hidden'); renderTab('dash'); updateHUD();
+    showToast(`Developing variant...`, 'success');
+};
+
 
 // GOD MODE SETTINGS
 const settingsOverlay = document.getElementById('settings-overlay');
