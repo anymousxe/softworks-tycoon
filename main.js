@@ -1,5 +1,4 @@
 // --- 1. FIREBASE CONFIGURATION ---
-
 const firebaseConfig = {
     apiKey: "AIzaSyD0FKEuORJd63FPGbM_P3gThpZknVsytsU",
     authDomain: "softworks-tycoon.firebaseapp.com",
@@ -67,13 +66,17 @@ const SHOP_ITEMS = [
 auth.onAuthStateChanged(user => {
     currentUser = user;
     if (user) {
+        // Only hide login screen if user is already authenticated
+        // The landing screen will still cover this until clicked
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('menu-screen').classList.remove('hidden');
+        
         const name = user.displayName || (user.isAnonymous ? 'Guest Agent' : 'User');
         const photo = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
         document.getElementById('user-name').textContent = name;
         document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0,8);
         document.getElementById('user-photo').src = photo;
+
         checkAdminAccess();
         loadSaves();
     } else {
@@ -1034,4 +1037,30 @@ godModeToggle.addEventListener('click', () => {
         document.getElementById('godmode-status').classList.add('hidden');
     }
     updateHUD(); 
+});
+
+// --- NEW: MODE SELECTION LOGIC ---
+document.addEventListener('DOMContentLoaded', () => {
+    const landingScreen = document.getElementById('landing-screen');
+    const btnAI = document.getElementById('btn-mode-ai');
+    const btnMovie = document.getElementById('btn-mode-movie');
+
+    if(btnAI) {
+        btnAI.addEventListener('click', () => {
+            landingScreen.classList.add('fade-out-up');
+            setTimeout(() => {
+                landingScreen.classList.add('hidden');
+            }, 500);
+        });
+    }
+
+    if(btnMovie) {
+        btnMovie.addEventListener('click', () => {
+            btnMovie.style.transform = 'scale(0.98)';
+            btnMovie.style.borderColor = '#ec4899';
+            setTimeout(() => {
+                window.location.href = 'https://softworks-tycoon.xyz/movie-star';
+            }, 150);
+        });
+    }
 });
