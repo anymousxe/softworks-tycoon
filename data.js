@@ -1,4 +1,4 @@
-// --- DATABASE & KNOCKOFFS ---
+// --- DATABASE & ASSETS ---
 
 // Hardware / GPUs
 const HARDWARE_DB = [
@@ -15,7 +15,7 @@ const HARDWARE_DB = [
     { id: 'quantum', name: 'Q-Bit Array', cost: 1500000, compute: 10000, upkeep: 5000, reqTech: 'quantum_tech' }
 ];
 
-// Companies
+// Companies (Contracts)
 const COMPANIES_DB = [
     { name: 'Indie Devs', budget: 1500 }, 
     { name: 'Startup Inc', budget: 3500 },
@@ -48,7 +48,7 @@ const CAMPAIGNS_DB = [
     { id: 'superbowl', name: 'Super Bowl Commercial', cost: 5000000, hype: 5000, duration: 12, type: 'basic' }
 ];
 
-// Extended Rivals
+// Rivals
 const RIVALS_DB = [
     { name: 'OpenAI', strength: 98, color: 'text-green-400' },
     { name: 'Anthropic', strength: 92, color: 'text-yellow-400' },
@@ -74,7 +74,7 @@ const RIVALS_DB = [
     { name: 'Runway ML', strength: 70, color: 'text-pink-500' }
 ];
 
-// NEW: Review Database for Variety
+// New Review System
 const REVIEWS_DB = {
     low: [
         "Trash. Absolute garbage.", "Hallucinates more than my uncle.", "Waste of API credits.", 
