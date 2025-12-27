@@ -193,6 +193,7 @@ function startGame(id, data) {
     if(!gameState.marketModels) gameState.marketModels = []; 
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
     
+    // Ensure "staged" property exists
     if(gameState.products) {
         gameState.products.forEach(p => {
             if(p.isStaged === undefined) p.isStaged = false;
@@ -768,6 +769,107 @@ function renderTab(tab) {
                 <div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>
             `;
             list.appendChild(el);
+        });
+        lucide.createIcons();
+    }
+
+    // --- RESTORED RIVALS TAB ---
+    if(tab === 'rivals') {
+        content.innerHTML = `
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">MARKET LEADERBOARD</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="rivals-grid"></div>
+        `;
+        const grid = document.getElementById('rivals-grid');
+        
+        const playerCard = document.createElement('div');
+        playerCard.className = 'glass-panel p-6 rounded-2xl border border-cyan-500/50 bg-cyan-900/10';
+        playerCard.innerHTML = `
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center font-bold text-black">YOU</div>
+                <div><h3 class="font-bold text-white">${gameState.companyName}</h3></div>
+            </div>
+            <div class="text-2xl font-black text-white">${Math.floor(gameState.reputation)} REP</div>
+        `;
+        grid.appendChild(playerCard);
+
+        RIVALS_LIST.forEach(r => {
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-6 rounded-2xl';
+            el.innerHTML = `
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-slate-500">${r.name[0]}</div>
+                    <div>
+                        <h3 class="font-bold text-white ${r.color}">${r.name}</h3>
+                        <div class="text-xs text-slate-500">Market Giant</div>
+                    </div>
+                </div>
+                <div class="flex justify-between text-xs font-mono text-slate-400 mb-2"><span>Dominance</span><span>${r.strength}%</span></div>
+                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden"><div class="h-full bg-white/20" style="width: ${r.strength}%"></div></div>
+            `;
+            grid.appendChild(el);
+        });
+        lucide.createIcons();
+    }
+
+    // --- RESTORED MANAGE TAB ---
+    if(tab === 'biz') {
+        const empCount = (gameState.employees && gameState.employees.count) || 1;
+        const morale = (gameState.employees && gameState.employees.morale) || 100;
+        content.innerHTML = `
+            <div class="grid grid-cols-1 gap-8">
+                <div class="glass-panel p-6 rounded-2xl border-l-4 border-yellow-500">
+                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="users" class="text-yellow-500"></i> HR DEPARTMENT</h3>
+                    <div class="flex justify-between items-center gap-4">
+                        <div class="flex items-center gap-4 bg-slate-900/50 p-4 rounded-xl flex-1">
+                            <div><div class="text-[10px] uppercase text-slate-500 font-bold">Headcount</div><div class="text-2xl font-black text-white">${empCount}</div></div>
+                            <div class="h-8 w-px bg-white/10"></div>
+                            <div><div class="text-[10px] uppercase text-slate-500 font-bold">Morale</div><div class="text-2xl font-black ${morale > 80 ? 'text-green-400' : 'text-red-500'}">${morale}%</div></div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="btn-hire" class="bg-white text-black font-bold px-6 py-2 rounded-lg hover:bg-green-400">HIRE (+1)</button>
+                            <button id="btn-fire" class="border border-slate-700 text-red-500 font-bold px-6 py-2 rounded-lg hover:bg-red-900/20">FIRE (-1)</button>
+                        </div>
+                    </div>
+                </div>
+                <div><h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="briefcase" class="text-green-500"></i> B2B CONTRACTS</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="contract-grid"></div></div>
+                <div><h3 class="text-xl font-bold text-white mt-8 mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-purple-500"></i> CAMPAIGNS & CAMEOS</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ads-grid"></div></div>
+            </div>
+        `;
+        document.getElementById('btn-hire').onclick = () => { if(!gameState.employees) gameState.employees = {count:1, morale:100}; gameState.employees.count++; gameState.cash -= 1000; updateHUD(); renderTab('biz'); };
+        document.getElementById('btn-fire').onclick = () => { if(gameState.employees.count > 1) { gameState.employees.count--; gameState.employees.morale -= 10; updateHUD(); renderTab('biz'); }};
+        
+        const cGrid = document.getElementById('contract-grid');
+        const liveProds = (gameState.products || []).filter(p => p.released && !p.isOpenSource);
+        COMPANIES.forEach(c => {
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-5 rounded-xl flex flex-col h-full';
+            el.innerHTML = `
+                <div class="flex justify-between items-start mb-4">
+                    <div><h3 class="font-bold text-white text-lg">${c.name}</h3><div class="text-xs text-green-400 font-mono">$${c.budget.toLocaleString()}/wk</div></div>
+                    <div class="bg-slate-800 p-2 rounded-lg"><i data-lucide="building-2" class="w-4 h-4 text-slate-400"></i></div>
+                </div>
+                <div class="flex-1 space-y-2" id="c-list-${c.name.replace(/\s/g, '')}">${liveProds.length === 0 ? '<div class="text-xs text-slate-600 italic">No commercial models.</div>' : ''}</div>
+            `;
+            const list = el.querySelector(`[id^="c-list-"]`);
+            liveProds.forEach(p => {
+                const active = (p.contracts || []).includes(c.name);
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all border ${active ? 'bg-green-500/10 border-green-500 text-green-400' : 'border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'}`;
+                btn.innerHTML = `<div class="flex justify-between items-center"><span>${p.name}</span>${active ? '<i data-lucide="check" class="w-3 h-3"></i>' : ''}</div>`;
+                btn.onclick = () => { if(!p.contracts) p.contracts = []; if(active) p.contracts = p.contracts.filter(x => x !== c.name); else p.contracts.push(c.name); renderTab('biz'); };
+                list.appendChild(btn);
+            });
+            cGrid.appendChild(el);
+        });
+
+        const adsGrid = document.getElementById('ads-grid');
+        CAMPAIGNS.forEach(ad => {
+             const el = document.createElement('div');
+             el.className = 'glass-panel p-6 rounded-2xl hover:border-purple-500/50 transition-colors relative overflow-hidden';
+             if(ad.type === 'cameo') el.className += ' border-l-4 border-yellow-500';
+             el.innerHTML = `<h3 class="font-bold text-white text-lg mb-1">${ad.name}</h3><div class="text-xs text-slate-400 mb-4 font-mono">Cost: $${ad.cost.toLocaleString()} | Hype: +${ad.hype}</div><button class="w-full bg-slate-800 text-white font-bold py-2 rounded-lg text-xs hover:bg-purple-600 transition-colors">LAUNCH</button>`;
+             el.querySelector('button').onclick = () => { if(gameState.cash >= ad.cost) { gameState.cash -= ad.cost; gameState.products.forEach(p => { if(p.released) p.hype = Math.min(500, p.hype + ad.hype); }); updateHUD(); showToast('Campaign Live!', 'success'); } else showToast('Insufficient Funds', 'error'); };
+             adsGrid.appendChild(el);
         });
         lucide.createIcons();
     }
