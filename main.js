@@ -46,7 +46,6 @@ const RESEARCH = [
     { id: 'agi_theory', name: 'AGI Theory', cost: 15000, desc: 'Unlock AGI Model Development' }
 ];
 
-// PRODUCTS RESTORED + CUSTOM TYPE
 const PRODUCTS = [
     { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5 },
     { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15 },
@@ -190,19 +189,40 @@ function startGame(id, data) {
     if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
     if(!gameState.purchasedItems) gameState.purchasedItems = [];
     
+    // --- AGGRESSIVE SAVE REPAIR ---
     if(gameState.products) {
+        // 1. Remove null/broken entries
+        gameState.products = gameState.products.filter(p => p && p.id && p.name);
+        
         gameState.products.forEach(p => {
-            if(p.isStaged === undefined) p.isStaged = false;
-            if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+            // Fix Numbers
+            p.weeksLeft = parseInt(p.weeksLeft) || 0;
+            p.quality = parseInt(p.quality) || 10;
+            
+            // Fix Booleans
+            p.released = !!p.released;
+            p.isStaged = !!p.isStaged;
+            p.isUpdating = !!p.isUpdating;
+
+            // Fix Arrays
             if(!p.contracts) p.contracts = [];
             if(!p.capabilities) p.capabilities = [];
             
-            // Fix legacy/broken trait mappings
-            if(p.specialty && !p.trait) p.trait = p.specialty; // Migrate specialty -> trait
+            // Fix Type/Trait
+            if(p.specialty && !p.trait) p.trait = p.specialty; // Migrate
             if(!p.trait) p.trait = null;
-            
-            // Ensure type is valid (default to text if broken)
-            if(!p.type) p.type = 'text';
+            if(!p.type || p.type === 'undefined') p.type = 'text';
+
+            // Fix API
+            if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+
+            // ** THE UN-STICKER **
+            // If it's stuck at 0 weeks but not live and not in cooking mode -> Force it to Cooking Mode
+            if (!p.released && !p.isStaged && !p.isUpdating && p.weeksLeft <= 0) {
+                p.isStaged = true;
+                p.weeksLeft = 0;
+                console.log(`Repaired stuck product: ${p.name}`);
+            }
         });
     }
 
