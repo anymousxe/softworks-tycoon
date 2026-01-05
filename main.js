@@ -178,53 +178,63 @@ document.getElementById('btn-cancel-create').addEventListener('click', () => doc
 
 // --- GAME LOGIC ---
 
+function repairSaveData(data) {
+    // 1. Ensure basic structure
+    if (!data.products) data.products = [];
+    if (!data.employees) data.employees = { count: 1, morale: 100 };
+    if (!data.reviews) data.reviews = [];
+    if (!data.marketModels) data.marketModels = [];
+    if (!data.purchasedItems) data.purchasedItems = [];
+
+    // 2. Filter out corrupted products (null or missing IDs)
+    data.products = data.products.filter(p => p && typeof p === 'object' && p.id && p.name);
+
+    // 3. Fix individual product fields
+    data.products.forEach(p => {
+        // Fix Type: If missing, default to 'text'
+        if (!p.type || p.type === 'undefined') p.type = 'text';
+
+        // Migrate Old "Specialty" to "Trait"
+        if (p.specialty && !p.trait) {
+            p.trait = p.specialty; 
+            delete p.specialty; // Optional cleanup
+        }
+        if (!p.trait) p.trait = null;
+
+        // Ensure Arrays exist
+        if (!p.capabilities) p.capabilities = [];
+        if (!p.contracts) p.contracts = [];
+        
+        // Ensure API Config exists
+        if (!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+
+        // Fix Numbers (NaN protection)
+        p.weeksLeft = Number(p.weeksLeft);
+        if (isNaN(p.weeksLeft)) p.weeksLeft = 0;
+        p.quality = Number(p.quality) || 10;
+        p.hype = Number(p.hype) || 0;
+
+        // ** THE ZOMBIE FIX **
+        // If a product is NOT released, NOT updating, and has 0 weeks left...
+        // It is "stuck". We force it into the Staging Lab (isStaged = true).
+        if (!p.released && !p.isUpdating && p.weeksLeft <= 0) {
+            console.log(`Repaired Stuck Product: ${p.name}`);
+            p.isStaged = true; 
+            p.weeksLeft = 0;
+        }
+    });
+
+    return data;
+}
+
 function startGame(id, data) {
     activeSaveId = id;
-    gameState = data;
     
-    // Safety migrations & Fix for "Let him cook" update disaster
-    if(!gameState.reviews) gameState.reviews = [];
-    if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
-    if(!gameState.marketModels) gameState.marketModels = []; 
-    if(gameState.tutorialStep === undefined) gameState.tutorialStep = 99; 
-    if(!gameState.purchasedItems) gameState.purchasedItems = [];
+    // --- RUN REPAIR BEFORE ASSIGNING ---
+    gameState = repairSaveData(data);
     
-    // --- AGGRESSIVE SAVE REPAIR ---
-    if(gameState.products) {
-        // 1. Remove null/broken entries
-        gameState.products = gameState.products.filter(p => p && p.id && p.name);
-        
-        gameState.products.forEach(p => {
-            // Fix Numbers
-            p.weeksLeft = parseInt(p.weeksLeft) || 0;
-            p.quality = parseInt(p.quality) || 10;
-            
-            // Fix Booleans
-            p.released = !!p.released;
-            p.isStaged = !!p.isStaged;
-            p.isUpdating = !!p.isUpdating;
-
-            // Fix Arrays
-            if(!p.contracts) p.contracts = [];
-            if(!p.capabilities) p.capabilities = [];
-            
-            // Fix Type/Trait
-            if(p.specialty && !p.trait) p.trait = p.specialty; // Migrate
-            if(!p.trait) p.trait = null;
-            if(!p.type || p.type === 'undefined') p.type = 'text';
-
-            // Fix API
-            if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
-
-            // ** THE UN-STICKER **
-            // If it's stuck at 0 weeks but not live and not in cooking mode -> Force it to Cooking Mode
-            if (!p.released && !p.isStaged && !p.isUpdating && p.weeksLeft <= 0) {
-                p.isStaged = true;
-                p.weeksLeft = 0;
-                console.log(`Repaired stuck product: ${p.name}`);
-            }
-        });
-    }
+    // Auto-save the repaired state immediately
+    saveGame();
 
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -234,6 +244,7 @@ function startGame(id, data) {
     renderTab('dash');
     lucide.createIcons();
     
+    if (gameState.tutorialStep === undefined) gameState.tutorialStep = 99;
     setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
     setTimeout(() => document.getElementById('changelog-modal').classList.remove('hidden'), 500);
 
@@ -297,8 +308,9 @@ function setupRealtimeListener(saveId) {
     realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
         .doc(saveId).onSnapshot(doc => {
             if (doc.exists) {
-                gameState = doc.data();
-                if(!gameState.reviews) gameState.reviews = [];
+                // Re-run repair on every update just in case
+                gameState = repairSaveData(doc.data());
+                
                 updateHUD();
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
                 // Don't re-render Dev while typing
@@ -628,7 +640,7 @@ function renderTab(tab) {
 
         const list = document.getElementById('product-list');
         gameState.products.forEach(p => {
-            // Safety Check inside render loop
+            // Safety Check inside render loop to prevent crashing entire dashboard
             try {
                 const card = document.createElement('div');
                 card.className = 'glass-panel p-6 relative group hover:border-cyan-500/50 transition-all rounded-2xl overflow-hidden';
@@ -767,7 +779,7 @@ function renderTab(tab) {
                     `;
                 }
                 list.appendChild(card);
-            } catch (err) { console.error("Error rendering card:", err); }
+            } catch (err) { console.error("Error rendering product card", err); }
         });
         lucide.createIcons();
     }
