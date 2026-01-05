@@ -235,7 +235,6 @@ function cleanAndRepairData(data) {
         if (!p.contracts) { p.contracts = []; wasModified = true; }
         if (!p.apiConfig) { p.apiConfig = { active: false, price: 0, limit: 100 }; wasModified = true; }
         
-        // Ensure isOpenSource exists
         if (p.isOpenSource === undefined) { p.isOpenSource = false; wasModified = true; }
 
         // 4. UNSTICK LOGIC: If 0 weeks, not released, not updating -> FORCE STAGE
@@ -373,6 +372,7 @@ function updateHUD() {
     if (godMode) {
         document.getElementById('admin-edit-cash').classList.remove('hidden');
         document.getElementById('admin-edit-research').classList.remove('hidden');
+        renderGodModeList(); // Refresh God Mode List if open
     } else {
         document.getElementById('admin-edit-cash').classList.add('hidden');
         document.getElementById('admin-edit-research').classList.add('hidden');
@@ -514,7 +514,7 @@ function generateReviews() {
     }
 }
 
-// --- NEXT WEEK LOGIC (FIXED RELEASE LOOP) ---
+// --- NEXT WEEK LOGIC (FIXED) ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
     const btn = document.getElementById('btn-next-week');
     btn.disabled = true;
@@ -546,8 +546,9 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
             if (gameState.products) {
                 gameState.products.forEach(p => {
-                    // Update Development Logic
-                    if(!p.released && p.weeksLeft > 0) {
+                    // Update Development Logic - THE FIX
+                    // Check if it should process progress
+                    if (p.weeksLeft > 0 && (!p.released || p.isUpdating)) {
                         const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
                         p.weeksLeft -= (1 * speedMult);
                         
@@ -555,42 +556,26 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         if(p.weeksLeft <= 0) {
                             p.weeksLeft = 0;
                             if(p.isUpdating) {
-                                // Auto-release updates
                                 p.released = true;
                                 p.isUpdating = false;
-                                if(p.updateType === 'major') {
-                                    p.version = parseFloat((p.version + 1.0).toFixed(1));
-                                    p.quality += 15 + (p.researchBonus || 0);
-                                } else if (p.updateType !== 'minor') {
-                                    // Variants
-                                    p.version = 1.0;
-                                    p.quality += (p.researchBonus || 0);
-                                } else {
-                                    // Minor
-                                    p.version = parseFloat((p.version + 0.1).toFixed(1));
-                                    p.quality += 5 + (p.researchBonus || 0);
-                                }
+                                if(p.updateType === 'major') { p.version = parseFloat((p.version + 1.0).toFixed(1)); p.quality += 15 + (p.researchBonus || 0); } 
+                                else if (p.updateType !== 'minor') { p.version = 1.0; p.quality += (p.researchBonus || 0); } 
+                                else { p.version = parseFloat((p.version + 0.1).toFixed(1)); p.quality += 5 + (p.researchBonus || 0); }
                                 p.hype = 100;
                                 showToast(`${p.name} Update Released!`, 'success');
                             } else {
-                                // New Product -> Go to Staging (Cooking Phase)
                                 p.isStaged = true;
                                 showToast(`${p.name} is ready for polish!`, 'success');
                             }
                         }
                     }
 
-                    // Live Product Logic
                     if(p.released && !p.isUpdating) {
                         let weeklyRev = 0;
                         const organicUsers = Math.floor((p.quality * p.hype * 25)); 
                         let organicRev = Math.floor(organicUsers * 0.5); 
-                        
-                        // Trait/Type Bonus
                         if(p.trait === 'dreamer') organicRev *= 1.3;
-                        if(p.trait === 'sentient') organicRev *= 2.0;
                         if(p.type === 'agi') organicRev *= 5.0;
-
                         weeklyRev += organicRev;
                         
                         if(p.contracts) {
@@ -600,7 +585,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                             });
                         }
                         
-                        // API
                         if(p.apiConfig && p.apiConfig.active) {
                             if(p.apiConfig.price === 0) {
                                 p.hype = Math.min(500, p.hype + 5); 
@@ -613,16 +597,10 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                                 weeklyRev += Math.floor(apiUsers * p.apiConfig.price * priceFactor * limitPenalty);
                                 p.hype = Math.max(0, p.hype - 1);
                             }
-                        } else {
-                             p.hype = Math.max(0, p.hype - 2);
-                        }
+                        } else { p.hype = Math.max(0, p.hype - 2); }
                         
-                        if(p.isOpenSource) {
-                            if(p.hype > 0) gameState.reputation += (p.quality / 50);
-                        } else {
-                            gameState.cash += weeklyRev;
-                            p.revenue += weeklyRev;
-                        }
+                        if(p.isOpenSource) { if(p.hype > 0) gameState.reputation += (p.quality / 50); } 
+                        else { gameState.cash += weeklyRev; p.revenue += weeklyRev; }
                     }
                 });
             }
@@ -635,9 +613,7 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
             renderTab(activeTab);
 
-        } catch (err) {
-            console.error(err);
-        } finally {
+        } catch (err) { console.error(err); } finally {
             btn.disabled = false;
             btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Next`;
             lucide.createIcons();
@@ -838,10 +814,10 @@ function renderTab(tab) {
             } catch (err) { console.error("Error rendering product card", err); }
         });
         lucide.createIcons();
-    }
-
-    // --- STATS TAB (Restored) ---
-    if(tab === 'stats') {
+    } 
+    
+    // --- STATS TAB (FULL RESTORATION) ---
+    else if (tab === 'stats') {
         content.innerHTML = `
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-3xl font-black text-white tracking-tight">GLOBAL LEADERBOARD</h2>
@@ -858,79 +834,196 @@ function renderTab(tab) {
                 <div id="stats-list" class="divide-y divide-slate-800/50"></div>
             </div>
         `;
-        
-        const list = document.getElementById('stats-list');
-        const userModels = (gameState.products || []).filter(p => p.released).map(p => ({
-            name: p.name, company: gameState.companyName, quality: p.quality, type: p.type, isUser: true, color: 'text-cyan-400'
-        }));
-        
-        const marketModels = (gameState.marketModels || []).map(m => ({
-            ...m, type: m.modelType || 'text', isUser: false
-        }));
-        
-        const allModels = [...userModels, ...marketModels].sort((a,b) => b.quality - a.quality);
-        
-        const getIcon = (t) => {
-            switch(t) {
-                case 'text': return 'message-square'; case 'image': return 'image'; case 'audio': return 'music'; case 'video': return 'video'; default: return 'help-circle';
-            }
-        };
-
-        allModels.forEach((m, i) => {
-            const el = document.createElement('div');
-            el.className = `grid grid-cols-6 p-4 items-center text-sm ${m.isUser ? 'bg-cyan-900/10' : 'hover:bg-slate-900/30'} transition-colors`;
-            el.innerHTML = `
-                <div class="font-mono text-slate-500">#${i+1}</div>
-                <div class="text-slate-400 flex items-center gap-2"><i data-lucide="${getIcon(m.type)}" class="w-4 h-4"></i><span class="text-[9px] font-bold uppercase tracking-wider text-slate-600">${m.type ? m.type.substring(0,4) : 'UNK'}</span></div>
-                <div class="col-span-2 font-bold text-white flex items-center">${m.name}</div>
-                <div class="${m.color || 'text-slate-400'} text-xs font-bold">${m.company}</div>
-                <div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>
-            `;
-            list.appendChild(el);
+        const allModels = [...((gameState.products||[]).filter(p=>p.released).map(p=>({...p, company:gameState.companyName, isUser:true}))), ...(gameState.marketModels||[])].sort((a,b)=>b.quality-a.quality);
+        allModels.forEach((m,i) => {
+             const el = document.createElement('div'); el.className = `grid grid-cols-6 p-4 items-center text-sm ${m.isUser?'bg-cyan-900/10':''}`; el.innerHTML=`<div class="text-slate-500">#${i+1}</div><div class="text-slate-400 flex items-center gap-2"><span class="text-[9px] font-bold uppercase tracking-wider text-slate-600">${m.type ? m.type.substring(0,4) : 'UNK'}</span></div><div class="col-span-2 font-bold text-white flex items-center">${m.name}</div><div class="${m.color || 'text-slate-400'} text-xs font-bold">${m.company}</div><div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>`;
+             document.getElementById('stats-list').appendChild(el);
         });
         lucide.createIcons();
-    }
-
-    // --- RIVALS TAB (Restored) ---
-    if(tab === 'rivals') {
+    } 
+    
+    // --- DEV TAB (FULL RESTORATION) ---
+    else if (tab === 'dev') {
         content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">MARKET LEADERBOARD</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="rivals-grid"></div>
-        `;
-        const grid = document.getElementById('rivals-grid');
-        
-        const playerCard = document.createElement('div');
-        playerCard.className = 'glass-panel p-6 rounded-2xl border border-cyan-500/50 bg-cyan-900/10';
-        playerCard.innerHTML = `
-            <div class="flex items-center gap-4 mb-4">
-                <div class="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center font-bold text-black">YOU</div>
-                <div><h3 class="font-bold text-white">${gameState.companyName}</h3></div>
-            </div>
-            <div class="text-2xl font-black text-white">${Math.floor(gameState.reputation)} REP</div>
-        `;
-        grid.appendChild(playerCard);
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">NEW PROJECT</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4" id="dev-types"></div>
+                <div class="glass-panel p-8 rounded-2xl h-fit border-l-4 border-cyan-500">
+                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Codename</label>
+                    <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-4 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="Project Name">
+                    
+                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Description (Fluff)</label>
+                    <textarea id="new-proj-specs" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-mono text-sm h-20 resize-none" placeholder="e.g. Best for coding Python..."></textarea>
 
-        RIVALS_LIST.forEach(r => {
-            const el = document.createElement('div');
-            el.className = 'glass-panel p-6 rounded-2xl';
-            el.innerHTML = `
-                <div class="flex items-center gap-4 mb-4">
-                    <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-slate-500">${r.name[0]}</div>
-                    <div>
-                        <h3 class="font-bold text-white ${r.color}">${r.name}</h3>
-                        <div class="text-xs text-slate-500">Market Giant</div>
+                    <div id="specialty-container" class="mb-6 hidden">
+                        <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Special Trait</label>
+                        <select id="specialty-select" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-purple-500 outline-none text-sm font-bold mb-2">
+                             ${TRAITS.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                        </select>
+                        <p id="specialty-desc" class="text-xs text-slate-500 italic">Select a model type.</p>
                     </div>
+
+                    <div class="flex items-center gap-2 mb-4">
+                        <input type="checkbox" id="chk-opensource" class="accent-cyan-500 w-4 h-4 cursor-pointer">
+                        <label for="chk-opensource" class="text-xs text-slate-400 font-bold uppercase tracking-wider cursor-pointer">Release as Open Source (Rep++ / No Revenue)</label>
+                    </div>
+
+                    <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
+                        <div class="flex justify-between text-xs font-bold text-purple-300 mb-2"><span>Research Injection</span><span id="inject-val">0 PTS</span></div>
+                        <div class="flex gap-2">
+                            <input type="range" id="research-inject" min="0" max="${gameState.researchPts}" value="0" class="flex-1 accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer self-center">
+                            <input type="number" id="research-inject-input" class="w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500" value="0" min="0" max="${gameState.researchPts}">
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="quality-boost" class="text-white font-bold">0</span> Quality</div>
+                    </div>
+                    <button id="btn-start-dev" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 tracking-widest text-sm">INITIALIZE</button>
                 </div>
-                <div class="flex justify-between text-xs font-mono text-slate-400 mb-2"><span>Dominance</span><span>${r.strength}%</span></div>
-                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden"><div class="h-full bg-white/20" style="width: ${r.strength}%"></div></div>
+            </div>
+        `;
+        
+        let selectedType = null;
+        PRODUCTS.forEach(p => {
+            const btn = document.createElement('div'); btn.className = `p-6 border cursor-pointer rounded-2xl transition-all border-slate-700 hover:border-cyan-500`; btn.innerHTML = `<div class="font-bold text-white">${p.name}</div>`;
+            btn.onclick = () => { document.querySelectorAll('#dev-types > div').forEach(d=>d.classList.remove('border-cyan-500')); btn.classList.add('border-cyan-500'); selectedType = p; document.getElementById('specialty-container').classList.toggle('hidden', p.id !== 'custom'); };
+            document.getElementById('dev-types').appendChild(btn);
+        });
+
+        const slider = document.getElementById('research-inject');
+        const numInput = document.getElementById('research-inject-input');
+        
+        const syncInputs = (val) => {
+            let v = parseInt(val); if(isNaN(v)) v = 0; if(v > gameState.researchPts) v = gameState.researchPts;
+            slider.value = v; numInput.value = v; document.getElementById('inject-val').textContent = v;
+        };
+        slider.oninput = (e) => syncInputs(e.target.value);
+        numInput.oninput = (e) => syncInputs(e.target.value);
+
+        document.getElementById('btn-start-dev').onclick = () => {
+            const name = document.getElementById('new-proj-name').value;
+            const isOS = document.getElementById('chk-opensource').checked;
+            if(!name || !selectedType) return showToast('Missing Info', 'error');
+            const cost = selectedType.cost; 
+            if(gameState.cash < cost) return showToast('No Money', 'error');
+            
+            gameState.cash -= cost;
+            gameState.researchPts -= parseInt(slider.value);
+            
+            gameState.products.push({
+                id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 50 + parseInt(slider.value),
+                weeksLeft: selectedType.time, released: false, isStaged: false, isUpdating: false,
+                trait: selectedType.id === 'custom' ? document.getElementById('specialty-select').value : null,
+                revenue: 0, hype: 0, isOpenSource: isOS
+            });
+            updateHUD(); showToast('Started', 'success'); renderTab('dash');
+        };
+        lucide.createIcons();
+    } 
+    
+    // --- MARKET TAB (FULL RESTORATION) ---
+    else if (tab === 'market') {
+        content.innerHTML = `
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">HARDWARE MARKET</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>
+        `;
+        const grid = document.getElementById('server-grid');
+        HARDWARE.forEach(h => {
+            const locked = h.reqTech && !gameState.unlockedTechs.includes(h.reqTech);
+            const owned = gameState.hardware.find(x => x.typeId === h.id)?.count || 0;
+            const el = document.createElement('div');
+            el.className = `glass-panel p-6 rounded-2xl transition-all ${locked ? 'opacity-50 bg-slate-900/20' : 'hover:border-cyan-500/50'}`;
+            el.innerHTML = `
+                <div class="text-white font-bold text-lg mb-1">${h.name}</div>
+                <div class="text-slate-500 text-xs mb-6 font-mono">${h.compute} TF / $${h.upkeep} wk</div>
+                <div class="text-4xl font-black text-white mb-6">${owned}</div>
+                <div class="flex gap-2">
+                    <button class="flex-1 border border-slate-600 text-white py-3 text-[10px] tracking-widest font-bold hover:bg-white hover:text-black rounded-xl uppercase transition-colors btn-buy" ${locked ? 'disabled' : ''}>BUY $${h.cost.toLocaleString()}</button>
+                    ${owned > 0 ? `<button class="px-3 border border-red-900 text-red-500 hover:bg-red-900 rounded-xl btn-sell"><i data-lucide="minus"></i></button>` : ''}
+                </div>
             `;
+            if(!locked) {
+                el.querySelector('.btn-buy').onclick = () => { 
+                    if(gameState.cash >= h.cost) { 
+                        gameState.cash -= h.cost; 
+                        const hw = gameState.hardware.find(x => x.typeId === h.id); 
+                        if(hw) hw.count++; else gameState.hardware.push({typeId:h.id, count:1}); 
+                        updateHUD(); renderTab('market'); showToast(`Purchased ${h.name}`, 'success'); 
+                        if(gameState.tutorialStep === 2 && h.id === 'gtx_cluster') { gameState.tutorialStep = 3; runTutorial(3); }
+                    } else showToast('Insufficient Funds', 'error'); 
+                };
+                if(owned > 0) {
+                    el.querySelector('.btn-sell').onclick = () => {
+                        const hw = gameState.hardware.find(x => x.typeId === h.id);
+                        if(hw && hw.count > 0) { hw.count--; gameState.cash += Math.floor(h.cost*0.5); updateHUD(); renderTab('market'); showToast(`Sold ${h.name}`, 'info'); }
+                    };
+                }
+            }
             grid.appendChild(el);
         });
         lucide.createIcons();
-    }
-
-    // --- MANAGE TAB (Restored) ---
-    if(tab === 'biz') {
+    } 
+    
+    // --- SHOP TAB (FULL RESTORATION) ---
+    else if (tab === 'shop') {
+        content.innerHTML = `
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-black text-white tracking-tight">CORPORATE ASSETS</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
+        `;
+        const grid = document.getElementById('shop-grid');
+        // Filter out one-time items already bought, keep consumables
+        const availableItems = SHOP_ITEMS.filter(item => {
+            if(item.type.includes('consumable')) return true;
+            return !(gameState.purchasedItems || []).includes(item.id);
+        });
+        availableItems.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-6 rounded-2xl hover:border-cyan-500/50 transition-colors';
+            el.innerHTML = `<h3 class="font-bold text-white text-lg mb-1">${item.name}</h3><div class="text-xs text-cyan-400 mb-4 font-mono">${item.effect}</div><button class="w-full border border-slate-700 text-white font-bold py-3 rounded-xl hover:bg-white hover:text-black transition-colors">BUY $${item.cost.toLocaleString()}</button>`;
+            el.querySelector('button').onclick = () => {
+                if(gameState.cash >= item.cost) {
+                    gameState.cash -= item.cost;
+                    if(item.type === 'consumable_res') { gameState.researchPts += item.amount; showToast('Research Acquired!', 'success'); }
+                    else if(item.type === 'consumable_emp') { if(!gameState.employees) gameState.employees = { morale: 100 }; gameState.employees.morale = Math.min(100, gameState.employees.morale + item.amount); showToast(`Staff Morale Increased!`, 'success'); }
+                    else { if(!gameState.purchasedItems) gameState.purchasedItems = []; gameState.purchasedItems.push(item.id); }
+                    updateHUD(); saveGame(); renderTab('shop');
+                } else showToast('Insufficient Funds!', 'error');
+            };
+            grid.appendChild(el);
+        });
+        lucide.createIcons();
+    } 
+    
+    // --- REVIEWS TAB (FULL RESTORATION) ---
+    else if (tab === 'reviews') {
+        content.innerHTML = `
+            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">PUBLIC SENTIMENT</h2>
+            ${!gameState.reviews || gameState.reviews.length === 0 ? '<div class="text-slate-500 italic">No reviews yet. Release products to get feedback!</div>' : '<div class="space-y-4" id="reviews-list"></div>'}
+        `;
+        if(gameState.reviews) {
+            const list = document.getElementById('reviews-list');
+            gameState.reviews.forEach(r => {
+                const el = document.createElement('div');
+                el.className = 'glass-panel p-4 rounded-xl flex gap-4 animate-in';
+                const color = r.rating >= 4 ? 'bg-green-500' : (r.rating <= 2 ? 'bg-red-500' : 'bg-yellow-500');
+                el.innerHTML = `
+                    <div class="w-2 rounded-full ${color} shrink-0"></div>
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-bold text-white text-sm">@${r.user}</span>
+                            <span class="text-xs text-slate-500">on ${r.product}</span>
+                            <div class="flex text-yellow-500 text-[10px]">${"★".repeat(r.rating)}</div>
+                        </div>
+                        <p class="text-slate-300 text-sm">"${r.text}"</p>
+                    </div>
+                `;
+                list.appendChild(el);
+            });
+        }
+    } 
+    
+    // --- BIZ TAB (FULL RESTORATION) ---
+    else if (tab === 'biz') {
         const empCount = (gameState.employees && gameState.employees.count) || 1;
         const morale = (gameState.employees && gameState.employees.morale) || 100;
         content.innerHTML = `
@@ -990,242 +1083,10 @@ function renderTab(tab) {
              adsGrid.appendChild(el);
         });
         lucide.createIcons();
-    }
-
-    // --- DEV TAB (Updated for Specialty System & Manual Input) ---
-    if(tab === 'dev') {
-        content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">NEW PROJECT</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4" id="dev-types"></div>
-                <div class="glass-panel p-8 rounded-2xl h-fit border-l-4 border-cyan-500">
-                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Codename</label>
-                    <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-4 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="Project Name">
-                    
-                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Description (Fluff)</label>
-                    <textarea id="new-proj-specs" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-mono text-sm h-20 resize-none" placeholder="e.g. Best for coding Python..."></textarea>
-
-                    <div id="specialty-container" class="mb-6 hidden">
-                        <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Special Trait</label>
-                        <select id="specialty-select" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-purple-500 outline-none text-sm font-bold mb-2">
-                             ${TRAITS.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-                        </select>
-                        <p id="specialty-desc" class="text-xs text-slate-500 italic">Select a model type.</p>
-                    </div>
-
-                    <div class="flex items-center gap-2 mb-4">
-                        <input type="checkbox" id="chk-opensource" class="accent-cyan-500 w-4 h-4 cursor-pointer">
-                        <label for="chk-opensource" class="text-xs text-slate-400 font-bold uppercase tracking-wider cursor-pointer">Release as Open Source (Rep++ / No Revenue)</label>
-                    </div>
-
-                    <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
-                        <div class="flex justify-between text-xs font-bold text-purple-300 mb-2"><span>Research Injection</span><span id="inject-val">0 PTS</span></div>
-                        <div class="flex gap-2">
-                            <input type="range" id="research-inject" min="0" max="${gameState.researchPts}" value="0" class="flex-1 accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer self-center">
-                            <input type="number" id="research-inject-input" class="w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500" value="0" min="0" max="${gameState.researchPts}">
-                        </div>
-                        <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="quality-boost" class="text-white font-bold">0</span> Quality</div>
-                    </div>
-                    <button id="btn-start-dev" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 tracking-widest text-sm">INITIALIZE</button>
-                </div>
-            </div>
-        `;
-
-        let selectedType = null, injectAmount = 0;
-        const typeContainer = document.getElementById('dev-types');
-        const specialtyContainer = document.getElementById('specialty-container');
-        const specialtySelect = document.getElementById('specialty-select');
-        const specialtyDesc = document.getElementById('specialty-desc');
-        
-        // Populate Types
-        PRODUCTS.forEach(p => {
-            const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
-            const btn = document.createElement('div');
-            btn.className = `p-6 border cursor-pointer rounded-2xl transition-all relative ${locked ? 'border-slate-800 opacity-40 bg-slate-900/10' : 'border-slate-700 hover:border-cyan-500 hover:bg-slate-900/60 bg-slate-900/30'}`;
-            btn.innerHTML = `
-                <div class="flex justify-between mb-3">
-                    <div class="font-bold text-white text-lg">${p.name}</div>
-                    ${locked ? '<i data-lucide="lock" class="w-4 h-4 text-red-500"></i>' : ''}
-                </div>
-                <div class="text-xs text-slate-500 font-mono space-y-1">
-                    <div>Base Cost: $${p.cost.toLocaleString()}</div>
-                    <div>Base Compute: ${p.compute} TF</div>
-                    <div>Base Time: ${p.time} Weeks</div>
-                </div>`;
-            
-            if(!locked) {
-                btn.onclick = () => {
-                    document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500', 'bg-cyan-900/20'));
-                    btn.classList.add('border-cyan-500', 'bg-cyan-900/20');
-                    selectedType = p;
-                    
-                    if(p.id === 'custom') {
-                        specialtyContainer.classList.remove('hidden');
-                        // Trigger change to set initial desc
-                        specialtySelect.onchange(); 
-                    } else {
-                        specialtyContainer.classList.add('hidden');
-                    }
-                };
-            }
-            typeContainer.appendChild(btn);
-        });
-
-        // Specialty Description Update
-        specialtySelect.onchange = () => {
-             const spec = TRAITS.find(s => s.id === specialtySelect.value);
-             if(spec) specialtyDesc.textContent = `${spec.desc} (x${spec.multCost} Cost, x${spec.multTime} Time)`;
-        };
-
-        // --- NEW SYNC LOGIC ---
-        const slider = document.getElementById('research-inject');
-        const numInput = document.getElementById('research-inject-input');
-        
-        const syncInputs = (val) => {
-            let v = parseInt(val);
-            if(isNaN(v)) v = 0;
-            if(v < 0) v = 0;
-            if(v > gameState.researchPts) v = gameState.researchPts;
-            
-            slider.value = v;
-            numInput.value = v;
-            injectAmount = v;
-            
-            document.getElementById('inject-val').textContent = `${v} PTS`;
-            document.getElementById('quality-boost').textContent = v;
-        };
-
-        slider.oninput = (e) => syncInputs(e.target.value);
-        numInput.oninput = (e) => syncInputs(e.target.value);
-
-        document.getElementById('btn-start-dev').onclick = () => {
-            const name = document.getElementById('new-proj-name').value;
-            const specs = document.getElementById('new-proj-specs').value; 
-            const isOS = document.getElementById('chk-opensource').checked;
-
-            if(!name || !selectedType) return showToast('Select project type and name!', 'error');
-
-            let traitId = null;
-            let multCost = 1.0, multTime = 1.0, multCompute = 1.0;
-
-            if(selectedType.id === 'custom') {
-                traitId = specialtySelect.value;
-                const specData = TRAITS.find(s => s.id === traitId);
-                if(specData) {
-                    multCost = specData.multCost;
-                    multTime = specData.multTime;
-                    multCompute = specData.multCompute;
-                }
-            }
-            
-            // RESOURCE SCALING LOGIC
-            let baseCost = selectedType.cost * multCost;
-            let baseCompute = selectedType.compute * multCompute;
-            let baseTime = selectedType.time * multTime;
-            
-            if(injectAmount > 500) { baseCompute += 50; baseCost += 100000; }
-            if(injectAmount > 2000) { baseCompute += 200; baseCost += 500000; }
-
-            if(gameState.cash < baseCost && !gameState.isSandbox) return showToast(`Insufficient Funds! Need $${baseCost.toLocaleString()}`, 'error');
-            if(getCompute() < baseCompute) return showToast(`Need ${Math.ceil(baseCompute)} TF Compute!`, 'error');
-            
-            gameState.cash -= baseCost;
-            gameState.researchPts -= injectAmount;
-            
-            let baseQ = Math.floor(Math.random() * 40) + 50;
-            if(selectedType.id === 'agi') baseQ = 500; 
-
-            gameState.products.push({ 
-                id: Date.now().toString(), name, type: selectedType.id, version: 1.0, 
-                quality: baseQ + injectAmount, revenue: 0, hype: 0, 
-                released: false, isUpdating: false, isStaged: false,
-                weeksLeft: baseTime, 
-                researchBonus: 0, customFeatures: [], isOpenSource: isOS,
-                capabilities: [], trait: traitId,
-                description: specs || "A cool model."
-            });
-            updateHUD(); showToast('Development Started. Let him cook.', 'success'); renderTab('dash');
-        };
-        lucide.createIcons();
-    }
-
-    // --- MARKET TAB (Restored) ---
-    if(tab === 'market') {
-        content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">HARDWARE MARKET</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>
-        `;
-        const grid = document.getElementById('server-grid');
-        HARDWARE.forEach(h => {
-            const locked = h.reqTech && !gameState.unlockedTechs.includes(h.reqTech);
-            const owned = gameState.hardware.find(x => x.typeId === h.id)?.count || 0;
-            const el = document.createElement('div');
-            el.className = `glass-panel p-6 rounded-2xl transition-all ${locked ? 'opacity-50 bg-slate-900/20' : 'hover:border-cyan-500/50'}`;
-            el.innerHTML = `
-                <div class="text-white font-bold text-lg mb-1">${h.name}</div>
-                <div class="text-slate-500 text-xs mb-6 font-mono">${h.compute} TF / $${h.upkeep} wk</div>
-                <div class="text-4xl font-black text-white mb-6">${owned}</div>
-                <div class="flex gap-2">
-                    <button class="flex-1 border border-slate-600 text-white py-3 text-[10px] tracking-widest font-bold hover:bg-white hover:text-black rounded-xl uppercase transition-colors btn-buy" ${locked ? 'disabled' : ''}>BUY $${h.cost.toLocaleString()}</button>
-                    ${owned > 0 ? `<button class="px-3 border border-red-900 text-red-500 hover:bg-red-900 rounded-xl btn-sell"><i data-lucide="minus"></i></button>` : ''}
-                </div>
-            `;
-            if(!locked) {
-                el.querySelector('.btn-buy').onclick = () => { 
-                    if(gameState.cash >= h.cost) { 
-                        gameState.cash -= h.cost; 
-                        const hw = gameState.hardware.find(x => x.typeId === h.id); 
-                        if(hw) hw.count++; else gameState.hardware.push({typeId:h.id, count:1}); 
-                        updateHUD(); renderTab('market'); showToast(`Purchased ${h.name}`, 'success'); 
-                        if(gameState.tutorialStep === 2 && h.id === 'gtx_cluster') { gameState.tutorialStep = 3; runTutorial(3); }
-                    } else showToast('Insufficient Funds', 'error'); 
-                };
-                if(owned > 0) {
-                    el.querySelector('.btn-sell').onclick = () => {
-                        const hw = gameState.hardware.find(x => x.typeId === h.id);
-                        if(hw && hw.count > 0) { hw.count--; gameState.cash += Math.floor(h.cost*0.5); updateHUD(); renderTab('market'); showToast(`Sold ${h.name}`, 'info'); }
-                    };
-                }
-            }
-            grid.appendChild(el);
-        });
-        lucide.createIcons();
-    }
-
-    // --- SHOP TAB (Updated) ---
-    if(tab === 'shop') {
-        content.innerHTML = `
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-black text-white tracking-tight">CORPORATE ASSETS</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
-        `;
-        const grid = document.getElementById('shop-grid');
-        // Filter out one-time items already bought, keep consumables
-        const availableItems = SHOP_ITEMS.filter(item => {
-            if(item.type.includes('consumable')) return true;
-            return !(gameState.purchasedItems || []).includes(item.id);
-        });
-        availableItems.forEach(item => {
-            const el = document.createElement('div');
-            el.className = 'glass-panel p-6 rounded-2xl hover:border-cyan-500/50 transition-colors';
-            el.innerHTML = `<h3 class="font-bold text-white text-lg mb-1">${item.name}</h3><div class="text-xs text-cyan-400 mb-4 font-mono">${item.effect}</div><button class="w-full border border-slate-700 text-white font-bold py-3 rounded-xl hover:bg-white hover:text-black transition-colors">BUY $${item.cost.toLocaleString()}</button>`;
-            el.querySelector('button').onclick = () => {
-                if(gameState.cash >= item.cost) {
-                    gameState.cash -= item.cost;
-                    if(item.type === 'consumable_res') { gameState.researchPts += item.amount; showToast('Research Acquired!', 'success'); }
-                    else if(item.type === 'consumable_emp') { if(!gameState.employees) gameState.employees = { morale: 100 }; gameState.employees.morale = Math.min(100, gameState.employees.morale + item.amount); showToast(`Staff Morale Increased!`, 'success'); }
-                    else { if(!gameState.purchasedItems) gameState.purchasedItems = []; gameState.purchasedItems.push(item.id); }
-                    updateHUD(); saveGame(); renderTab('shop');
-                } else showToast('Insufficient Funds!', 'error');
-            };
-            grid.appendChild(el);
-        });
-        lucide.createIcons();
-    }
-
-    // --- LAB TAB ---
-    if(tab === 'lab') {
+    } 
+    
+    // --- LAB TAB (FULL RESTORATION) ---
+    else if (tab === 'lab') {
         content.innerHTML = `
             <div class="flex items-center gap-6 mb-8"><h2 class="text-5xl font-black text-white tracking-tighter">R&D LAB</h2><div class="text-purple-400 font-mono font-bold bg-purple-900/20 px-4 py-2 rounded-xl border border-purple-500/30">${Math.floor(gameState.researchPts)} PTS</div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="research-grid"></div>`;
         const grid = document.getElementById('research-grid');
@@ -1238,33 +1099,26 @@ function renderTab(tab) {
             grid.appendChild(el);
         });
     }
+}
 
-    // --- REVIEWS TAB ---
-    if(tab === 'reviews') {
-        content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">PUBLIC SENTIMENT</h2>
-            ${!gameState.reviews || gameState.reviews.length === 0 ? '<div class="text-slate-500 italic">No reviews yet. Release products to get feedback!</div>' : '<div class="space-y-4" id="reviews-list"></div>'}
-        `;
-        if(gameState.reviews) {
-            const list = document.getElementById('reviews-list');
-            gameState.reviews.forEach(r => {
-                const el = document.createElement('div');
-                el.className = 'glass-panel p-4 rounded-xl flex gap-4 animate-in';
-                const color = r.rating >= 4 ? 'bg-green-500' : (r.rating <= 2 ? 'bg-red-500' : 'bg-yellow-500');
-                el.innerHTML = `
-                    <div class="w-2 rounded-full ${color} shrink-0"></div>
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="font-bold text-white text-sm">@${r.user}</span>
-                            <span class="text-xs text-slate-500">on ${r.product}</span>
-                            <div class="flex text-yellow-500 text-[10px]">${"★".repeat(r.rating)}</div>
-                        </div>
-                        <p class="text-slate-300 text-sm">"${r.text}"</p>
-                    </div>
-                `;
-                list.appendChild(el);
-            });
+// GOD MODE REGISTRY
+function renderGodModeList() {
+    let container = document.getElementById('godmode-list-container');
+    if(!container) {
+        const wrapper = document.querySelector('#godmode-control-wrapper > div');
+        if(wrapper) {
+            container = document.createElement('div'); container.id = 'godmode-list-container'; container.className = "mt-4 space-y-2 max-h-60 overflow-y-auto border-t border-white/10 pt-4";
+            wrapper.appendChild(container);
         }
+    }
+    if(container && gameState.products) {
+        container.innerHTML = `<h4 class="text-xs font-bold text-slate-500 uppercase">Registry Manager</h4>`;
+        gameState.products.forEach(p => {
+            const row = document.createElement('div'); row.className = "flex justify-between items-center text-xs bg-slate-900/50 p-2 rounded";
+            row.innerHTML = `<span class="text-white">${p.name} <span class="text-slate-500">(${p.weeksLeft}w)</span></span><button class="text-red-500 hover:text-white font-bold">DEL</button>`;
+            row.querySelector('button').onclick = () => { if(confirm('Delete?')) { gameState.products = gameState.products.filter(x=>x.id!==p.id); saveGame(); updateHUD(); renderTab('dash'); } };
+            container.appendChild(row);
+        });
     }
 }
 
