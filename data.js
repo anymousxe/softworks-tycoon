@@ -15,6 +15,26 @@ const HARDWARE_DB = [
     { id: 'quantum', name: 'Q-Bit Array', cost: 1500000, compute: 10000, upkeep: 5000, reqTech: 'quantum_tech' }
 ];
 
+// Specialties (The new "Custom Model" types)
+const SPECIALTIES_DB = [
+    { id: 'vanilla', name: 'Vanilla Chat', multCost: 1.0, multTime: 1.0, multCompute: 1.0, desc: 'Basic text model. Reliable.' },
+    { id: 'dreamer', name: 'Dreamer (Creative)', multCost: 1.2, multTime: 1.2, multCompute: 1.5, desc: 'High hallucinations, great for stories.' },
+    { id: 'coder', name: 'Sys-Admin (Coding)', multCost: 1.5, multTime: 1.4, multCompute: 1.3, desc: 'Optimized for Python/Lua/JS.' },
+    { id: 'visual', name: 'Visionary (Image)', multCost: 2.0, multTime: 1.8, multCompute: 2.5, desc: 'Heavy compute. Generates visuals.' },
+    { id: 'renderer', name: 'Renderer (3D/Video)', multCost: 3.5, multTime: 2.5, multCompute: 4.0, desc: 'Insane resource hog. Makes movies/3D.' },
+    { id: 'reasoning', name: 'Chain-of-Thought', multCost: 2.5, multTime: 2.0, multCompute: 2.0, desc: 'Thinks before it speaks. Slow but smart.' }
+];
+
+// Capabilities (Things you add while the model is in staging)
+const CAPABILITIES_DB = [
+    { id: 'web_search', name: 'Web Search', cost: 15000, time: 2, quality: 15, desc: 'Access the internet.' },
+    { id: 'multimodal', name: 'Multi-Modal Vision', cost: 25000, time: 3, quality: 25, desc: 'Can see images.' },
+    { id: 'memory', name: 'Long-Term Memory', cost: 40000, time: 4, quality: 30, desc: 'Remembers user chats.' },
+    { id: 'audio_in', name: 'Audio Input', cost: 20000, time: 2, quality: 10, desc: 'Hears voice commands.' },
+    { id: 'code_interpreter', name: 'Code Interpreter', cost: 60000, time: 5, quality: 40, desc: 'Runs code locally.' },
+    { id: 'personality', name: 'Dynamic Personality', cost: 10000, time: 1, quality: 10, desc: 'Adjusts vibe to user.' }
+];
+
 // Companies (Contracts)
 const COMPANIES_DB = [
     { name: 'Indie Devs', budget: 1500 }, 
@@ -46,6 +66,16 @@ const CAMPAIGNS_DB = [
     { id: 'cameo_ryan', name: 'Cameo: Ryant Renyold', cost: 800000, hype: 900, duration: 1, type: 'cameo' },
     { id: 'cameo_elion', name: 'Cameo: Elion Tusk', cost: 2500000, hype: 2000, duration: 1, type: 'cameo' },
     { id: 'superbowl', name: 'Super Bowl Commercial', cost: 5000000, hype: 5000, duration: 12, type: 'basic' }
+];
+
+// Shop Items (Restored)
+const SHOP_ITEMS_DB = [
+    { id: 'pizza_party', name: 'Pizza Party', cost: 5000, type: 'consumable_emp', amount: 15, effect: '+15 Morale' },
+    { id: 'team_retreat', name: 'Team Retreat', cost: 25000, type: 'consumable_emp', amount: 40, effect: '+40 Morale' },
+    { id: 'research_grant_s', name: 'Small Grant', cost: 10000, type: 'consumable_res', amount: 500, effect: '+500 Research Pts' },
+    { id: 'research_grant_l', name: 'Federal Grant', cost: 100000, type: 'consumable_res', amount: 5000, effect: '+5000 Research Pts' },
+    { id: 'server_opt', name: 'Server Optimization', cost: 50000, type: 'upgrade', effect: 'Passive Compute Boost' },
+    { id: 'marketing_team', name: 'Marketing Firm', cost: 75000, type: 'upgrade', effect: 'Passive Hype Gen' }
 ];
 
 // Rivals
@@ -80,7 +110,7 @@ const REVIEWS_DB = {
         "Trash. Absolute garbage.", "Hallucinates more than my uncle.", "Waste of API credits.", 
         "Slow, dumb, and expensive.", "Can't even code a Hello World properly.", 
         "The generated images look like nightmares.", "Refund requested.", "Zero coherence.",
-        "Why is this so popular? It breaks constantly."
+        "Why is this so popular? It breaks constantly.", "L model tbh."
     ],
     mid: [
         "It's okay, not great.", "Good for basic drafts, bad for final.", "A bit slow but works.",
@@ -90,7 +120,8 @@ const REVIEWS_DB = {
     high: [
         "Actually really good.", "Saves me 5 hours a day.", "Code generation is spot on.",
         "The 3D models are usable in production!", "Video consistency is improved.",
-        "My workflow is changed forever.", "Solid performance.", "Best in class for the price."
+        "My workflow is changed forever.", "Solid performance.", "Best in class for the price.",
+        "This is cooking.", "Absolute W."
     ],
     god: [
         "AGI ACHIEVED?!", "This feels illegal it's so good.", "Consciousness simulated.",
