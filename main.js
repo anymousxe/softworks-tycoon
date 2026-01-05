@@ -12,29 +12,87 @@ try { firebase.initializeApp(firebaseConfig); } catch (e) { console.error("Fireb
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// Global State
-let currentUser = null;
-let activeSaveId = null;
-let gameState = null;
-let saveInterval = null;
-let realtimeUnsubscribe = null;
-const APP_ID = 'softworks-tycoon';
-const ADMIN_EMAIL = 'anymousxe.info@gmail.com'; 
+// --- 2. GAME DATA (HARDCODED TO PREVENT LOADING ERRORS) ---
+const HARDWARE = [
+    { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 5, upkeep: 10 },
+    { id: 'rtx_4090_farm', name: 'RTX 4090 Farm', cost: 5500, compute: 15, upkeep: 40 },
+    { id: 'a100', name: 'A100 Rack', cost: 8000, compute: 30, upkeep: 80 },
+    { id: 'v100_legacy', name: 'V100 Legacy Rack', cost: 12000, compute: 45, upkeep: 120 },
+    { id: 'h100', name: 'H100 Cluster', cost: 15000, compute: 80, upkeep: 150 },
+    { id: 'h200', name: 'Nvidia H200', cost: 35000, compute: 150, upkeep: 300, reqTech: 'h200_unlock' },
+    { id: 'gh200_super', name: 'GH200 Superchip', cost: 48000, compute: 250, upkeep: 450, reqTech: 'blackwell_arch' },
+    { id: 'b200', name: 'Blackwell B200', cost: 60000, compute: 400, upkeep: 600, reqTech: 'blackwell_arch' },
+    { id: 'tpu_pod', name: 'Google TPU Pod', cost: 250000, compute: 1500, upkeep: 1500, reqTech: 'tpu_opt' },
+    { id: 'cerebras', name: 'Wafer Scale Engine', cost: 500000, compute: 3500, upkeep: 2500, reqTech: 'wafer_scale' },
+    { id: 'quantum', name: 'Q-Bit Array', cost: 1500000, compute: 10000, upkeep: 5000, reqTech: 'quantum_tech' }
+];
 
-let historyStack = [];
-let godMode = false;
+const RIVALS_LIST = [
+    { name: 'OpenAI', strength: 98, color: 'text-green-400' },
+    { name: 'Anthropic', strength: 92, color: 'text-yellow-400' },
+    { name: 'Google DeepMind', strength: 95, color: 'text-blue-400' },
+    { name: 'Meta AI', strength: 88, color: 'text-blue-300' },
+    { name: 'X.AI', strength: 80, color: 'text-slate-200' },
+    { name: 'Stability', strength: 75, color: 'text-purple-400' },
+    { name: 'Mistral', strength: 78, color: 'text-orange-400' },
+    { name: 'Cohere', strength: 70, color: 'text-teal-400' },
+    { name: 'Midjourney', strength: 85, color: 'text-pink-400' },
+    { name: 'Character.AI', strength: 82, color: 'text-cyan-400' },
+    { name: 'Perplexity', strength: 65, color: 'text-indigo-400' },
+    { name: 'HuggingFace', strength: 60, color: 'text-yellow-200' },
+    { name: 'Tencent', strength: 85, color: 'text-green-600' },
+    { name: 'Baidu', strength: 82, color: 'text-blue-600' },
+    { name: 'Alibaba', strength: 80, color: 'text-orange-600' },
+    { name: 'Apple ML', strength: 90, color: 'text-slate-400' },
+    { name: 'Amazon AGI', strength: 88, color: 'text-yellow-600' },
+    { name: 'IBM Watson', strength: 50, color: 'text-blue-800' },
+    { name: 'Tesla AI', strength: 75, color: 'text-red-500' },
+    { name: 'Nvidia Research', strength: 99, color: 'text-green-500' },
+    { name: 'Sora Video', strength: 95, color: 'text-red-400' },
+    { name: 'Runway ML', strength: 70, color: 'text-pink-500' }
+];
 
-// --- ASSETS & DATA ---
-const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
-const COMPANIES = (typeof COMPANIES_DB !== 'undefined') ? COMPANIES_DB : [];
-const CAMPAIGNS = (typeof CAMPAIGNS_DB !== 'undefined') ? CAMPAIGNS_DB : [];
-const RIVALS_LIST = (typeof RIVALS_DB !== 'undefined') ? RIVALS_DB : [];
-const SHOP_ITEMS = (typeof SHOP_ITEMS_DB !== 'undefined') ? SHOP_ITEMS_DB : [];
-const TRAITS = (typeof CUSTOM_TRAITS !== 'undefined') ? CUSTOM_TRAITS : [];
-const CAPABILITIES = (typeof CAPABILITIES_DB !== 'undefined') ? CAPABILITIES_DB : [];
-const PREFIXES = (typeof MODEL_PREFIXES !== 'undefined') ? MODEL_PREFIXES : ['Super'];
-const SUFFIXES = (typeof MODEL_SUFFIXES !== 'undefined') ? MODEL_SUFFIXES : ['GPT'];
-const VERSIONS = (typeof MODEL_VERSIONS !== 'undefined') ? MODEL_VERSIONS : ['1.0'];
+const COMPANIES = [
+    { name: 'Indie Devs', budget: 1500 }, { name: 'Startup Inc', budget: 3500 }, { name: 'Lmsite', budget: 5000 },
+    { name: 'Facebooc', budget: 8000 }, { name: 'StreamFlix', budget: 12000 }, { name: 'Microhard', budget: 15000 },
+    { name: 'Joggle', budget: 18000 }, { name: 'Amacon', budget: 22000 }, { name: 'NvidiaX', budget: 25000 },
+    { name: 'Tessla', budget: 30000 }, { name: 'OpenAI (Real)', budget: 45000 }, { name: 'Global Gov', budget: 500000 }
+];
+
+const CAMPAIGNS = [
+    { id: 'social_ads', name: 'Social Media Blast', cost: 2000, hype: 15 },
+    { id: 'influencer', name: 'Tech Influencer', cost: 15000, hype: 40 },
+    { id: 'billboard', name: 'Times Square Billboard', cost: 50000, hype: 100 },
+    { id: 'superbowl', name: 'Super Bowl Ad', cost: 5000000, hype: 5000 }
+];
+
+const SHOP_ITEMS = [
+    { id: 'pizza_party', name: 'Pizza Party', cost: 5000, type: 'consumable_emp', amount: 15, effect: '+15 Morale' },
+    { id: 'research_grant_s', name: 'Small Grant', cost: 10000, type: 'consumable_res', amount: 500, effect: '+500 Research Pts' },
+    { id: 'marketing_team', name: 'Marketing Firm', cost: 75000, type: 'upgrade', effect: 'Passive Hype Gen' }
+];
+
+const TRAITS = [
+    { id: 'dreamer', name: 'Lucid Dreamer', multCost: 1.2, multTime: 1.5, multCompute: 1.2, desc: 'High hallucinations. Can "dream" up new concepts.' },
+    { id: 'sentient', name: 'Emotional Core', multCost: 2.0, multTime: 2.0, multCompute: 2.0, desc: 'Simulated feelings. High user engagement.' },
+    { id: 'chaos', name: 'Chaos Engine', multCost: 1.5, multTime: 1.2, multCompute: 1.5, desc: 'Unpredictable outputs. Fun but dangerous.' }
+];
+
+const CAPABILITIES = [
+    { id: 'web_search', name: 'Web Search', cost: 15000, time: 2, quality: 15 },
+    { id: 'memory', name: 'Long-Term Memory', cost: 40000, time: 4, quality: 30 }
+];
+
+const PREFIXES = ['Super', 'Ultra', 'Hyper', 'Mega', 'Omni', 'Quantum', 'Cyber', 'Neo', 'Flux', 'Astro'];
+const SUFFIXES = ['GPT', 'Mind', 'Core', 'Flow', 'Net', 'Vision', 'Voice', 'Sim'];
+const VERSIONS = ['1.0', '2.0', '3.0', '4.0', '5.0', 'X', 'Pro', 'Max'];
+
+const REVIEWS_DB = {
+    low: ["Trash.", "Garbage.", "Refund.", "Why?", "Broken."],
+    mid: ["Okay.", "Decent.", "Meh.", "Works.", "Fine."],
+    high: ["Amazing!", "Incredible.", "SOTA.", "Love it.", "Wow."],
+    god: ["AGI IS HERE.", "Consciousness?", "Scary good.", "Unbelievable."]
+};
 
 const RESEARCH = [
     { id: 'opt_algos', name: 'Optimized Algos', cost: 50, desc: '-1 Week Dev Time' },
@@ -46,7 +104,6 @@ const RESEARCH = [
     { id: 'agi_theory', name: 'AGI Theory', cost: 15000, desc: 'Unlock AGI Model Development' }
 ];
 
-// RESTORED FULL PRODUCT DESCRIPTIONS
 const PRODUCTS = [
     { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5, specs: ['Chatbot', 'Coding', 'Writing'], desc: "Standard language model. Reliable and versatile." },
     { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15, specs: ['Realistic', 'Anime', 'Logo'], desc: "Generates high-fidelity images from text prompts." },
@@ -55,6 +112,18 @@ const PRODUCTS = [
     { id: 'custom', name: 'Custom Architecture', cost: 100000, time: 6, compute: 20, specs: ['Specialized', 'Unique', 'Experimental'], desc: "Build a model with a specific neural trait (Dreamer, Sentient, etc)." },
     { id: 'agi', name: 'AGI Core', cost: 5000000, time: 24, compute: 5000, reqTech: 'agi_theory', specs: ['Sentience', 'Omniscience', 'Singularity'], desc: "Artificial General Intelligence. The final frontier." }
 ];
+
+// Global State
+let currentUser = null;
+let activeSaveId = null;
+let gameState = null;
+let saveInterval = null;
+let realtimeUnsubscribe = null;
+const APP_ID = 'softworks-tycoon';
+const ADMIN_EMAIL = 'anymousxe.info@gmail.com'; 
+
+let historyStack = [];
+let godMode = false;
 
 // --- AUTH & SETUP ---
 
@@ -179,7 +248,6 @@ document.getElementById('btn-cancel-create').addEventListener('click', () => doc
 
 // --- GAME LOGIC ---
 
-// --- THE JANITOR PROTOCOL: Nuclear Data Cleaning ---
 function cleanAndRepairData(data) {
     if (!data) return data;
     
@@ -197,36 +265,39 @@ function cleanAndRepairData(data) {
     const cleanProducts = [];
 
     data.products.forEach(p => {
-        if (!p || typeof p !== 'object' || !p.name) { wasModified = true; corrupted = true; return; } 
+        // Soft delete truly broken items (missing ID/Name)
+        if (!p || typeof p !== 'object' || !p.name) { wasModified = true; return; } 
+        
+        // Repair IDs
         if (!p.id) { p.id = Math.random().toString(36).substr(2, 9); wasModified = true; }
         
+        // Remove duplicates
         if (seenIds.has(p.id)) { wasModified = true; return; }
         seenIds.add(p.id);
 
-        // Fix Numbers & Types
+        // Fix Numbers
         p.weeksLeft = Number(p.weeksLeft);
         if (isNaN(p.weeksLeft)) { p.weeksLeft = 0; wasModified = true; }
         
+        // Fix Types
         if (!p.type || p.type === 'undefined') { p.type = 'text'; wasModified = true; }
-        
-        // Migrate "specialty" to "trait"
         if (p.specialty && !p.trait) { p.trait = p.specialty; delete p.specialty; wasModified = true; }
         if (!p.trait) p.trait = null;
 
-        // Ensure arrays
+        // Fix Arrays
         if (!p.capabilities) { p.capabilities = []; wasModified = true; }
         if (!p.contracts) { p.contracts = []; wasModified = true; }
         if (!p.apiConfig) { p.apiConfig = { active: false, price: 0, limit: 100 }; wasModified = true; }
         if (p.isOpenSource === undefined) { p.isOpenSource = false; wasModified = true; }
 
-        // --- UNSTICK LOGIC ---
-        // If it's at 0 weeks, not updating, not released, and NOT in staging -> Force it to Staging
-        if (p.weeksLeft <= 0 && !p.released && !p.isUpdating && !p.isStaged) {
-            console.log("Unsticking Model:", p.name);
+        // --- ZOMBIE UNSTICKER ---
+        // If 0 weeks left but not released/staged/updating -> FORCE STAGE
+        if (!p.released && !p.isUpdating && !p.isStaged && p.weeksLeft <= 0) {
+            console.log(`[Fix] Unsticking ${p.name}`);
             p.isStaged = true;
             p.weeksLeft = 0;
             wasModified = true;
-            corrupted = true;
+            corrupted = true; // Trigger toast
         }
 
         cleanProducts.push(p);
@@ -241,14 +312,14 @@ function cleanAndRepairData(data) {
 function startGame(id, data) {
     activeSaveId = id;
     
-    // Initial Sanitize
     const result = cleanAndRepairData(data);
     gameState = result.data;
 
+    // Save repaired state immediately
     if (result.modified || result.corrupted) {
-        showToast("⚠️ DATA REPAIRED - SYNCING...", "error");
+        showToast("⚠️ FILE REPAIRED - SYNCING...", "error");
         db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).set(gameState)
-            .catch(e => console.error("Repair sync failed", e));
+            .catch(e => console.error("Sync failed", e));
     }
 
     document.getElementById('menu-screen').classList.add('hidden');
@@ -323,14 +394,13 @@ function setupRealtimeListener(saveId) {
     realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
         .doc(saveId).onSnapshot(doc => {
             if (doc.exists) {
-                // CONSTANT SANITIZATION
+                // CONSTANT SANITIZATION ON INCOMING DATA
                 const result = cleanAndRepairData(doc.data());
                 gameState = result.data;
                 
                 updateHUD();
                 
-                // ONLY re-render Dash/Market/Shop automatically.
-                // Re-rendering Dev form while typing destroys input.
+                // Only re-render non-input tabs
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
                 if (activeTab === 'dash' || activeTab === 'stats' || activeTab === 'rivals') {
                     renderTab(activeTab);
@@ -399,7 +469,7 @@ function showToast(msg, type = 'info') {
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
-// --- GENERATE RIVAL RELEASE (AGGRESSIVE) ---
+// --- GENERATE RIVAL RELEASE (AGGRESSIVE SCALING) ---
 function generateRivalRelease() {
     const rival = RIVALS_LIST[Math.floor(Math.random() * RIVALS_LIST.length)];
     const pre = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
@@ -415,8 +485,8 @@ function generateRivalRelease() {
     let quality;
 
     if (globalMax > baseQ * 1.5) {
-        const minTarget = globalMax * 0.8; // Target 80% of leader
-        const range = globalMax * 0.3; // Can exceed leader by 10%
+        const minTarget = globalMax * 0.8; 
+        const range = globalMax * 0.3; 
         quality = Math.floor(minTarget + Math.random() * range);
     } else {
         quality = Math.floor(baseQ + Math.random() * 50);
@@ -479,7 +549,7 @@ function generateReviews() {
     }
 }
 
-// --- NEXT WEEK LOGIC (FIXED) ---
+// --- NEXT WEEK LOGIC ---
 document.getElementById('btn-next-week').addEventListener('click', () => {
     const btn = document.getElementById('btn-next-week');
     btn.disabled = true;
@@ -512,32 +582,27 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             if (gameState.products) {
                 gameState.products.forEach(p => {
                     // Update Development Logic (INCL. VARIANTS)
-                    // If it has weeks left, decrement.
                     if (p.weeksLeft > 0) {
                          const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
                          p.weeksLeft -= (1 * speedMult);
                          
-                         // If finished this tick...
                          if(p.weeksLeft <= 0) {
                              p.weeksLeft = 0;
                              if(p.isUpdating) {
-                                 // Patches/Updates auto-release
                                  p.released = true;
                                  p.isUpdating = false;
                                  if(p.updateType === 'major') { p.version = parseFloat((p.version + 1.0).toFixed(1)); p.quality += 15 + (p.researchBonus || 0); } 
-                                 else if (p.updateType !== 'minor') { /* Variant Update? Shouldn't happen here usually */ } 
+                                 else if (p.updateType !== 'minor') { /* Variant done */ } 
                                  else { p.version = parseFloat((p.version + 0.1).toFixed(1)); p.quality += 5 + (p.researchBonus || 0); }
                                  p.hype = 100;
                                  showToast(`${p.name} Update Released!`, 'success');
                              } else {
-                                 // New Products & VARIANTS go to Staging
                                  p.isStaged = true; 
                                  showToast(`${p.name} is ready for polish!`, 'success');
                              }
                          }
                     }
 
-                    // Live Logic
                     if(p.released && !p.isUpdating) {
                         let weeklyRev = 0;
                         const organicUsers = Math.floor((p.quality * p.hype * 25)); 
@@ -647,7 +712,7 @@ function renderTab(tab) {
                 const prodType = PRODUCTS.find(pt => pt.id === p.type);
                 const displaySpecs = prodType ? prodType.specs.join(' • ') : "Legacy Model";
 
-                // --- STAGING STATE (READY TO LAUNCH OR ADD CAPABILITIES) ---
+                // --- STAGING STATE ---
                 if (!p.released && p.isStaged) {
                     card.classList.add('border-green-500', 'bg-green-900/10');
                     
@@ -697,7 +762,6 @@ function renderTab(tab) {
                         const sel = card.querySelector('.cap-selector');
                         const capId = sel.value;
                         const cap = CAPABILITIES.find(c => c.id === capId);
-                        
                         if(cap) {
                             if(gameState.cash >= cap.cost) {
                                 gameState.cash -= cap.cost;
@@ -1175,10 +1239,14 @@ function openUpdateModal(productId, type) {
 
 // Sync Update Modal Slider/Input
 const updateSlider = document.getElementById('update-research-slider');
+// Inject manual input field dynamically if not present in HTML (it was added via JS before)
+// We need to ensure the HTML structure supports it.
+// PATCH: Add the input field to the modal HTML structure dynamically if missing
 const updateInputContainer = updateSlider.parentElement;
 if(!document.getElementById('update-research-input')) {
     const div = document.createElement('div');
     div.className = "flex gap-2 mt-2";
+    // Move slider into div
     updateInputContainer.insertBefore(div, updateSlider);
     div.appendChild(updateSlider);
     
