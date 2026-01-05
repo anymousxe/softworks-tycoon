@@ -1146,3 +1146,320 @@ function renderTab(tab) {
         }
     }
 }
+
+// UPDATE MODAL
+const updateModal = document.getElementById('update-modal');
+let selectedUpdateId = null;
+let selectedUpdateType = null;
+let updateInjectAmount = 0;
+
+function openUpdateModal(productId, type) {
+    const p = gameState.products.find(x => x.id === productId);
+    if(!p) return;
+    selectedUpdateId = productId;
+    selectedUpdateType = type;
+    updateInjectAmount = 0;
+    
+    document.getElementById('update-target-name').textContent = p.name;
+    document.getElementById('update-research-slider').value = 0;
+    document.getElementById('update-research-slider').max = gameState.researchPts;
+    document.getElementById('update-inject-val').textContent = "0 PTS";
+    document.getElementById('update-quality-boost').textContent = "0";
+    
+    updateModal.classList.remove('hidden');
+}
+
+document.getElementById('update-research-slider').oninput = (e) => {
+    updateInjectAmount = parseInt(e.target.value);
+    document.getElementById('update-inject-val').textContent = `${updateInjectAmount} PTS`;
+    document.getElementById('update-quality-boost').textContent = updateInjectAmount;
+};
+
+document.getElementById('btn-cancel-update').onclick = () => updateModal.classList.add('hidden');
+document.getElementById('btn-confirm-update').onclick = () => {
+    if(!selectedUpdateId) return;
+    const p = gameState.products.find(x => x.id === selectedUpdateId);
+    
+    if(gameState.researchPts < updateInjectAmount && !gameState.isSandbox) return showToast('Insufficient Research Points', 'error');
+    
+    gameState.researchPts -= updateInjectAmount;
+    p.isUpdating = true;
+    p.updateType = selectedUpdateType;
+    p.weeksLeft = selectedUpdateType === 'major' ? 6 : 2;
+    p.researchBonus = updateInjectAmount;
+    
+    updateModal.classList.add('hidden');
+    renderTab('dash');
+    updateHUD();
+    showToast(`Update started for ${p.name}`);
+};
+
+// --- RESTORED API MODAL LOGIC ---
+const apiModal = document.getElementById('api-modal');
+let selectedApiId = null;
+
+function openApiModal(productId) {
+    const p = gameState.products.find(x => x.id === productId);
+    if(!p) return;
+    selectedApiId = productId;
+    if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+    
+    const statusBtn = document.getElementById('btn-toggle-api-status');
+    const dot = statusBtn.querySelector('div');
+    const statusText = document.getElementById('api-status-text');
+    
+    if(p.apiConfig.active) {
+        statusBtn.classList.replace('bg-slate-700', 'bg-green-500');
+        dot.classList.replace('left-1', 'left-7');
+        statusText.textContent = "API Online";
+        statusText.className = "text-[10px] text-green-400";
+    } else {
+        statusBtn.classList.replace('bg-green-500', 'bg-slate-700');
+        dot.classList.replace('left-7', 'left-1');
+        statusText.textContent = "Currently Offline";
+        statusText.className = "text-[10px] text-slate-500";
+    }
+
+    document.getElementById('api-price-input').value = p.apiConfig.price;
+    document.getElementById('api-price-slider').value = p.apiConfig.price;
+    document.getElementById('api-limit-input').value = p.apiConfig.limit;
+    document.getElementById('api-limit-slider').value = p.apiConfig.limit;
+    
+    apiModal.classList.remove('hidden');
+}
+
+const priceInput = document.getElementById('api-price-input');
+const priceSlider = document.getElementById('api-price-slider');
+if(priceInput) priceInput.oninput = () => { priceSlider.value = priceInput.value; };
+if(priceSlider) priceSlider.oninput = () => { priceInput.value = priceSlider.value; };
+
+const limitInput = document.getElementById('api-limit-input');
+const limitSlider = document.getElementById('api-limit-slider');
+if(limitInput) limitInput.oninput = () => { limitSlider.value = limitInput.value; };
+if(limitSlider) limitSlider.oninput = () => { limitInput.value = limitSlider.value; };
+
+document.getElementById('btn-toggle-api-status').onclick = (e) => {
+    const btn = e.currentTarget;
+    const dot = btn.querySelector('div');
+    const isActive = btn.classList.contains('bg-green-500');
+    const statusText = document.getElementById('api-status-text');
+    
+    if(isActive) {
+        btn.classList.replace('bg-green-500', 'bg-slate-700');
+        dot.classList.replace('left-7', 'left-1');
+        statusText.textContent = "Currently Offline";
+        statusText.className = "text-[10px] text-slate-500";
+    } else {
+        btn.classList.replace('bg-slate-700', 'bg-green-500');
+        dot.classList.replace('left-1', 'left-7');
+        statusText.textContent = "API Online";
+        statusText.className = "text-[10px] text-green-400";
+    }
+};
+
+document.getElementById('btn-save-api').onclick = () => {
+    if(!selectedApiId) return;
+    const p = gameState.products.find(x => x.id === selectedApiId);
+    if(p) {
+        const isActive = document.getElementById('btn-toggle-api-status').classList.contains('bg-green-500');
+        p.apiConfig = {
+            active: isActive,
+            price: parseFloat(document.getElementById('api-price-input').value),
+            limit: parseInt(document.getElementById('api-limit-input').value)
+        };
+        showToast('API Configuration Deployed', 'success');
+        apiModal.classList.add('hidden');
+        renderTab('dash');
+    }
+};
+document.getElementById('btn-close-api').onclick = () => apiModal.classList.add('hidden');
+
+// --- RESTORED VARIANT MODAL LOGIC ---
+const variantModal = document.getElementById('variant-modal');
+let selectedVariantId = null;
+let selectedVariantType = null;
+let variantInjectAmount = 0;
+
+function openVariantModal(productId) {
+    const p = gameState.products.find(x => x.id === productId);
+    if(!p) return;
+    selectedVariantId = productId;
+    selectedVariantType = null;
+    variantInjectAmount = 0;
+    
+    document.getElementById('variant-research-slider').value = 0;
+    document.getElementById('variant-inject-val').textContent = "0 PTS";
+    document.getElementById('variant-quality-boost').textContent = "0";
+    document.getElementById('variant-base-name').textContent = p.name;
+    document.getElementById('custom-variant-input').classList.add('hidden');
+    
+    document.querySelectorAll('.variant-opt').forEach(b => {
+         b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
+         b.classList.add('border-slate-700');
+    });
+    
+    document.getElementById('btn-confirm-variant').disabled = true;
+    document.getElementById('btn-confirm-variant').classList.add('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
+    
+    variantModal.classList.remove('hidden');
+}
+
+document.getElementById('variant-research-slider').oninput = (e) => {
+    variantInjectAmount = parseInt(e.target.value);
+    document.getElementById('variant-inject-val').textContent = `${variantInjectAmount} PTS`;
+    document.getElementById('variant-quality-boost').textContent = variantInjectAmount;
+};
+
+document.querySelectorAll('.variant-opt').forEach(btn => {
+    btn.onclick = () => {
+        selectedVariantType = btn.dataset.type;
+        document.querySelectorAll('.variant-opt').forEach(b => {
+             b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
+             b.classList.add('border-slate-700');
+        });
+        
+        btn.classList.remove('border-slate-700');
+        if(selectedVariantType === 'lite') btn.classList.add('border-green-500', 'bg-slate-800');
+        if(selectedVariantType === 'flash') btn.classList.add('border-yellow-500', 'bg-slate-800');
+        if(selectedVariantType === 'pro') btn.classList.add('border-cyan-500', 'bg-slate-800');
+        if(selectedVariantType === 'ultra') btn.classList.add('border-purple-500', 'bg-slate-800');
+        if(selectedVariantType === 'custom') {
+            btn.classList.add('border-pink-500', 'bg-slate-800');
+            document.getElementById('custom-variant-input').classList.remove('hidden');
+        } else {
+            document.getElementById('custom-variant-input').classList.add('hidden');
+        }
+
+        const confirmBtn = document.getElementById('btn-confirm-variant');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = `INITIALIZE VARIANT`;
+        confirmBtn.classList.remove('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
+        confirmBtn.classList.add('text-black', 'bg-white', 'hover:bg-cyan-400');
+    }
+});
+document.getElementById('btn-close-variant').onclick = () => variantModal.classList.add('hidden');
+
+document.getElementById('btn-confirm-variant').onclick = () => {
+    if(!selectedVariantId || !selectedVariantType) return;
+    const parent = gameState.products.find(x => x.id === selectedVariantId);
+    
+    let costMult = 1; let time = 2; let suffix = "";
+    if(selectedVariantType === 'lite') { costMult = 0.5; time = 2; suffix = "[Lite]"; }
+    if(selectedVariantType === 'flash') { costMult = 0.8; time = 1; suffix = "[Flash]"; }
+    if(selectedVariantType === 'pro') { costMult = 1.2; time = 4; suffix = "[Pro]"; }
+    if(selectedVariantType === 'ultra') { costMult = 2.0; time = 8; suffix = "[Ultra]"; }
+    if(selectedVariantType === 'custom') {
+        const customName = document.getElementById('inp-custom-variant').value;
+        if(!customName) return showToast('Enter a custom name!', 'error');
+        costMult = 1.5; time = 5; suffix = `[${customName}]`;
+    }
+
+    const cost = Math.floor(50000 * costMult); 
+    if((gameState.cash < cost || gameState.researchPts < variantInjectAmount) && !gameState.isSandbox) {
+        showToast('Insufficient Funds/Research', 'error'); return;
+    }
+
+    gameState.cash -= cost;
+    gameState.researchPts -= variantInjectAmount;
+    
+    gameState.products.push({
+        id: Date.now().toString(),
+        name: `${parent.name} ${suffix}`,
+        type: parent.type,
+        version: 1.0,
+        quality: parent.quality,
+        revenue: 0, hype: 0, released: false,
+        isUpdating: true, updateType: selectedVariantType,
+        isOpenSource: parent.isOpenSource,
+        weeksLeft: time,
+        researchBonus: variantInjectAmount,
+        contracts: [], apiConfig: { active: false, price: 0, limit: 100 },
+        customFeatures: parent.customFeatures,
+        specialty: parent.specialty
+    });
+    
+    variantModal.classList.add('hidden'); renderTab('dash'); updateHUD();
+    showToast(`Developing variant...`, 'success');
+};
+
+
+// GOD MODE SETTINGS
+const settingsOverlay = document.getElementById('settings-overlay');
+const undoBtn = document.getElementById('btn-undo-week');
+const godModeToggle = document.getElementById('btn-toggle-godmode');
+
+document.getElementById('nav-settings').addEventListener('click', () => {
+    settingsOverlay.classList.remove('hidden');
+    const dotsContainer = document.getElementById('history-dots');
+    dotsContainer.innerHTML = '';
+    for(let i=0; i<6; i++) {
+        const isActive = i < historyStack.length;
+        const dot = document.createElement('div');
+        dot.className = `w-2 h-2 rounded-full transition-colors ${isActive ? 'bg-cyan-500' : 'bg-slate-800'}`;
+        dotsContainer.appendChild(dot);
+    }
+    if(historyStack.length === 0) {
+        undoBtn.disabled = true;
+        undoBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    } else {
+        undoBtn.disabled = false;
+        undoBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+    lucide.createIcons();
+});
+
+document.getElementById('btn-close-settings').addEventListener('click', () => settingsOverlay.classList.add('hidden'));
+
+undoBtn.addEventListener('click', () => {
+    if(historyStack.length === 0) return;
+    if(confirm('Revert time by 1 week?')) {
+        gameState = historyStack.pop();
+        saveGame();
+        updateHUD();
+        renderTab('dash');
+        settingsOverlay.classList.add('hidden');
+        showToast('Timeline Restored', 'success');
+    }
+});
+
+godModeToggle.addEventListener('click', () => {
+    if (!currentUser || currentUser.email !== ADMIN_EMAIL) return showToast('ACCESS DENIED', 'error');
+    godMode = !godMode;
+    const dot = godModeToggle.querySelector('div');
+    if(godMode) {
+        godModeToggle.classList.replace('bg-slate-800', 'bg-red-600');
+        dot.classList.replace('left-1', 'left-9'); 
+        document.getElementById('godmode-status').classList.remove('hidden');
+    } else {
+        godModeToggle.classList.replace('bg-red-600', 'bg-slate-800');
+        dot.classList.replace('left-9', 'left-1');
+        document.getElementById('godmode-status').classList.add('hidden');
+    }
+    updateHUD(); 
+});
+
+// --- NEW: MODE SELECTION LOGIC ---
+document.addEventListener('DOMContentLoaded', () => {
+    const landingScreen = document.getElementById('landing-screen');
+    const btnAI = document.getElementById('btn-mode-ai');
+    const btnMovie = document.getElementById('btn-mode-movie');
+
+    if(btnAI) {
+        btnAI.addEventListener('click', () => {
+            landingScreen.classList.add('fade-out-up');
+            setTimeout(() => {
+                landingScreen.classList.add('hidden');
+            }, 500);
+        });
+    }
+
+    if(btnMovie) {
+        btnMovie.addEventListener('click', () => {
+            btnMovie.style.transform = 'scale(0.98)';
+            btnMovie.style.borderColor = '#ec4899';
+            setTimeout(() => {
+                window.location.href = 'https://softworks-tycoon.xyz/movie-star';
+            }, 150);
+        });
+    }
+});
