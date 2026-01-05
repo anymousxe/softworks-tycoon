@@ -29,7 +29,9 @@ const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
 const COMPANIES = (typeof COMPANIES_DB !== 'undefined') ? COMPANIES_DB : [];
 const CAMPAIGNS = (typeof CAMPAIGNS_DB !== 'undefined') ? CAMPAIGNS_DB : [];
 const RIVALS_LIST = (typeof RIVALS_DB !== 'undefined') ? RIVALS_DB : [];
-const SHOP_ITEMS = (typeof SHOP_ITEMS_DB !== 'undefined') ? SHOP_ITEMS_DB : []; // RESTORED SHOP ITEMS
+const SHOP_ITEMS = (typeof SHOP_ITEMS_DB !== 'undefined') ? SHOP_ITEMS_DB : [];
+const SPECIALTIES = (typeof SPECIALTIES_DB !== 'undefined') ? SPECIALTIES_DB : [];
+const CAPABILITIES = (typeof CAPABILITIES_DB !== 'undefined') ? CAPABILITIES_DB : [];
 const PREFIXES = (typeof MODEL_PREFIXES !== 'undefined') ? MODEL_PREFIXES : ['Super'];
 const SUFFIXES = (typeof MODEL_SUFFIXES !== 'undefined') ? MODEL_SUFFIXES : ['GPT'];
 const VERSIONS = (typeof MODEL_VERSIONS !== 'undefined') ? MODEL_VERSIONS : ['1.0'];
@@ -45,11 +47,8 @@ const RESEARCH = [
 ];
 
 const PRODUCTS = [
-    { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5, specs: ['Chatbot', 'Coding', 'Writing'] },
-    { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15, specs: ['Realistic', 'Anime', 'Logo'] },
-    { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 10, specs: ['Music', 'Voice', 'SFX'] },
-    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40, specs: ['Deepfake', 'Cinema', 'VFX'] },
-    { id: 'agi', name: 'AGI Core', cost: 5000000, time: 24, compute: 5000, reqTech: 'agi_theory', specs: ['Sentience', 'Omniscience', 'Singularity'] }
+    { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5 },
+    { id: 'agi', name: 'AGI Core', cost: 5000000, time: 24, compute: 5000, reqTech: 'agi_theory' }
 ];
 
 // --- AUTH & SETUP ---
@@ -191,7 +190,8 @@ function startGame(id, data) {
             if(p.isStaged === undefined) p.isStaged = false;
             if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
             if(!p.contracts) p.contracts = [];
-            if(!p.capabilities) p.capabilities = "General Purpose Model";
+            if(!p.capabilities) p.capabilities = []; // Changed to array
+            if(!p.specialty) p.specialty = 'vanilla';
         });
     }
 
@@ -395,9 +395,6 @@ function generateReviews() {
             rating = Math.random() > 0.5 ? 2 : 1;
         }
 
-        if(p.customFeatures && p.customFeatures.includes('Image-to-Video') && rating > 3) {
-            sentimentPool.push("The Image-to-Video feature is revolutionary!");
-        }
         if(p.type === 'agi' && rating > 3) {
             sentimentPool.push("It's... alive.");
         }
@@ -449,14 +446,14 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
             if (gameState.products) {
                 gameState.products.forEach(p => {
-                    // Update Development Logic (Fixed)
-                    if(!p.released && !p.isStaged) {
-                        if(p.weeksLeft > 0) {
-                            const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
-                            p.weeksLeft -= (1 * speedMult);
-                        }
+                    // Update Development Logic
+                    // ONLY decrease weeksLeft if the model is NOT finished (weeksLeft > 0)
+                    // If weeksLeft is 0 and it's Staged, it stays there until user adds more features or launches.
+                    if(!p.released && p.weeksLeft > 0) {
+                        const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
+                        p.weeksLeft -= (1 * speedMult);
                         
-                        // Check if finished
+                        // Check if just finished
                         if(p.weeksLeft <= 0) {
                             p.weeksLeft = 0;
                             if(p.isUpdating) {
@@ -478,9 +475,9 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                                 p.hype = 100;
                                 showToast(`${p.name} Update Released!`, 'success');
                             } else {
-                                // New Product -> Go to Staging
+                                // New Product -> Go to Staging (Cooking Phase)
                                 p.isStaged = true;
-                                showToast(`${p.name} ready for release!`, 'success');
+                                showToast(`${p.name} is ready for polish!`, 'success');
                             }
                         }
                     }
@@ -491,10 +488,10 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         const organicUsers = Math.floor((p.quality * p.hype * 25)); 
                         let organicRev = Math.floor(organicUsers * 0.5); 
                         
-                        if (p.customFeatures) {
-                            if(p.customFeatures.includes('Image-to-Video')) organicRev *= 1.5;
-                            if(p.customFeatures.includes('Image-to-3D')) organicRev *= 1.3;
-                        }
+                        // Specialty Bonus
+                        if(p.specialty === 'visual') organicRev *= 1.2;
+                        if(p.specialty === 'renderer') organicRev *= 2.0;
+
                         if (p.type === 'agi') organicRev *= 5.0;
 
                         weeklyRev += organicRev;
@@ -604,13 +601,18 @@ function renderTab(tab) {
             const card = document.createElement('div');
             card.className = 'glass-panel p-6 relative group hover:border-cyan-500/50 transition-all rounded-2xl overflow-hidden';
             
-            // --- STAGING STATE (READY TO LAUNCH) ---
+            // --- STAGING STATE (READY TO LAUNCH OR ADD CAPABILITIES) ---
             if (!p.released && p.isStaged) {
                 card.classList.add('border-green-500', 'bg-green-900/10');
+                
+                // Dropdown options for capabilities
+                const availableCaps = CAPABILITIES.filter(cap => !(p.capabilities || []).includes(cap.id));
+                const capsOptions = availableCaps.map(c => `<option value="${c.id}">${c.name} (+${c.time}w, $${c.cost})</option>`).join('');
+                
                 card.innerHTML = `
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="font-bold text-white text-xl">${p.name}</h3>
-                        <span class="text-xs font-black bg-green-500 text-black px-2 py-1 rounded animate-pulse">READY</span>
+                        <span class="text-xs font-black bg-green-500 text-black px-2 py-1 rounded animate-pulse">COOKING</span>
                     </div>
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div class="bg-black/40 p-3 rounded-xl border border-white/5">
@@ -618,32 +620,48 @@ function renderTab(tab) {
                             <div class="text-white font-black text-xl">${p.quality}</div>
                         </div>
                         <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                            <div class="text-[9px] text-slate-500 uppercase font-bold">Projected Hype</div>
-                            <div class="text-purple-400 font-black text-xl">100%</div>
+                            <div class="text-[9px] text-slate-500 uppercase font-bold">Specialty</div>
+                            <div class="text-purple-400 font-bold uppercase text-xs mt-1">${p.specialty || 'Vanilla'}</div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button class="btn-train-more bg-slate-800 hover:bg-white hover:text-black text-white py-3 rounded-xl font-bold text-xs tracking-widest transition-all">
-                            POLISH (+2 Wks)
-                        </button>
-                        <button class="btn-launch bg-green-500 hover:bg-green-400 text-black py-3 rounded-xl font-black text-xs tracking-widest transition-all shadow-lg shadow-green-500/20">
-                            LAUNCH NOW 🚀
-                        </button>
+                    
+                    <div class="mb-4">
+                         <label class="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-2">Install Capability</label>
+                         <div class="flex gap-2">
+                            <select class="cap-selector bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 flex-1 outline-none">
+                                ${capsOptions || '<option disabled>Maxed Out!</option>'}
+                            </select>
+                            <button class="btn-add-cap bg-slate-800 hover:bg-white hover:text-black text-white px-4 py-2 rounded-lg font-bold text-xs">INSTALL</button>
+                         </div>
                     </div>
-                    <p class="text-[10px] text-slate-500 mt-3 text-center">Polishing improves quality but delays revenue.</p>
+
+                    <button class="btn-launch w-full bg-green-500 hover:bg-green-400 text-black py-3 rounded-xl font-black text-xs tracking-widest transition-all shadow-lg shadow-green-500/20">
+                        LAUNCH MODEL 🚀
+                    </button>
                 `;
-                card.querySelector('.btn-train-more').onclick = () => {
-                    const polishCost = Math.floor(p.quality * 50); 
-                    if(gameState.cash >= polishCost) {
-                        gameState.cash -= polishCost;
-                        p.isStaged = false;
-                        p.weeksLeft = 2; 
-                        p.researchBonus = (p.researchBonus || 0) + 25; 
-                        p.quality += 10; 
-                        updateHUD(); renderTab('dash');
-                        showToast(`${p.name} returned to training lab!`, 'success');
-                    } else { showToast(`Need $${polishCost} to polish`, 'error'); }
+                
+                card.querySelector('.btn-add-cap').onclick = () => {
+                    const sel = card.querySelector('.cap-selector');
+                    const capId = sel.value;
+                    const cap = CAPABILITIES.find(c => c.id === capId);
+                    
+                    if(cap) {
+                        if(gameState.cash >= cap.cost) {
+                            gameState.cash -= cap.cost;
+                            p.weeksLeft += cap.time;
+                            p.quality += cap.quality;
+                            p.isStaged = false; // Go back to "dev" mode
+                            if(!p.capabilities) p.capabilities = [];
+                            p.capabilities.push(cap.id);
+                            updateHUD();
+                            renderTab('dash');
+                            showToast(`Installing ${cap.name}...`, 'success');
+                        } else {
+                            showToast(`Need $${cap.cost}`, 'error');
+                        }
+                    }
                 };
+
                 card.querySelector('.btn-launch').onclick = () => {
                     p.released = true;
                     p.isStaged = false;
@@ -666,11 +684,10 @@ function renderTab(tab) {
                                 <h3 class="text-2xl font-bold text-white tracking-tight">${p.name} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
                             </div>
                             <div class="flex flex-wrap gap-2 mt-2">
-                                <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${p.type.toUpperCase()}</div>
+                                <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${(p.specialty || 'Vanilla').toUpperCase()}</div>
                                 <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3"></i> API</div>
-                                ${p.customFeatures ? p.customFeatures.map(f => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${f}</div>`).join('') : ''}
+                                ${p.capabilities ? p.capabilities.map(c => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${c}</div>`).join('') : ''}
                             </div>
-                            <div class="text-xs text-slate-400 mt-2 italic max-w-xs leading-tight">"${p.capabilities || 'Standard Model'}"</div>
                         </div>
                         <div class="text-right mt-2">
                             <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Weekly Rev</div>
@@ -712,7 +729,7 @@ function renderTab(tab) {
                         <h3 class="font-bold text-white text-lg">${p.name}</h3>
                         <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${Math.ceil(p.weeksLeft)}w LEFT</span>
                     </div>
-                    <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : 'Training Model...'}</div>
+                    <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : `Training (${p.specialty || 'Vanilla'})...`}</div>
                     <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div class="h-full bg-cyan-500 animate-pulse" style="width: 50%"></div></div>
                 `;
             }
@@ -873,7 +890,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- DEV TAB (Updated for Custom Models & Description) ---
+    // --- DEV TAB (Updated for Specialty System) ---
     if(tab === 'dev') {
         content.innerHTML = `
             <h2 class="text-3xl font-black text-white mb-6 tracking-tight">NEW PROJECT</h2>
@@ -883,20 +900,15 @@ function renderTab(tab) {
                     <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Codename</label>
                     <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-4 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="Project Name">
                     
-                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Specialization / Description</label>
+                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Description (Fluff)</label>
                     <textarea id="new-proj-specs" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-mono text-sm h-20 resize-none" placeholder="e.g. Best for coding Python..."></textarea>
 
-                    <!-- DYNAMIC SETTINGS AREA -->
-                    <div id="custom-settings" class="mb-6 hidden space-y-3 p-4 bg-slate-900/50 rounded-xl border border-slate-700">
-                        <div class="text-[10px] text-slate-400 font-bold uppercase">Model Settings</div>
-                        <div id="chk-container-video" class="hidden flex items-center gap-3">
-                            <input type="checkbox" id="chk-img-to-vid" class="accent-cyan-500 w-4 h-4">
-                            <label for="chk-img-to-vid" class="text-sm text-white">Enable Image-to-Video (+4w, +Compute)</label>
-                        </div>
-                        <div id="chk-container-3d" class="hidden flex items-center gap-3">
-                            <input type="checkbox" id="chk-img-to-3d" class="accent-cyan-500 w-4 h-4">
-                            <label for="chk-img-to-3d" class="text-sm text-white">Enable Image-to-3D (+3w, +Compute)</label>
-                        </div>
+                    <div id="specialty-container" class="mb-6 hidden">
+                        <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Model Specialty</label>
+                        <select id="specialty-select" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-purple-500 outline-none text-sm font-bold mb-2">
+                             ${SPECIALTIES.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                        </select>
+                        <p id="specialty-desc" class="text-xs text-slate-500 italic">Select a model type.</p>
                     </div>
 
                     <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
@@ -911,7 +923,9 @@ function renderTab(tab) {
 
         let selectedType = null, injectAmount = 0;
         const typeContainer = document.getElementById('dev-types');
-        const settingsDiv = document.getElementById('custom-settings');
+        const specialtyContainer = document.getElementById('specialty-container');
+        const specialtySelect = document.getElementById('specialty-select');
+        const specialtyDesc = document.getElementById('specialty-desc');
         
         PRODUCTS.forEach(p => {
             const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
@@ -923,9 +937,9 @@ function renderTab(tab) {
                     ${locked ? '<i data-lucide="lock" class="w-4 h-4 text-red-500"></i>' : ''}
                 </div>
                 <div class="text-xs text-slate-500 font-mono space-y-1">
-                    <div>Cost: $${p.cost.toLocaleString()}</div>
-                    <div>Compute: ${p.compute} TF</div>
-                    <div>Time: ${p.time} Weeks</div>
+                    <div>Base Cost: $${p.cost.toLocaleString()}</div>
+                    <div>Base Compute: ${p.compute} TF</div>
+                    <div>Base Time: ${p.time} Weeks</div>
                 </div>`;
             
             if(!locked) {
@@ -933,20 +947,17 @@ function renderTab(tab) {
                     document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500', 'bg-cyan-900/20'));
                     btn.classList.add('border-cyan-500', 'bg-cyan-900/20');
                     selectedType = p;
-
-                    settingsDiv.classList.add('hidden');
-                    document.getElementById('chk-container-video').classList.add('hidden');
-                    document.getElementById('chk-container-3d').classList.add('hidden');
-
-                    if(p.id === 'video' || p.id === 'image') {
-                        settingsDiv.classList.remove('hidden');
-                        if(p.id === 'video') document.getElementById('chk-container-video').classList.remove('hidden');
-                        if(p.id === 'image') document.getElementById('chk-container-3d').classList.remove('hidden');
-                    }
+                    specialtyContainer.classList.remove('hidden');
                 };
             }
             typeContainer.appendChild(btn);
         });
+
+        // Specialty Description Update
+        specialtySelect.onchange = () => {
+             const spec = SPECIALTIES.find(s => s.id === specialtySelect.value);
+             specialtyDesc.textContent = `${spec.desc} (x${spec.multCost} Cost, x${spec.multTime} Time)`;
+        };
 
         document.getElementById('research-inject').oninput = (e) => {
             injectAmount = parseInt(e.target.value);
@@ -956,27 +967,22 @@ function renderTab(tab) {
 
         document.getElementById('btn-start-dev').onclick = () => {
             const name = document.getElementById('new-proj-name').value;
-            const specs = document.getElementById('new-proj-specs').value; // Get Description
+            const specs = document.getElementById('new-proj-specs').value; 
+            const specialtyId = specialtySelect.value;
+            const specData = SPECIALTIES.find(s => s.id === specialtyId);
+
             if(!name || !selectedType) return showToast('Select project type and name!', 'error');
             
-            let extraCost = 0, extraTime = 0, extraCompute = 0, features = [];
-
-            if(selectedType.id === 'video' && document.getElementById('chk-img-to-vid').checked) {
-                features.push('Image-to-Video'); extraCost += 50000; extraTime += 4; extraCompute += 20;
-            }
-            if(selectedType.id === 'image' && document.getElementById('chk-img-to-3d').checked) {
-                features.push('Image-to-3D'); extraCost += 30000; extraTime += 3; extraCompute += 15;
-            }
-
-            // RESOURCE SCALING LOGIC (More Compute/Research for higher starting quality)
-            let baseCost = selectedType.cost + extraCost;
-            let baseCompute = selectedType.compute + extraCompute;
+            // RESOURCE SCALING LOGIC
+            let baseCost = selectedType.cost * specData.multCost;
+            let baseCompute = selectedType.compute * specData.multCompute;
+            let baseTime = selectedType.time * specData.multTime;
             
             if(injectAmount > 500) { baseCompute += 50; baseCost += 100000; }
             if(injectAmount > 2000) { baseCompute += 200; baseCost += 500000; }
 
-            if(gameState.cash < baseCost && !gameState.isSandbox) return showToast('Insufficient Funds!', 'error');
-            if(getCompute() < baseCompute) return showToast('Need more Compute!', 'error');
+            if(gameState.cash < baseCost && !gameState.isSandbox) return showToast(`Insufficient Funds! Need $${baseCost.toLocaleString()}`, 'error');
+            if(getCompute() < baseCompute) return showToast(`Need ${Math.ceil(baseCompute)} TF Compute!`, 'error');
             
             gameState.cash -= baseCost;
             gameState.researchPts -= injectAmount;
@@ -988,11 +994,12 @@ function renderTab(tab) {
                 id: Date.now().toString(), name, type: selectedType.id, version: 1.0, 
                 quality: baseQ + injectAmount, revenue: 0, hype: 0, 
                 released: false, isUpdating: false, isStaged: false,
-                weeksLeft: selectedType.time + extraTime, 
-                researchBonus: 0, customFeatures: features, isOpenSource: false,
-                capabilities: specs || "General Purpose Model"
+                weeksLeft: baseTime, 
+                researchBonus: 0, customFeatures: [], isOpenSource: false,
+                capabilities: [], specialty: specialtyId,
+                description: specs || "A cool model."
             });
-            updateHUD(); showToast('Development Started', 'success'); renderTab('dash');
+            updateHUD(); showToast('Development Started. Let him cook.', 'success'); renderTab('dash');
         };
         lucide.createIcons();
     }
@@ -1040,7 +1047,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- SHOP TAB (Restored) ---
+    // --- SHOP TAB (Updated) ---
     if(tab === 'shop') {
         content.innerHTML = `
             <div class="flex justify-between items-center mb-6">
@@ -1049,6 +1056,7 @@ function renderTab(tab) {
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
         `;
         const grid = document.getElementById('shop-grid');
+        // Filter out one-time items already bought, keep consumables
         const availableItems = SHOP_ITEMS.filter(item => {
             if(item.type.includes('consumable')) return true;
             return !(gameState.purchasedItems || []).includes(item.id);
@@ -1060,10 +1068,10 @@ function renderTab(tab) {
             el.querySelector('button').onclick = () => {
                 if(gameState.cash >= item.cost) {
                     gameState.cash -= item.cost;
-                    if(item.type === 'consumable') { if(item.amount > 0) gameState.researchPts += item.amount; }
+                    if(item.type === 'consumable_res') { gameState.researchPts += item.amount; showToast('Research Acquired!', 'success'); }
                     else if(item.type === 'consumable_emp') { if(!gameState.employees) gameState.employees = { morale: 100 }; gameState.employees.morale = Math.min(100, gameState.employees.morale + item.amount); showToast(`Staff Morale Increased!`, 'success'); }
                     else { if(!gameState.purchasedItems) gameState.purchasedItems = []; gameState.purchasedItems.push(item.id); }
-                    updateHUD(); showToast('Purchased!', 'success'); saveGame(); renderTab('shop');
+                    updateHUD(); saveGame(); renderTab('shop');
                 } else showToast('Insufficient Funds!', 'error');
             };
             grid.appendChild(el);
@@ -1071,7 +1079,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- LAB TAB (Same) ---
+    // --- LAB TAB ---
     if(tab === 'lab') {
         content.innerHTML = `
             <div class="flex items-center gap-6 mb-8"><h2 class="text-5xl font-black text-white tracking-tighter">R&D LAB</h2><div class="text-purple-400 font-mono font-bold bg-purple-900/20 px-4 py-2 rounded-xl border border-purple-500/30">${Math.floor(gameState.researchPts)} PTS</div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="research-grid"></div>`;
@@ -1342,7 +1350,8 @@ document.getElementById('btn-confirm-variant').onclick = () => {
         weeksLeft: time,
         researchBonus: variantInjectAmount,
         contracts: [], apiConfig: { active: false, price: 0, limit: 100 },
-        customFeatures: parent.customFeatures
+        customFeatures: parent.customFeatures,
+        specialty: parent.specialty
     });
     
     variantModal.classList.add('hidden'); renderTab('dash'); updateHUD();
