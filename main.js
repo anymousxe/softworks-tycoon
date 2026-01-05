@@ -234,6 +234,9 @@ function cleanAndRepairData(data) {
         if (!p.capabilities) { p.capabilities = []; wasModified = true; }
         if (!p.contracts) { p.contracts = []; wasModified = true; }
         if (!p.apiConfig) { p.apiConfig = { active: false, price: 0, limit: 100 }; wasModified = true; }
+        
+        // Ensure isOpenSource exists
+        if (p.isOpenSource === undefined) { p.isOpenSource = false; wasModified = true; }
 
         // 4. UNSTICK LOGIC: If 0 weeks, not released, not updating -> FORCE STAGE
         if (!p.released && !p.isUpdating && !p.isStaged && p.weeksLeft <= 0) {
@@ -413,7 +416,7 @@ function showToast(msg, type = 'info') {
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
-// --- GENERATE RIVAL RELEASE (DYNAMIC SCALING) ---
+// --- GENERATE RIVAL RELEASE (AGGRESSIVE SCALING) ---
 function generateRivalRelease() {
     const rival = RIVALS_LIST[Math.floor(Math.random() * RIVALS_LIST.length)];
     const pre = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
@@ -426,20 +429,22 @@ function generateRivalRelease() {
     if(gameState.products) gameState.products.forEach(p => globalMax = Math.max(globalMax, p.quality));
     if(gameState.marketModels) gameState.marketModels.forEach(m => globalMax = Math.max(globalMax, m.quality));
 
-    // 2. Base Quality (Year based floor)
-    let baseQ = 50 + (gameState.year - 2025) * 20;
-
-    // 3. Target Quality: Dynamic Rubber-banding
-    // If GlobalMax is huge (e.g., 1000), rivals aim for 50%-90% of that to stay competitive.
-    // If GlobalMax is low, they follow the base year curve.
+    let baseQ = 50 + (gameState.year - 2025) * 20; // Default floor
     let quality;
+
+    // 2. Target Quality: Dynamic Rubber-banding
+    // If GlobalMax is huge (e.g., 1000), rivals aim for 80%-110% of that to stay competitive.
     if (globalMax > baseQ * 1.5) {
-        const minTarget = globalMax * 0.5;
-        const range = globalMax * 0.45; // Rivals get up to 95% of leader quality
+        const minTarget = globalMax * 0.8;
+        const range = globalMax * 0.3; // Rivals can slightly beat the leader
         quality = Math.floor(minTarget + Math.random() * range);
     } else {
+        // Standard progression
         quality = Math.floor(baseQ + Math.random() * 50);
     }
+    
+    // 3. Open Source Chance (20%)
+    const isOpenSource = Math.random() < 0.20;
 
     if(!gameState.marketModels) gameState.marketModels = [];
     gameState.marketModels.push({
@@ -450,11 +455,12 @@ function generateRivalRelease() {
         quality: quality,
         modelType: type, 
         week: gameState.week,
-        year: gameState.year
+        year: gameState.year,
+        isOpenSource: isOpenSource
     });
     
     if(gameState.marketModels.length > 50) gameState.marketModels.shift();
-    showToast(`${rival.name} released ${pre}${suf} (Q: ${quality})`, 'error');
+    showToast(`${rival.name} released ${pre}${suf} (Q: ${quality}) ${isOpenSource ? '[OPEN SOURCE]' : ''}`, 'error');
 }
 
 // --- NEW DIVERSE REVIEW GENERATION ---
@@ -780,6 +786,7 @@ function renderTab(tab) {
                                     <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${(p.type || 'text').toUpperCase()}</div>
                                     ${p.trait ? `<div class="text-xs text-pink-300 font-bold bg-pink-900/30 border border-pink-500/30 px-2 py-0.5 rounded">${p.trait.toUpperCase()}</div>` : ''}
                                     <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3"></i> API</div>
+                                    ${p.isOpenSource ? `<div class="text-xs font-bold bg-blue-900/50 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded flex items-center gap-1">OPEN SOURCE</div>` : ''}
                                     ${p.capabilities ? p.capabilities.map(c => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${c}</div>`).join('') : ''}
                                 </div>
                             </div>
@@ -1006,6 +1013,11 @@ function renderTab(tab) {
                         <p id="specialty-desc" class="text-xs text-slate-500 italic">Select a model type.</p>
                     </div>
 
+                    <div class="flex items-center gap-2 mb-4">
+                        <input type="checkbox" id="chk-opensource" class="accent-cyan-500 w-4 h-4 cursor-pointer">
+                        <label for="chk-opensource" class="text-xs text-slate-400 font-bold uppercase tracking-wider cursor-pointer">Release as Open Source (Rep++ / No Revenue)</label>
+                    </div>
+
                     <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
                         <div class="flex justify-between text-xs font-bold text-purple-300 mb-2"><span>Research Injection</span><span id="inject-val">0 PTS</span></div>
                         <div class="flex gap-2">
@@ -1089,7 +1101,8 @@ function renderTab(tab) {
         document.getElementById('btn-start-dev').onclick = () => {
             const name = document.getElementById('new-proj-name').value;
             const specs = document.getElementById('new-proj-specs').value; 
-            
+            const isOS = document.getElementById('chk-opensource').checked;
+
             if(!name || !selectedType) return showToast('Select project type and name!', 'error');
 
             let traitId = null;
@@ -1127,7 +1140,7 @@ function renderTab(tab) {
                 quality: baseQ + injectAmount, revenue: 0, hype: 0, 
                 released: false, isUpdating: false, isStaged: false,
                 weeksLeft: baseTime, 
-                researchBonus: 0, customFeatures: [], isOpenSource: false,
+                researchBonus: 0, customFeatures: [], isOpenSource: isOS,
                 capabilities: [], trait: traitId,
                 description: specs || "A cool model."
             });
@@ -1274,14 +1287,43 @@ function openUpdateModal(productId, type) {
     document.getElementById('update-inject-val').textContent = "0 PTS";
     document.getElementById('update-quality-boost').textContent = "0";
     
+    // Reset Manual Input
+    const numInput = document.getElementById('update-research-input');
+    if(numInput) { numInput.value = 0; numInput.max = gameState.researchPts; }
+
     updateModal.classList.remove('hidden');
 }
 
-document.getElementById('update-research-slider').oninput = (e) => {
-    updateInjectAmount = parseInt(e.target.value);
-    document.getElementById('update-inject-val').textContent = `${updateInjectAmount} PTS`;
-    document.getElementById('update-quality-boost').textContent = updateInjectAmount;
-};
+// Sync Update Modal Slider/Input
+const updateSlider = document.getElementById('update-research-slider');
+// Inject manual input field dynamically if not present in HTML (it was added via JS before)
+// We need to ensure the HTML structure supports it.
+// PATCH: Add the input field to the modal HTML structure dynamically if missing
+const updateInputContainer = updateSlider.parentElement;
+if(!document.getElementById('update-research-input')) {
+    const div = document.createElement('div');
+    div.className = "flex gap-2 mt-2";
+    // Move slider into div
+    updateInputContainer.insertBefore(div, updateSlider);
+    div.appendChild(updateSlider);
+    
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.id = 'update-research-input';
+    inp.className = "w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500";
+    inp.value = 0;
+    div.appendChild(inp);
+    
+    const syncUpdate = (val) => {
+        let v = parseInt(val); if(isNaN(v)) v=0; if(v<0) v=0; if(v>gameState.researchPts) v=gameState.researchPts;
+        updateSlider.value = v; inp.value = v; updateInjectAmount = v;
+        document.getElementById('update-inject-val').textContent = `${v} PTS`;
+        document.getElementById('update-quality-boost').textContent = v;
+    };
+    updateSlider.oninput = (e) => syncUpdate(e.target.value);
+    inp.oninput = (e) => syncUpdate(e.target.value);
+}
+
 
 document.getElementById('btn-cancel-update').onclick = () => updateModal.classList.add('hidden');
 document.getElementById('btn-confirm-update').onclick = () => {
@@ -1409,14 +1451,28 @@ function openVariantModal(productId) {
     document.getElementById('btn-confirm-variant').disabled = true;
     document.getElementById('btn-confirm-variant').classList.add('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
     
+    // Inject Input if missing (same patch logic)
+    const varSlider = document.getElementById('variant-research-slider');
+    const varWrapper = varSlider.parentElement;
+    if(!document.getElementById('variant-research-input')) {
+        const div = document.createElement('div'); div.className="flex gap-2 mt-2";
+        varWrapper.insertBefore(div, varSlider); div.appendChild(varSlider);
+        const inp = document.createElement('input'); inp.type='number'; inp.id='variant-research-input';
+        inp.className = "w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500";
+        inp.value = 0; div.appendChild(inp);
+        
+        const syncVar = (val) => {
+            let v = parseInt(val); if(isNaN(v)) v=0; if(v<0) v=0; if(v>gameState.researchPts) v=gameState.researchPts;
+            varSlider.value = v; inp.value = v; variantInjectAmount = v;
+            document.getElementById('variant-inject-val').textContent = `${v} PTS`;
+            document.getElementById('variant-quality-boost').textContent = v;
+        };
+        varSlider.oninput = (e) => syncVar(e.target.value);
+        inp.oninput = (e) => syncVar(e.target.value);
+    }
+
     variantModal.classList.remove('hidden');
 }
-
-document.getElementById('variant-research-slider').oninput = (e) => {
-    variantInjectAmount = parseInt(e.target.value);
-    document.getElementById('variant-inject-val').textContent = `${variantInjectAmount} PTS`;
-    document.getElementById('variant-quality-boost').textContent = variantInjectAmount;
-};
 
 document.querySelectorAll('.variant-opt').forEach(btn => {
     btn.onclick = () => {
