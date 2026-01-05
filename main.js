@@ -30,7 +30,7 @@ const COMPANIES = (typeof COMPANIES_DB !== 'undefined') ? COMPANIES_DB : [];
 const CAMPAIGNS = (typeof CAMPAIGNS_DB !== 'undefined') ? CAMPAIGNS_DB : [];
 const RIVALS_LIST = (typeof RIVALS_DB !== 'undefined') ? RIVALS_DB : [];
 const SHOP_ITEMS = (typeof SHOP_ITEMS_DB !== 'undefined') ? SHOP_ITEMS_DB : [];
-const SPECIALTIES = (typeof SPECIALTIES_DB !== 'undefined') ? SPECIALTIES_DB : [];
+const TRAITS = (typeof CUSTOM_TRAITS !== 'undefined') ? CUSTOM_TRAITS : [];
 const CAPABILITIES = (typeof CAPABILITIES_DB !== 'undefined') ? CAPABILITIES_DB : [];
 const PREFIXES = (typeof MODEL_PREFIXES !== 'undefined') ? MODEL_PREFIXES : ['Super'];
 const SUFFIXES = (typeof MODEL_SUFFIXES !== 'undefined') ? MODEL_SUFFIXES : ['GPT'];
@@ -46,8 +46,13 @@ const RESEARCH = [
     { id: 'agi_theory', name: 'AGI Theory', cost: 15000, desc: 'Unlock AGI Model Development' }
 ];
 
+// PRODUCTS RESTORED + CUSTOM TYPE
 const PRODUCTS = [
     { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5 },
+    { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15 },
+    { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 10 },
+    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40 },
+    { id: 'custom', name: 'Custom Architecture', cost: 100000, time: 6, compute: 20, desc: 'Specialized for Dreaming, Feelings, etc.' },
     { id: 'agi', name: 'AGI Core', cost: 5000000, time: 24, compute: 5000, reqTech: 'agi_theory' }
 ];
 
@@ -190,8 +195,8 @@ function startGame(id, data) {
             if(p.isStaged === undefined) p.isStaged = false;
             if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
             if(!p.contracts) p.contracts = [];
-            if(!p.capabilities) p.capabilities = []; // Changed to array
-            if(!p.specialty) p.specialty = 'vanilla';
+            if(!p.capabilities) p.capabilities = [];
+            if(!p.trait) p.trait = null;
         });
     }
 
@@ -398,6 +403,8 @@ function generateReviews() {
         if(p.type === 'agi' && rating > 3) {
             sentimentPool.push("It's... alive.");
         }
+        if(p.trait === 'dreamer' && rating > 3) sentimentPool.push("The dreams this thing has are wild.");
+        if(p.trait === 'sentient') sentimentPool.push("I think it fell in love with me?");
 
         const text = sentimentPool[Math.floor(Math.random() * sentimentPool.length)];
 
@@ -447,8 +454,6 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             if (gameState.products) {
                 gameState.products.forEach(p => {
                     // Update Development Logic
-                    // ONLY decrease weeksLeft if the model is NOT finished (weeksLeft > 0)
-                    // If weeksLeft is 0 and it's Staged, it stays there until user adds more features or launches.
                     if(!p.released && p.weeksLeft > 0) {
                         const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
                         p.weeksLeft -= (1 * speedMult);
@@ -488,11 +493,10 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                         const organicUsers = Math.floor((p.quality * p.hype * 25)); 
                         let organicRev = Math.floor(organicUsers * 0.5); 
                         
-                        // Specialty Bonus
-                        if(p.specialty === 'visual') organicRev *= 1.2;
-                        if(p.specialty === 'renderer') organicRev *= 2.0;
-
-                        if (p.type === 'agi') organicRev *= 5.0;
+                        // Trait/Type Bonus
+                        if(p.trait === 'dreamer') organicRev *= 1.3;
+                        if(p.trait === 'sentient') organicRev *= 2.0;
+                        if(p.type === 'agi') organicRev *= 5.0;
 
                         weeklyRev += organicRev;
                         
@@ -620,13 +624,13 @@ function renderTab(tab) {
                             <div class="text-white font-black text-xl">${p.quality}</div>
                         </div>
                         <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                            <div class="text-[9px] text-slate-500 uppercase font-bold">Specialty</div>
-                            <div class="text-purple-400 font-bold uppercase text-xs mt-1">${p.specialty || 'Vanilla'}</div>
+                            <div class="text-[9px] text-slate-500 uppercase font-bold">Trait</div>
+                            <div class="text-purple-400 font-bold uppercase text-xs mt-1">${p.trait ? p.trait.toUpperCase() : 'NONE'}</div>
                         </div>
                     </div>
                     
                     <div class="mb-4">
-                         <label class="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-2">Install Capability</label>
+                         <label class="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-2">Install Module</label>
                          <div class="flex gap-2">
                             <select class="cap-selector bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 flex-1 outline-none">
                                 ${capsOptions || '<option disabled>Maxed Out!</option>'}
@@ -684,7 +688,8 @@ function renderTab(tab) {
                                 <h3 class="text-2xl font-bold text-white tracking-tight">${p.name} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
                             </div>
                             <div class="flex flex-wrap gap-2 mt-2">
-                                <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${(p.specialty || 'Vanilla').toUpperCase()}</div>
+                                <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${p.type.toUpperCase()}</div>
+                                ${p.trait ? `<div class="text-xs text-pink-300 font-bold bg-pink-900/30 border border-pink-500/30 px-2 py-0.5 rounded">${p.trait.toUpperCase()}</div>` : ''}
                                 <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3"></i> API</div>
                                 ${p.capabilities ? p.capabilities.map(c => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${c}</div>`).join('') : ''}
                             </div>
@@ -729,7 +734,7 @@ function renderTab(tab) {
                         <h3 class="font-bold text-white text-lg">${p.name}</h3>
                         <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${Math.ceil(p.weeksLeft)}w LEFT</span>
                     </div>
-                    <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : `Training (${p.specialty || 'Vanilla'})...`}</div>
+                    <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : 'Training Model...'}</div>
                     <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div class="h-full bg-cyan-500 animate-pulse" style="width: 50%"></div></div>
                 `;
             }
@@ -904,9 +909,9 @@ function renderTab(tab) {
                     <textarea id="new-proj-specs" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-mono text-sm h-20 resize-none" placeholder="e.g. Best for coding Python..."></textarea>
 
                     <div id="specialty-container" class="mb-6 hidden">
-                        <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Model Specialty</label>
+                        <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Special Trait</label>
                         <select id="specialty-select" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-purple-500 outline-none text-sm font-bold mb-2">
-                             ${SPECIALTIES.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                             ${TRAITS.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
                         </select>
                         <p id="specialty-desc" class="text-xs text-slate-500 italic">Select a model type.</p>
                     </div>
@@ -927,6 +932,7 @@ function renderTab(tab) {
         const specialtySelect = document.getElementById('specialty-select');
         const specialtyDesc = document.getElementById('specialty-desc');
         
+        // Populate Types
         PRODUCTS.forEach(p => {
             const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
             const btn = document.createElement('div');
@@ -947,7 +953,14 @@ function renderTab(tab) {
                     document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500', 'bg-cyan-900/20'));
                     btn.classList.add('border-cyan-500', 'bg-cyan-900/20');
                     selectedType = p;
-                    specialtyContainer.classList.remove('hidden');
+                    
+                    if(p.id === 'custom') {
+                        specialtyContainer.classList.remove('hidden');
+                        // Trigger change to set initial desc
+                        specialtySelect.onchange(); 
+                    } else {
+                        specialtyContainer.classList.add('hidden');
+                    }
                 };
             }
             typeContainer.appendChild(btn);
@@ -955,8 +968,8 @@ function renderTab(tab) {
 
         // Specialty Description Update
         specialtySelect.onchange = () => {
-             const spec = SPECIALTIES.find(s => s.id === specialtySelect.value);
-             specialtyDesc.textContent = `${spec.desc} (x${spec.multCost} Cost, x${spec.multTime} Time)`;
+             const spec = TRAITS.find(s => s.id === specialtySelect.value);
+             if(spec) specialtyDesc.textContent = `${spec.desc} (x${spec.multCost} Cost, x${spec.multTime} Time)`;
         };
 
         document.getElementById('research-inject').oninput = (e) => {
@@ -968,15 +981,26 @@ function renderTab(tab) {
         document.getElementById('btn-start-dev').onclick = () => {
             const name = document.getElementById('new-proj-name').value;
             const specs = document.getElementById('new-proj-specs').value; 
-            const specialtyId = specialtySelect.value;
-            const specData = SPECIALTIES.find(s => s.id === specialtyId);
-
+            
             if(!name || !selectedType) return showToast('Select project type and name!', 'error');
+
+            let traitId = null;
+            let multCost = 1.0, multTime = 1.0, multCompute = 1.0;
+
+            if(selectedType.id === 'custom') {
+                traitId = specialtySelect.value;
+                const specData = TRAITS.find(s => s.id === traitId);
+                if(specData) {
+                    multCost = specData.multCost;
+                    multTime = specData.multTime;
+                    multCompute = specData.multCompute;
+                }
+            }
             
             // RESOURCE SCALING LOGIC
-            let baseCost = selectedType.cost * specData.multCost;
-            let baseCompute = selectedType.compute * specData.multCompute;
-            let baseTime = selectedType.time * specData.multTime;
+            let baseCost = selectedType.cost * multCost;
+            let baseCompute = selectedType.compute * multCompute;
+            let baseTime = selectedType.time * multTime;
             
             if(injectAmount > 500) { baseCompute += 50; baseCost += 100000; }
             if(injectAmount > 2000) { baseCompute += 200; baseCost += 500000; }
@@ -996,7 +1020,7 @@ function renderTab(tab) {
                 released: false, isUpdating: false, isStaged: false,
                 weeksLeft: baseTime, 
                 researchBonus: 0, customFeatures: [], isOpenSource: false,
-                capabilities: [], specialty: specialtyId,
+                capabilities: [], trait: traitId,
                 description: specs || "A cool model."
             });
             updateHUD(); showToast('Development Started. Let him cook.', 'success'); renderTab('dash');
@@ -1122,320 +1146,3 @@ function renderTab(tab) {
         }
     }
 }
-
-// UPDATE MODAL
-const updateModal = document.getElementById('update-modal');
-let selectedUpdateId = null;
-let selectedUpdateType = null;
-let updateInjectAmount = 0;
-
-function openUpdateModal(productId, type) {
-    const p = gameState.products.find(x => x.id === productId);
-    if(!p) return;
-    selectedUpdateId = productId;
-    selectedUpdateType = type;
-    updateInjectAmount = 0;
-    
-    document.getElementById('update-target-name').textContent = p.name;
-    document.getElementById('update-research-slider').value = 0;
-    document.getElementById('update-research-slider').max = gameState.researchPts;
-    document.getElementById('update-inject-val').textContent = "0 PTS";
-    document.getElementById('update-quality-boost').textContent = "0";
-    
-    updateModal.classList.remove('hidden');
-}
-
-document.getElementById('update-research-slider').oninput = (e) => {
-    updateInjectAmount = parseInt(e.target.value);
-    document.getElementById('update-inject-val').textContent = `${updateInjectAmount} PTS`;
-    document.getElementById('update-quality-boost').textContent = updateInjectAmount;
-};
-
-document.getElementById('btn-cancel-update').onclick = () => updateModal.classList.add('hidden');
-document.getElementById('btn-confirm-update').onclick = () => {
-    if(!selectedUpdateId) return;
-    const p = gameState.products.find(x => x.id === selectedUpdateId);
-    
-    if(gameState.researchPts < updateInjectAmount && !gameState.isSandbox) return showToast('Insufficient Research Points', 'error');
-    
-    gameState.researchPts -= updateInjectAmount;
-    p.isUpdating = true;
-    p.updateType = selectedUpdateType;
-    p.weeksLeft = selectedUpdateType === 'major' ? 6 : 2;
-    p.researchBonus = updateInjectAmount;
-    
-    updateModal.classList.add('hidden');
-    renderTab('dash');
-    updateHUD();
-    showToast(`Update started for ${p.name}`);
-};
-
-// --- RESTORED API MODAL LOGIC ---
-const apiModal = document.getElementById('api-modal');
-let selectedApiId = null;
-
-function openApiModal(productId) {
-    const p = gameState.products.find(x => x.id === productId);
-    if(!p) return;
-    selectedApiId = productId;
-    if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
-    
-    const statusBtn = document.getElementById('btn-toggle-api-status');
-    const dot = statusBtn.querySelector('div');
-    const statusText = document.getElementById('api-status-text');
-    
-    if(p.apiConfig.active) {
-        statusBtn.classList.replace('bg-slate-700', 'bg-green-500');
-        dot.classList.replace('left-1', 'left-7');
-        statusText.textContent = "API Online";
-        statusText.className = "text-[10px] text-green-400";
-    } else {
-        statusBtn.classList.replace('bg-green-500', 'bg-slate-700');
-        dot.classList.replace('left-7', 'left-1');
-        statusText.textContent = "Currently Offline";
-        statusText.className = "text-[10px] text-slate-500";
-    }
-
-    document.getElementById('api-price-input').value = p.apiConfig.price;
-    document.getElementById('api-price-slider').value = p.apiConfig.price;
-    document.getElementById('api-limit-input').value = p.apiConfig.limit;
-    document.getElementById('api-limit-slider').value = p.apiConfig.limit;
-    
-    apiModal.classList.remove('hidden');
-}
-
-const priceInput = document.getElementById('api-price-input');
-const priceSlider = document.getElementById('api-price-slider');
-if(priceInput) priceInput.oninput = () => { priceSlider.value = priceInput.value; };
-if(priceSlider) priceSlider.oninput = () => { priceInput.value = priceSlider.value; };
-
-const limitInput = document.getElementById('api-limit-input');
-const limitSlider = document.getElementById('api-limit-slider');
-if(limitInput) limitInput.oninput = () => { limitSlider.value = limitInput.value; };
-if(limitSlider) limitSlider.oninput = () => { limitInput.value = limitSlider.value; };
-
-document.getElementById('btn-toggle-api-status').onclick = (e) => {
-    const btn = e.currentTarget;
-    const dot = btn.querySelector('div');
-    const isActive = btn.classList.contains('bg-green-500');
-    const statusText = document.getElementById('api-status-text');
-    
-    if(isActive) {
-        btn.classList.replace('bg-green-500', 'bg-slate-700');
-        dot.classList.replace('left-7', 'left-1');
-        statusText.textContent = "Currently Offline";
-        statusText.className = "text-[10px] text-slate-500";
-    } else {
-        btn.classList.replace('bg-slate-700', 'bg-green-500');
-        dot.classList.replace('left-1', 'left-7');
-        statusText.textContent = "API Online";
-        statusText.className = "text-[10px] text-green-400";
-    }
-};
-
-document.getElementById('btn-save-api').onclick = () => {
-    if(!selectedApiId) return;
-    const p = gameState.products.find(x => x.id === selectedApiId);
-    if(p) {
-        const isActive = document.getElementById('btn-toggle-api-status').classList.contains('bg-green-500');
-        p.apiConfig = {
-            active: isActive,
-            price: parseFloat(document.getElementById('api-price-input').value),
-            limit: parseInt(document.getElementById('api-limit-input').value)
-        };
-        showToast('API Configuration Deployed', 'success');
-        apiModal.classList.add('hidden');
-        renderTab('dash');
-    }
-};
-document.getElementById('btn-close-api').onclick = () => apiModal.classList.add('hidden');
-
-// --- RESTORED VARIANT MODAL LOGIC ---
-const variantModal = document.getElementById('variant-modal');
-let selectedVariantId = null;
-let selectedVariantType = null;
-let variantInjectAmount = 0;
-
-function openVariantModal(productId) {
-    const p = gameState.products.find(x => x.id === productId);
-    if(!p) return;
-    selectedVariantId = productId;
-    selectedVariantType = null;
-    variantInjectAmount = 0;
-    
-    document.getElementById('variant-research-slider').value = 0;
-    document.getElementById('variant-inject-val').textContent = "0 PTS";
-    document.getElementById('variant-quality-boost').textContent = "0";
-    document.getElementById('variant-base-name').textContent = p.name;
-    document.getElementById('custom-variant-input').classList.add('hidden');
-    
-    document.querySelectorAll('.variant-opt').forEach(b => {
-         b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
-         b.classList.add('border-slate-700');
-    });
-    
-    document.getElementById('btn-confirm-variant').disabled = true;
-    document.getElementById('btn-confirm-variant').classList.add('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
-    
-    variantModal.classList.remove('hidden');
-}
-
-document.getElementById('variant-research-slider').oninput = (e) => {
-    variantInjectAmount = parseInt(e.target.value);
-    document.getElementById('variant-inject-val').textContent = `${variantInjectAmount} PTS`;
-    document.getElementById('variant-quality-boost').textContent = variantInjectAmount;
-};
-
-document.querySelectorAll('.variant-opt').forEach(btn => {
-    btn.onclick = () => {
-        selectedVariantType = btn.dataset.type;
-        document.querySelectorAll('.variant-opt').forEach(b => {
-             b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
-             b.classList.add('border-slate-700');
-        });
-        
-        btn.classList.remove('border-slate-700');
-        if(selectedVariantType === 'lite') btn.classList.add('border-green-500', 'bg-slate-800');
-        if(selectedVariantType === 'flash') btn.classList.add('border-yellow-500', 'bg-slate-800');
-        if(selectedVariantType === 'pro') btn.classList.add('border-cyan-500', 'bg-slate-800');
-        if(selectedVariantType === 'ultra') btn.classList.add('border-purple-500', 'bg-slate-800');
-        if(selectedVariantType === 'custom') {
-            btn.classList.add('border-pink-500', 'bg-slate-800');
-            document.getElementById('custom-variant-input').classList.remove('hidden');
-        } else {
-            document.getElementById('custom-variant-input').classList.add('hidden');
-        }
-
-        const confirmBtn = document.getElementById('btn-confirm-variant');
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = `INITIALIZE VARIANT`;
-        confirmBtn.classList.remove('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
-        confirmBtn.classList.add('text-black', 'bg-white', 'hover:bg-cyan-400');
-    }
-});
-document.getElementById('btn-close-variant').onclick = () => variantModal.classList.add('hidden');
-
-document.getElementById('btn-confirm-variant').onclick = () => {
-    if(!selectedVariantId || !selectedVariantType) return;
-    const parent = gameState.products.find(x => x.id === selectedVariantId);
-    
-    let costMult = 1; let time = 2; let suffix = "";
-    if(selectedVariantType === 'lite') { costMult = 0.5; time = 2; suffix = "[Lite]"; }
-    if(selectedVariantType === 'flash') { costMult = 0.8; time = 1; suffix = "[Flash]"; }
-    if(selectedVariantType === 'pro') { costMult = 1.2; time = 4; suffix = "[Pro]"; }
-    if(selectedVariantType === 'ultra') { costMult = 2.0; time = 8; suffix = "[Ultra]"; }
-    if(selectedVariantType === 'custom') {
-        const customName = document.getElementById('inp-custom-variant').value;
-        if(!customName) return showToast('Enter a custom name!', 'error');
-        costMult = 1.5; time = 5; suffix = `[${customName}]`;
-    }
-
-    const cost = Math.floor(50000 * costMult); 
-    if((gameState.cash < cost || gameState.researchPts < variantInjectAmount) && !gameState.isSandbox) {
-        showToast('Insufficient Funds/Research', 'error'); return;
-    }
-
-    gameState.cash -= cost;
-    gameState.researchPts -= variantInjectAmount;
-    
-    gameState.products.push({
-        id: Date.now().toString(),
-        name: `${parent.name} ${suffix}`,
-        type: parent.type,
-        version: 1.0,
-        quality: parent.quality,
-        revenue: 0, hype: 0, released: false,
-        isUpdating: true, updateType: selectedVariantType,
-        isOpenSource: parent.isOpenSource,
-        weeksLeft: time,
-        researchBonus: variantInjectAmount,
-        contracts: [], apiConfig: { active: false, price: 0, limit: 100 },
-        customFeatures: parent.customFeatures,
-        specialty: parent.specialty
-    });
-    
-    variantModal.classList.add('hidden'); renderTab('dash'); updateHUD();
-    showToast(`Developing variant...`, 'success');
-};
-
-
-// GOD MODE SETTINGS
-const settingsOverlay = document.getElementById('settings-overlay');
-const undoBtn = document.getElementById('btn-undo-week');
-const godModeToggle = document.getElementById('btn-toggle-godmode');
-
-document.getElementById('nav-settings').addEventListener('click', () => {
-    settingsOverlay.classList.remove('hidden');
-    const dotsContainer = document.getElementById('history-dots');
-    dotsContainer.innerHTML = '';
-    for(let i=0; i<6; i++) {
-        const isActive = i < historyStack.length;
-        const dot = document.createElement('div');
-        dot.className = `w-2 h-2 rounded-full transition-colors ${isActive ? 'bg-cyan-500' : 'bg-slate-800'}`;
-        dotsContainer.appendChild(dot);
-    }
-    if(historyStack.length === 0) {
-        undoBtn.disabled = true;
-        undoBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    } else {
-        undoBtn.disabled = false;
-        undoBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-    lucide.createIcons();
-});
-
-document.getElementById('btn-close-settings').addEventListener('click', () => settingsOverlay.classList.add('hidden'));
-
-undoBtn.addEventListener('click', () => {
-    if(historyStack.length === 0) return;
-    if(confirm('Revert time by 1 week?')) {
-        gameState = historyStack.pop();
-        saveGame();
-        updateHUD();
-        renderTab('dash');
-        settingsOverlay.classList.add('hidden');
-        showToast('Timeline Restored', 'success');
-    }
-});
-
-godModeToggle.addEventListener('click', () => {
-    if (!currentUser || currentUser.email !== ADMIN_EMAIL) return showToast('ACCESS DENIED', 'error');
-    godMode = !godMode;
-    const dot = godModeToggle.querySelector('div');
-    if(godMode) {
-        godModeToggle.classList.replace('bg-slate-800', 'bg-red-600');
-        dot.classList.replace('left-1', 'left-9'); 
-        document.getElementById('godmode-status').classList.remove('hidden');
-    } else {
-        godModeToggle.classList.replace('bg-red-600', 'bg-slate-800');
-        dot.classList.replace('left-9', 'left-1');
-        document.getElementById('godmode-status').classList.add('hidden');
-    }
-    updateHUD(); 
-});
-
-// --- NEW: MODE SELECTION LOGIC ---
-document.addEventListener('DOMContentLoaded', () => {
-    const landingScreen = document.getElementById('landing-screen');
-    const btnAI = document.getElementById('btn-mode-ai');
-    const btnMovie = document.getElementById('btn-mode-movie');
-
-    if(btnAI) {
-        btnAI.addEventListener('click', () => {
-            landingScreen.classList.add('fade-out-up');
-            setTimeout(() => {
-                landingScreen.classList.add('hidden');
-            }, 500);
-        });
-    }
-
-    if(btnMovie) {
-        btnMovie.addEventListener('click', () => {
-            btnMovie.style.transform = 'scale(0.98)';
-            btnMovie.style.borderColor = '#ec4899';
-            setTimeout(() => {
-                window.location.href = 'https://softworks-tycoon.xyz/movie-star';
-            }, 150);
-        });
-    }
-});
