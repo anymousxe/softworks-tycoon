@@ -178,16 +178,20 @@ document.getElementById('btn-cancel-create').addEventListener('click', () => doc
 
 // --- GAME LOGIC ---
 
-// --- THE SANITIZER: Force Clean Data ---
+// --- THE JANITOR PROTOCOL: Nuclear Data Cleaning ---
 function cleanAndRepairData(data) {
     if (!data) return data;
     
     let wasModified = false;
+    let corrupted = false;
 
     // 1. Structure Check
     if (!data.products) { data.products = []; wasModified = true; }
     if (!data.reviews) { data.reviews = []; wasModified = true; }
     if (!data.employees) { data.employees = { count: 1, morale: 100 }; wasModified = true; }
+    if (!data.marketModels) { data.marketModels = []; wasModified = true; }
+    if (!data.purchasedItems) { data.purchasedItems = []; wasModified = true; }
+    if (!data.unlockedTechs) { data.unlockedTechs = []; wasModified = true; }
 
     // 2. Remove Duplicates & Fix Objects
     const seenIds = new Set();
@@ -197,6 +201,7 @@ function cleanAndRepairData(data) {
         // Drop garbage data
         if (!p || typeof p !== 'object' || !p.name) {
             wasModified = true;
+            corrupted = true;
             return;
         } 
         
@@ -214,7 +219,7 @@ function cleanAndRepairData(data) {
         seenIds.add(p.id);
 
         // 3. Normalize Fields
-        if (typeof p.weeksLeft !== 'number' || isNaN(p.weeksLeft)) { p.weeksLeft = 0; wasModified = true; }
+        if (typeof p.weeksLeft !== 'number' || isNaN(p.weeksLeft)) { p.weeksLeft = 0; wasModified = true; corrupted = true; }
         if (!p.type || p.type === 'undefined') { p.type = 'text'; wasModified = true; }
         
         // Migrate "specialty" to "trait"
@@ -223,7 +228,8 @@ function cleanAndRepairData(data) {
             delete p.specialty; 
             wasModified = true; 
         }
-        
+        if (!p.trait) p.trait = null;
+
         // Ensure arrays
         if (!p.capabilities) { p.capabilities = []; wasModified = true; }
         if (!p.contracts) { p.contracts = []; wasModified = true; }
@@ -234,6 +240,7 @@ function cleanAndRepairData(data) {
             p.isStaged = true;
             p.weeksLeft = 0;
             wasModified = true;
+            corrupted = true; // Flag to show toast
         }
 
         cleanProducts.push(p);
@@ -243,7 +250,7 @@ function cleanAndRepairData(data) {
     data.products = cleanProducts;
 
     // Return object wrapper to know if we need to save
-    return { data: data, modified: wasModified };
+    return { data: data, modified: wasModified, corrupted: corrupted };
 }
 
 function startGame(id, data) {
@@ -254,8 +261,8 @@ function startGame(id, data) {
     gameState = result.data;
 
     // IF DATA WAS BAD, SAVE TO DB IMMEDIATELY
-    if (result.modified) {
-        showToast("⚠️ Save file corrupted. Auto-repairing...", "error");
+    if (result.modified || result.corrupted) {
+        showToast("⚠️ FILE CORRUPTED - AUTO-REPAIRING...", "error");
         // We use .set() to OVERWRITE the database, ensuring ghosts are deleted
         db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).set(gameState)
             .then(() => console.log("Save repaired and synced."))
@@ -334,8 +341,7 @@ function setupRealtimeListener(saveId) {
     realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
         .doc(saveId).onSnapshot(doc => {
             if (doc.exists) {
-                // CONSTANT SANITIZATION
-                // This prevents the UI from crashing if the DB sends back bad data before our write finishes.
+                // FORCE SANITIZATION ON EVERY UPDATE
                 const result = cleanAndRepairData(doc.data());
                 gameState = result.data;
                 
@@ -407,18 +413,33 @@ function showToast(msg, type = 'info') {
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
-// --- GENERATE RIVAL RELEASE ---
+// --- GENERATE RIVAL RELEASE (DYNAMIC SCALING) ---
 function generateRivalRelease() {
     const rival = RIVALS_LIST[Math.floor(Math.random() * RIVALS_LIST.length)];
     const pre = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
     const suf = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
     const ver = VERSIONS[Math.floor(Math.random() * VERSIONS.length)];
-    
-    const types = ['text', 'image', 'audio', 'video'];
-    const type = types[Math.floor(Math.random() * types.length)];
+    const type = ['text', 'image', 'audio', 'video'][Math.floor(Math.random() * 4)];
 
-    let baseQ = 50 + (gameState.year - 2025) * 20; 
-    const quality = Math.floor(baseQ + Math.random() * 50);
+    // 1. Determine Global Max Quality (Player + Market)
+    let globalMax = 0;
+    if(gameState.products) gameState.products.forEach(p => globalMax = Math.max(globalMax, p.quality));
+    if(gameState.marketModels) gameState.marketModels.forEach(m => globalMax = Math.max(globalMax, m.quality));
+
+    // 2. Base Quality (Year based floor)
+    let baseQ = 50 + (gameState.year - 2025) * 20;
+
+    // 3. Target Quality: Dynamic Rubber-banding
+    // If GlobalMax is huge (e.g., 1000), rivals aim for 50%-90% of that to stay competitive.
+    // If GlobalMax is low, they follow the base year curve.
+    let quality;
+    if (globalMax > baseQ * 1.5) {
+        const minTarget = globalMax * 0.5;
+        const range = globalMax * 0.45; // Rivals get up to 95% of leader quality
+        quality = Math.floor(minTarget + Math.random() * range);
+    } else {
+        quality = Math.floor(baseQ + Math.random() * 50);
+    }
 
     if(!gameState.marketModels) gameState.marketModels = [];
     gameState.marketModels.push({
@@ -445,7 +466,6 @@ function generateReviews() {
 
     if(Math.random() > 0.6) { // 40% chance
         const p = liveProducts[Math.floor(Math.random() * liveProducts.length)];
-        
         let sentimentPool = [];
         let rating = 0;
 
@@ -965,7 +985,7 @@ function renderTab(tab) {
         lucide.createIcons();
     }
 
-    // --- DEV TAB (Updated for Specialty System) ---
+    // --- DEV TAB (Updated for Specialty System & Manual Input) ---
     if(tab === 'dev') {
         content.innerHTML = `
             <h2 class="text-3xl font-black text-white mb-6 tracking-tight">NEW PROJECT</h2>
@@ -988,7 +1008,10 @@ function renderTab(tab) {
 
                     <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
                         <div class="flex justify-between text-xs font-bold text-purple-300 mb-2"><span>Research Injection</span><span id="inject-val">0 PTS</span></div>
-                        <input type="range" id="research-inject" min="0" max="${gameState.researchPts}" value="0" class="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                        <div class="flex gap-2">
+                            <input type="range" id="research-inject" min="0" max="${gameState.researchPts}" value="0" class="flex-1 accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer self-center">
+                            <input type="number" id="research-inject-input" class="w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500" value="0" min="0" max="${gameState.researchPts}">
+                        </div>
                         <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="quality-boost" class="text-white font-bold">0</span> Quality</div>
                     </div>
                     <button id="btn-start-dev" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 tracking-widest text-sm">INITIALIZE</button>
@@ -1042,11 +1065,26 @@ function renderTab(tab) {
              if(spec) specialtyDesc.textContent = `${spec.desc} (x${spec.multCost} Cost, x${spec.multTime} Time)`;
         };
 
-        document.getElementById('research-inject').oninput = (e) => {
-            injectAmount = parseInt(e.target.value);
-            document.getElementById('inject-val').textContent = `${injectAmount} PTS`;
-            document.getElementById('quality-boost').textContent = injectAmount; 
+        // --- NEW SYNC LOGIC ---
+        const slider = document.getElementById('research-inject');
+        const numInput = document.getElementById('research-inject-input');
+        
+        const syncInputs = (val) => {
+            let v = parseInt(val);
+            if(isNaN(v)) v = 0;
+            if(v < 0) v = 0;
+            if(v > gameState.researchPts) v = gameState.researchPts;
+            
+            slider.value = v;
+            numInput.value = v;
+            injectAmount = v;
+            
+            document.getElementById('inject-val').textContent = `${v} PTS`;
+            document.getElementById('quality-boost').textContent = v;
         };
+
+        slider.oninput = (e) => syncInputs(e.target.value);
+        numInput.oninput = (e) => syncInputs(e.target.value);
 
         document.getElementById('btn-start-dev').onclick = () => {
             const name = document.getElementById('new-proj-name').value;
@@ -1458,6 +1496,7 @@ const settingsOverlay = document.getElementById('settings-overlay');
 const undoBtn = document.getElementById('btn-undo-week');
 const godModeToggle = document.getElementById('btn-toggle-godmode');
 
+// --- NEW EMERGENCY FIX BUTTON ---
 document.getElementById('nav-settings').addEventListener('click', () => {
     settingsOverlay.classList.remove('hidden');
     const dotsContainer = document.getElementById('history-dots');
@@ -1468,6 +1507,29 @@ document.getElementById('nav-settings').addEventListener('click', () => {
         dot.className = `w-2 h-2 rounded-full transition-colors ${isActive ? 'bg-cyan-500' : 'bg-slate-800'}`;
         dotsContainer.appendChild(dot);
     }
+    
+    // Inject Fix Button if not exists
+    let fixBtn = document.getElementById('btn-emergency-fix');
+    if(!fixBtn) {
+        const wrapper = document.querySelector('#godmode-control-wrapper > div'); // Find GodMode area
+        if(wrapper) {
+            fixBtn = document.createElement('button');
+            fixBtn.id = 'btn-emergency-fix';
+            fixBtn.className = 'w-full bg-red-900/50 hover:bg-red-600 text-red-200 hover:text-white font-black py-4 rounded-xl text-xs tracking-widest mt-4 border border-red-500/30 transition-all';
+            fixBtn.innerHTML = `⚠️ EMERGENCY FIX SAVE ⚠️`;
+            fixBtn.onclick = () => {
+                if(confirm('This will delete broken/duplicate products and force-release stuck ones. Do it?')) {
+                    gameState = cleanAndRepairData(gameState).data;
+                    saveGame();
+                    updateHUD();
+                    renderTab('dash');
+                    showToast('Save File Repaired', 'success');
+                }
+            };
+            wrapper.appendChild(fixBtn);
+        }
+    }
+
     if(historyStack.length === 0) {
         undoBtn.disabled = true;
         undoBtn.classList.add('opacity-50', 'cursor-not-allowed');
