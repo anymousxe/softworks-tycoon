@@ -178,71 +178,89 @@ document.getElementById('btn-cancel-create').addEventListener('click', () => doc
 
 // --- GAME LOGIC ---
 
-// --- THE JANITOR PROTOCOL: Nuclear Data Cleaning ---
-function hardResetData(data) {
+// --- THE SANITIZER: Force Clean Data ---
+function cleanAndRepairData(data) {
     if (!data) return data;
+    
+    let wasModified = false;
 
     // 1. Structure Check
-    if (!data.products) data.products = [];
-    if (!data.reviews) data.reviews = [];
-    if (!data.employees) data.employees = { count: 1, morale: 100 };
+    if (!data.products) { data.products = []; wasModified = true; }
+    if (!data.reviews) { data.reviews = []; wasModified = true; }
+    if (!data.employees) { data.employees = { count: 1, morale: 100 }; wasModified = true; }
 
-    // 2. Remove Duplicates & Nulls
+    // 2. Remove Duplicates & Fix Objects
     const seenIds = new Set();
     const cleanProducts = [];
 
     data.products.forEach(p => {
-        if (!p || typeof p !== 'object') return; // Skip garbage
-        if (!p.id) p.id = Math.random().toString(36).substr(2, 9); // Gen ID if missing
+        // Drop garbage data
+        if (!p || typeof p !== 'object' || !p.name) {
+            wasModified = true;
+            return;
+        } 
         
-        // If duplicate, skip (this fixes the "9 live but 8 show" bug)
-        if (seenIds.has(p.id)) return; 
+        // Fix ID
+        if (!p.id) { 
+            p.id = Math.random().toString(36).substr(2, 9); 
+            wasModified = true; 
+        }
+        
+        // Remove Duplicate IDs
+        if (seenIds.has(p.id)) {
+            wasModified = true;
+            return;
+        }
         seenIds.add(p.id);
 
-        // 3. Fix Data Types
-        p.weeksLeft = Number(p.weeksLeft);
-        if (isNaN(p.weeksLeft)) p.weeksLeft = 0;
+        // 3. Normalize Fields
+        if (typeof p.weeksLeft !== 'number' || isNaN(p.weeksLeft)) { p.weeksLeft = 0; wasModified = true; }
+        if (!p.type || p.type === 'undefined') { p.type = 'text'; wasModified = true; }
         
-        p.quality = Number(p.quality) || 10;
-        p.hype = Number(p.hype) || 0;
-        p.released = !!p.released;
-        p.isStaged = !!p.isStaged;
-        p.isUpdating = !!p.isUpdating;
-
-        if (!p.type || p.type === 'undefined') p.type = 'text';
-        if (!p.capabilities) p.capabilities = [];
-        if (!p.contracts) p.contracts = [];
+        // Migrate "specialty" to "trait"
+        if (p.specialty && !p.trait) { 
+            p.trait = p.specialty; 
+            delete p.specialty; 
+            wasModified = true; 
+        }
         
-        // Migrate old 'specialty' field
-        if (p.specialty && !p.trait) { p.trait = p.specialty; }
-        if (!p.trait) p.trait = null;
+        // Ensure arrays
+        if (!p.capabilities) { p.capabilities = []; wasModified = true; }
+        if (!p.contracts) { p.contracts = []; wasModified = true; }
+        if (!p.apiConfig) { p.apiConfig = { active: false, price: 0, limit: 100 }; wasModified = true; }
 
-        // Fix API
-        if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
-
-        // 4. THE ZOMBIE KILLER
-        // If stuck at 0 weeks but not released, force it LIVE. 
-        // We skip staging to unblock the queue completely.
-        if (p.weeksLeft <= 0 && !p.released && !p.isStaged) {
-            console.warn(`JANITOR: Forced ${p.name} to LIVE state.`);
-            p.released = true;
-            p.isUpdating = false;
-            p.isStaged = false;
+        // 4. UNSTICK LOGIC: If 0 weeks, not released, not updating -> FORCE STAGE
+        if (!p.released && !p.isUpdating && !p.isStaged && p.weeksLeft <= 0) {
+            p.isStaged = true;
+            p.weeksLeft = 0;
+            wasModified = true;
         }
 
         cleanProducts.push(p);
     });
 
+    if (cleanProducts.length !== data.products.length) wasModified = true;
     data.products = cleanProducts;
-    return data;
+
+    // Return object wrapper to know if we need to save
+    return { data: data, modified: wasModified };
 }
 
 function startGame(id, data) {
     activeSaveId = id;
     
-    // Run Janitor Protocol immediately
-    gameState = hardResetData(data);
-    saveGame(); // Commit the clean data
+    // Initial Sanitize
+    const result = cleanAndRepairData(data);
+    gameState = result.data;
+
+    // IF DATA WAS BAD, SAVE TO DB IMMEDIATELY
+    if (result.modified) {
+        showToast("⚠️ Save file corrupted. Auto-repairing...", "error");
+        // We use .set() to OVERWRITE the database, ensuring ghosts are deleted
+        db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).set(gameState)
+            .then(() => console.log("Save repaired and synced."))
+            .catch(e => console.error("Repair sync failed", e));
+    }
 
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -316,11 +334,14 @@ function setupRealtimeListener(saveId) {
     realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
         .doc(saveId).onSnapshot(doc => {
             if (doc.exists) {
-                // FORCE SANITIZATION ON EVERY UPDATE
-                gameState = hardResetData(doc.data());
+                // CONSTANT SANITIZATION
+                // This prevents the UI from crashing if the DB sends back bad data before our write finishes.
+                const result = cleanAndRepairData(doc.data());
+                gameState = result.data;
                 
                 updateHUD();
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
+                // Don't re-render Dev while typing to avoid input loss
                 if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) renderTab(activeTab);
             }
         });
@@ -328,6 +349,7 @@ function setupRealtimeListener(saveId) {
 
 function saveGame() {
     if(!activeSaveId || !gameState) return;
+    // Using .update here for regular autosaves to be efficient, but start/repair uses .set
     db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).update(gameState).catch(console.error);
 }
 
@@ -1436,8 +1458,6 @@ const settingsOverlay = document.getElementById('settings-overlay');
 const undoBtn = document.getElementById('btn-undo-week');
 const godModeToggle = document.getElementById('btn-toggle-godmode');
 
-// --- NEW EMERGENCY FIX BUTTON ---
-// Added dynamic creation of the Fix button in the settings panel
 document.getElementById('nav-settings').addEventListener('click', () => {
     settingsOverlay.classList.remove('hidden');
     const dotsContainer = document.getElementById('history-dots');
@@ -1448,29 +1468,6 @@ document.getElementById('nav-settings').addEventListener('click', () => {
         dot.className = `w-2 h-2 rounded-full transition-colors ${isActive ? 'bg-cyan-500' : 'bg-slate-800'}`;
         dotsContainer.appendChild(dot);
     }
-    
-    // Inject Fix Button if not exists
-    let fixBtn = document.getElementById('btn-emergency-fix');
-    if(!fixBtn) {
-        const wrapper = document.querySelector('#godmode-control-wrapper > div'); // Find GodMode area
-        if(wrapper) {
-            fixBtn = document.createElement('button');
-            fixBtn.id = 'btn-emergency-fix';
-            fixBtn.className = 'w-full bg-red-900/50 hover:bg-red-600 text-red-200 hover:text-white font-black py-4 rounded-xl text-xs tracking-widest mt-4 border border-red-500/30 transition-all';
-            fixBtn.innerHTML = `⚠️ EMERGENCY FIX SAVE ⚠️`;
-            fixBtn.onclick = () => {
-                if(confirm('This will delete broken/duplicate products and force-release stuck ones. Do it?')) {
-                    gameState = hardResetData(gameState);
-                    saveGame();
-                    updateHUD();
-                    renderTab('dash');
-                    showToast('Save File Repaired', 'success');
-                }
-            };
-            wrapper.appendChild(fixBtn);
-        }
-    }
-
     if(historyStack.length === 0) {
         undoBtn.disabled = true;
         undoBtn.classList.add('opacity-50', 'cursor-not-allowed');
