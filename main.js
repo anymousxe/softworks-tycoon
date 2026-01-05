@@ -178,7 +178,10 @@ document.getElementById('btn-cancel-create').addEventListener('click', () => doc
 
 // --- GAME LOGIC ---
 
+// --- THE SANITIZER: Runs on every single database update to clean incoming data ---
 function repairSaveData(data) {
+    if (!data) return data;
+
     // 1. Ensure basic structure
     if (!data.products) data.products = [];
     if (!data.employees) data.employees = { count: 1, morale: 100 };
@@ -197,7 +200,6 @@ function repairSaveData(data) {
         // Migrate Old "Specialty" to "Trait"
         if (p.specialty && !p.trait) {
             p.trait = p.specialty; 
-            delete p.specialty; // Optional cleanup
         }
         if (!p.trait) p.trait = null;
 
@@ -214,11 +216,9 @@ function repairSaveData(data) {
         p.quality = Number(p.quality) || 10;
         p.hype = Number(p.hype) || 0;
 
-        // ** THE ZOMBIE FIX **
-        // If a product is NOT released, NOT updating, and has 0 weeks left...
-        // It is "stuck". We force it into the Staging Lab (isStaged = true).
+        // ** THE UNSTICKER **
+        // If it looks stuck (0 weeks, not released, not updating), FORCE it to Staging.
         if (!p.released && !p.isUpdating && p.weeksLeft <= 0) {
-            console.log(`Repaired Stuck Product: ${p.name}`);
             p.isStaged = true; 
             p.weeksLeft = 0;
         }
@@ -230,11 +230,9 @@ function repairSaveData(data) {
 function startGame(id, data) {
     activeSaveId = id;
     
-    // --- RUN REPAIR BEFORE ASSIGNING ---
+    // Initial Repair
     gameState = repairSaveData(data);
-    
-    // Auto-save the repaired state immediately
-    saveGame();
+    saveGame(); // Commit repairs immediately
 
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -308,12 +306,13 @@ function setupRealtimeListener(saveId) {
     realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
         .doc(saveId).onSnapshot(doc => {
             if (doc.exists) {
-                // Re-run repair on every update just in case
+                // --- CRITICAL: SANITIZE DATA ON EVERY UPDATE ---
+                // This ensures that even if the database is dirty, the local UI gets clean data.
                 gameState = repairSaveData(doc.data());
                 
                 updateHUD();
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-                // Don't re-render Dev while typing
+                // Don't re-render Dev while typing to avoid input loss
                 if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) renderTab(activeTab);
             }
         });
