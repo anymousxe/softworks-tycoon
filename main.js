@@ -183,7 +183,7 @@ function startGame(id, data) {
     activeSaveId = id;
     gameState = data;
     
-    // Safety migrations
+    // Safety migrations & Fix for "Let him cook" update disaster
     if(!gameState.reviews) gameState.reviews = [];
     if(!gameState.employees) gameState.employees = { count: 1, morale: 100 };
     if(!gameState.marketModels) gameState.marketModels = []; 
@@ -196,7 +196,13 @@ function startGame(id, data) {
             if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
             if(!p.contracts) p.contracts = [];
             if(!p.capabilities) p.capabilities = [];
+            
+            // Fix legacy/broken trait mappings
+            if(p.specialty && !p.trait) p.trait = p.specialty; // Migrate specialty -> trait
             if(!p.trait) p.trait = null;
+            
+            // Ensure type is valid (default to text if broken)
+            if(!p.type) p.type = 'text';
         });
     }
 
@@ -602,143 +608,146 @@ function renderTab(tab) {
 
         const list = document.getElementById('product-list');
         gameState.products.forEach(p => {
-            const card = document.createElement('div');
-            card.className = 'glass-panel p-6 relative group hover:border-cyan-500/50 transition-all rounded-2xl overflow-hidden';
-            
-            // --- STAGING STATE (READY TO LAUNCH OR ADD CAPABILITIES) ---
-            if (!p.released && p.isStaged) {
-                card.classList.add('border-green-500', 'bg-green-900/10');
+            // Safety Check inside render loop
+            try {
+                const card = document.createElement('div');
+                card.className = 'glass-panel p-6 relative group hover:border-cyan-500/50 transition-all rounded-2xl overflow-hidden';
                 
-                // Dropdown options for capabilities
-                const availableCaps = CAPABILITIES.filter(cap => !(p.capabilities || []).includes(cap.id));
-                const capsOptions = availableCaps.map(c => `<option value="${c.id}">${c.name} (+${c.time}w, $${c.cost})</option>`).join('');
-                
-                card.innerHTML = `
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-bold text-white text-xl">${p.name}</h3>
-                        <span class="text-xs font-black bg-green-500 text-black px-2 py-1 rounded animate-pulse">COOKING</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                            <div class="text-[9px] text-slate-500 uppercase font-bold">Current Quality</div>
-                            <div class="text-white font-black text-xl">${p.quality}</div>
-                        </div>
-                        <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                            <div class="text-[9px] text-slate-500 uppercase font-bold">Trait</div>
-                            <div class="text-purple-400 font-bold uppercase text-xs mt-1">${p.trait ? p.trait.toUpperCase() : 'NONE'}</div>
-                        </div>
-                    </div>
+                // --- STAGING STATE (READY TO LAUNCH OR ADD CAPABILITIES) ---
+                if (!p.released && p.isStaged) {
+                    card.classList.add('border-green-500', 'bg-green-900/10');
                     
-                    <div class="mb-4">
-                         <label class="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-2">Install Module</label>
-                         <div class="flex gap-2">
-                            <select class="cap-selector bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 flex-1 outline-none">
-                                ${capsOptions || '<option disabled>Maxed Out!</option>'}
-                            </select>
-                            <button class="btn-add-cap bg-slate-800 hover:bg-white hover:text-black text-white px-4 py-2 rounded-lg font-bold text-xs">INSTALL</button>
-                         </div>
-                    </div>
+                    // Dropdown options for capabilities
+                    const availableCaps = CAPABILITIES.filter(cap => !(p.capabilities || []).includes(cap.id));
+                    const capsOptions = availableCaps.map(c => `<option value="${c.id}">${c.name} (+${c.time}w, $${c.cost})</option>`).join('');
+                    
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-bold text-white text-xl">${p.name}</h3>
+                            <span class="text-xs font-black bg-green-500 text-black px-2 py-1 rounded animate-pulse">COOKING</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                                <div class="text-[9px] text-slate-500 uppercase font-bold">Current Quality</div>
+                                <div class="text-white font-black text-xl">${p.quality}</div>
+                            </div>
+                            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                                <div class="text-[9px] text-slate-500 uppercase font-bold">Trait</div>
+                                <div class="text-purple-400 font-bold uppercase text-xs mt-1">${p.trait ? p.trait.toUpperCase() : 'NONE'}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                             <label class="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-2">Install Module</label>
+                             <div class="flex gap-2">
+                                <select class="cap-selector bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 flex-1 outline-none">
+                                    ${capsOptions || '<option disabled>Maxed Out!</option>'}
+                                </select>
+                                <button class="btn-add-cap bg-slate-800 hover:bg-white hover:text-black text-white px-4 py-2 rounded-lg font-bold text-xs">INSTALL</button>
+                             </div>
+                        </div>
 
-                    <button class="btn-launch w-full bg-green-500 hover:bg-green-400 text-black py-3 rounded-xl font-black text-xs tracking-widest transition-all shadow-lg shadow-green-500/20">
-                        LAUNCH MODEL 🚀
-                    </button>
-                `;
-                
-                card.querySelector('.btn-add-cap').onclick = () => {
-                    const sel = card.querySelector('.cap-selector');
-                    const capId = sel.value;
-                    const cap = CAPABILITIES.find(c => c.id === capId);
+                        <button class="btn-launch w-full bg-green-500 hover:bg-green-400 text-black py-3 rounded-xl font-black text-xs tracking-widest transition-all shadow-lg shadow-green-500/20">
+                            LAUNCH MODEL 🚀
+                        </button>
+                    `;
                     
-                    if(cap) {
-                        if(gameState.cash >= cap.cost) {
-                            gameState.cash -= cap.cost;
-                            p.weeksLeft += cap.time;
-                            p.quality += cap.quality;
-                            p.isStaged = false; // Go back to "dev" mode
-                            if(!p.capabilities) p.capabilities = [];
-                            p.capabilities.push(cap.id);
-                            updateHUD();
-                            renderTab('dash');
-                            showToast(`Installing ${cap.name}...`, 'success');
-                        } else {
-                            showToast(`Need $${cap.cost}`, 'error');
+                    card.querySelector('.btn-add-cap').onclick = () => {
+                        const sel = card.querySelector('.cap-selector');
+                        const capId = sel.value;
+                        const cap = CAPABILITIES.find(c => c.id === capId);
+                        
+                        if(cap) {
+                            if(gameState.cash >= cap.cost) {
+                                gameState.cash -= cap.cost;
+                                p.weeksLeft += cap.time;
+                                p.quality += cap.quality;
+                                p.isStaged = false; // Go back to "dev" mode
+                                if(!p.capabilities) p.capabilities = [];
+                                p.capabilities.push(cap.id);
+                                updateHUD();
+                                renderTab('dash');
+                                showToast(`Installing ${cap.name}...`, 'success');
+                            } else {
+                                showToast(`Need $${cap.cost}`, 'error');
+                            }
                         }
-                    }
-                };
+                    };
 
-                card.querySelector('.btn-launch').onclick = () => {
-                    p.released = true;
-                    p.isStaged = false;
-                    p.hype = 100;
-                    gameState.reputation += 25;
-                    updateHUD(); renderTab('dash');
-                    showToast(`${p.name} is LIVE!`, 'success');
-                };
+                    card.querySelector('.btn-launch').onclick = () => {
+                        p.released = true;
+                        p.isStaged = false;
+                        p.hype = 100;
+                        gameState.reputation += 25;
+                        updateHUD(); renderTab('dash');
+                        showToast(`${p.name} is LIVE!`, 'success');
+                    };
 
-            } 
-            // --- LIVE PRODUCT ---
-            else if(p.released && !p.isUpdating) {
-                const apiActive = p.apiConfig && p.apiConfig.active;
-                const apiStatus = apiActive ? (p.apiConfig.price === 0 ? 'text-purple-400' : 'text-green-400') : 'text-slate-600';
+                } 
+                // --- LIVE PRODUCT ---
+                else if(p.released && !p.isUpdating) {
+                    const apiActive = p.apiConfig && p.apiConfig.active;
+                    const apiStatus = apiActive ? (p.apiConfig.price === 0 ? 'text-purple-400' : 'text-green-400') : 'text-slate-600';
 
-                card.innerHTML += `
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <h3 class="text-2xl font-bold text-white tracking-tight">${p.name} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
+                    card.innerHTML += `
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-2xl font-bold text-white tracking-tight">${p.name} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
+                                </div>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${(p.type || 'text').toUpperCase()}</div>
+                                    ${p.trait ? `<div class="text-xs text-pink-300 font-bold bg-pink-900/30 border border-pink-500/30 px-2 py-0.5 rounded">${p.trait.toUpperCase()}</div>` : ''}
+                                    <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3"></i> API</div>
+                                    ${p.capabilities ? p.capabilities.map(c => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${c}</div>`).join('') : ''}
+                                </div>
                             </div>
-                            <div class="flex flex-wrap gap-2 mt-2">
-                                <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${p.type.toUpperCase()}</div>
-                                ${p.trait ? `<div class="text-xs text-pink-300 font-bold bg-pink-900/30 border border-pink-500/30 px-2 py-0.5 rounded">${p.trait.toUpperCase()}</div>` : ''}
-                                <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3"></i> API</div>
-                                ${p.capabilities ? p.capabilities.map(c => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${c}</div>`).join('') : ''}
+                            <div class="text-right mt-2">
+                                <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Weekly Rev</div>
+                                <div class="text-green-400 font-mono font-bold">$${p.isOpenSource ? 0 : Math.floor(p.revenue * 0.01).toLocaleString()}</div>
                             </div>
                         </div>
-                        <div class="text-right mt-2">
-                            <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Weekly Rev</div>
-                            <div class="text-green-400 font-mono font-bold">$${p.isOpenSource ? 0 : Math.floor(p.revenue * 0.01).toLocaleString()}</div>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                                <div class="text-[9px] text-slate-500 uppercase font-bold">Quality</div>
+                                <div class="text-green-400 font-black text-xl">${p.quality} <span class="text-xs text-slate-600">/ ∞</span></div>
+                            </div>
+                            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
+                                <div class="text-[9px] text-slate-500 uppercase font-bold">Hype</div>
+                                <div class="text-purple-400 font-black text-xl">${p.hype} <span class="text-xs text-slate-600">/ 500</span></div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                            <div class="text-[9px] text-slate-500 uppercase font-bold">Quality</div>
-                            <div class="text-green-400 font-black text-xl">${p.quality} <span class="text-xs text-slate-600">/ ∞</span></div>
-                        </div>
-                        <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                            <div class="text-[9px] text-slate-500 uppercase font-bold">Hype</div>
-                            <div class="text-purple-400 font-black text-xl">${p.hype} <span class="text-xs text-slate-600">/ 500</span></div>
-                        </div>
-                    </div>
 
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                         <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH</button>
-                         <button class="bg-white text-black px-3 py-3 text-[10px] font-bold hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v${Math.floor(p.version)+1}.0</button>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                         <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
-                         <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-green-500 btn-api rounded-xl tracking-wider transition-colors" data-id="${p.id}">CONFIG API</button>
-                    </div>
-                    <button class="w-full mt-2 text-slate-500 hover:text-red-500 text-[10px] font-bold py-2 btn-delete transition-colors">DISCONTINUE</button>
-                `;
-                card.querySelector('.btn-patch').onclick = () => openUpdateModal(p.id, 'minor');
-                card.querySelector('.btn-major').onclick = () => openUpdateModal(p.id, 'major');
-                card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id); 
-                card.querySelector('.btn-api').onclick = () => openApiModal(p.id); 
-                card.querySelector('.btn-delete').onclick = () => { if(confirm('Discontinue?')) { gameState.products = gameState.products.filter(x => x.id !== p.id); saveGame(); renderTab('dash'); }};
-            } 
-            // --- IN DEVELOPMENT ---
-            else {
-                card.innerHTML += `
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-white text-lg">${p.name}</h3>
-                        <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${Math.ceil(p.weeksLeft)}w LEFT</span>
-                    </div>
-                    <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : 'Training Model...'}</div>
-                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div class="h-full bg-cyan-500 animate-pulse" style="width: 50%"></div></div>
-                `;
-            }
-            list.appendChild(card);
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                             <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH</button>
+                             <button class="bg-white text-black px-3 py-3 text-[10px] font-bold hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v${Math.floor(p.version)+1}.0</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                             <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
+                             <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-green-500 btn-api rounded-xl tracking-wider transition-colors" data-id="${p.id}">CONFIG API</button>
+                        </div>
+                        <button class="w-full mt-2 text-slate-500 hover:text-red-500 text-[10px] font-bold py-2 btn-delete transition-colors">DISCONTINUE</button>
+                    `;
+                    card.querySelector('.btn-patch').onclick = () => openUpdateModal(p.id, 'minor');
+                    card.querySelector('.btn-major').onclick = () => openUpdateModal(p.id, 'major');
+                    card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id); 
+                    card.querySelector('.btn-api').onclick = () => openApiModal(p.id); 
+                    card.querySelector('.btn-delete').onclick = () => { if(confirm('Discontinue?')) { gameState.products = gameState.products.filter(x => x.id !== p.id); saveGame(); renderTab('dash'); }};
+                } 
+                // --- IN DEVELOPMENT ---
+                else {
+                    card.innerHTML += `
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-white text-lg">${p.name}</h3>
+                            <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${Math.ceil(p.weeksLeft)}w LEFT</span>
+                        </div>
+                        <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : 'Training Model...'}</div>
+                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div class="h-full bg-cyan-500 animate-pulse" style="width: 50%"></div></div>
+                    `;
+                }
+                list.appendChild(card);
+            } catch (err) { console.error("Error rendering card:", err); }
         });
         lucide.createIcons();
     }
@@ -784,7 +793,7 @@ function renderTab(tab) {
             el.className = `grid grid-cols-6 p-4 items-center text-sm ${m.isUser ? 'bg-cyan-900/10' : 'hover:bg-slate-900/30'} transition-colors`;
             el.innerHTML = `
                 <div class="font-mono text-slate-500">#${i+1}</div>
-                <div class="text-slate-400 flex items-center gap-2"><i data-lucide="${getIcon(m.type)}" class="w-4 h-4"></i><span class="text-[9px] font-bold uppercase tracking-wider text-slate-600">${m.type.substring(0,4)}</span></div>
+                <div class="text-slate-400 flex items-center gap-2"><i data-lucide="${getIcon(m.type)}" class="w-4 h-4"></i><span class="text-[9px] font-bold uppercase tracking-wider text-slate-600">${m.type ? m.type.substring(0,4) : 'UNK'}</span></div>
                 <div class="col-span-2 font-bold text-white flex items-center">${m.name}</div>
                 <div class="${m.color || 'text-slate-400'} text-xs font-bold">${m.company}</div>
                 <div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>
