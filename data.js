@@ -15,24 +15,23 @@ const HARDWARE_DB = [
     { id: 'quantum', name: 'Q-Bit Array', cost: 1500000, compute: 10000, upkeep: 5000, reqTech: 'quantum_tech' }
 ];
 
-// Specialties (The new "Custom Model" types)
-const SPECIALTIES_DB = [
-    { id: 'vanilla', name: 'Vanilla Chat', multCost: 1.0, multTime: 1.0, multCompute: 1.0, desc: 'Basic text model. Reliable.' },
-    { id: 'dreamer', name: 'Dreamer (Creative)', multCost: 1.2, multTime: 1.2, multCompute: 1.5, desc: 'High hallucinations, great for stories.' },
-    { id: 'coder', name: 'Sys-Admin (Coding)', multCost: 1.5, multTime: 1.4, multCompute: 1.3, desc: 'Optimized for Python/Lua/JS.' },
-    { id: 'visual', name: 'Visionary (Image)', multCost: 2.0, multTime: 1.8, multCompute: 2.5, desc: 'Heavy compute. Generates visuals.' },
-    { id: 'renderer', name: 'Renderer (3D/Video)', multCost: 3.5, multTime: 2.5, multCompute: 4.0, desc: 'Insane resource hog. Makes movies/3D.' },
-    { id: 'reasoning', name: 'Chain-of-Thought', multCost: 2.5, multTime: 2.0, multCompute: 2.0, desc: 'Thinks before it speaks. Slow but smart.' }
+// Custom Traits (Only for "Custom Architecture" models)
+const CUSTOM_TRAITS = [
+    { id: 'dreamer', name: 'Lucid Dreamer', multCost: 1.2, multTime: 1.5, multCompute: 1.2, desc: 'High hallucinations. Can "dream" up new concepts.' },
+    { id: 'sentient', name: 'Emotional Core', multCost: 2.0, multTime: 2.0, multCompute: 2.0, desc: 'Simulated feelings. High user engagement, high risk.' },
+    { id: 'chaos', name: 'Chaos Engine', multCost: 1.5, multTime: 1.2, multCompute: 1.5, desc: 'Unpredictable outputs. Fun but dangerous.' },
+    { id: 'logic', name: 'Hyper-Logic', multCost: 1.8, multTime: 2.5, multCompute: 1.8, desc: 'Zero creativity, perfect reasoning. The "Spock" model.' },
+    { id: 'mimic', name: 'Persona Mimic', multCost: 1.3, multTime: 1.3, multCompute: 1.3, desc: 'Perfectly copies human personalities.' }
 ];
 
-// Capabilities (Things you add while the model is in staging)
+// Capabilities (Upgrades added in Staging Lab)
 const CAPABILITIES_DB = [
     { id: 'web_search', name: 'Web Search', cost: 15000, time: 2, quality: 15, desc: 'Access the internet.' },
     { id: 'multimodal', name: 'Multi-Modal Vision', cost: 25000, time: 3, quality: 25, desc: 'Can see images.' },
     { id: 'memory', name: 'Long-Term Memory', cost: 40000, time: 4, quality: 30, desc: 'Remembers user chats.' },
     { id: 'audio_in', name: 'Audio Input', cost: 20000, time: 2, quality: 10, desc: 'Hears voice commands.' },
     { id: 'code_interpreter', name: 'Code Interpreter', cost: 60000, time: 5, quality: 40, desc: 'Runs code locally.' },
-    { id: 'personality', name: 'Dynamic Personality', cost: 10000, time: 1, quality: 10, desc: 'Adjusts vibe to user.' }
+    { id: 'autonomy', name: 'Agent Autonomy', cost: 100000, time: 8, quality: 50, desc: 'Can act on its own.' }
 ];
 
 // Companies (Contracts)
@@ -68,7 +67,7 @@ const CAMPAIGNS_DB = [
     { id: 'superbowl', name: 'Super Bowl Commercial', cost: 5000000, hype: 5000, duration: 12, type: 'basic' }
 ];
 
-// Shop Items (Restored)
+// Shop Items
 const SHOP_ITEMS_DB = [
     { id: 'pizza_party', name: 'Pizza Party', cost: 5000, type: 'consumable_emp', amount: 15, effect: '+15 Morale' },
     { id: 'team_retreat', name: 'Team Retreat', cost: 25000, type: 'consumable_emp', amount: 40, effect: '+40 Morale' },
