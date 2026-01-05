@@ -24,7 +24,7 @@ const ADMIN_EMAIL = 'anymousxe.info@gmail.com';
 let historyStack = [];
 let godMode = false;
 
-// --- DATA IMPORT SAFETY ---
+// --- DATA & ASSETS ---
 const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
 const COMPANIES = (typeof COMPANIES_DB !== 'undefined') ? COMPANIES_DB : [];
 const CAMPAIGNS = (typeof CAMPAIGNS_DB !== 'undefined') ? CAMPAIGNS_DB : [];
@@ -433,7 +433,6 @@ function generateRivalRelease() {
     let quality;
 
     // 2. Target Quality: Dynamic Rubber-banding
-    // If GlobalMax is huge (e.g., 1000), rivals aim for 80%-110% of that to stay competitive.
     if (globalMax > baseQ * 1.5) {
         const minTarget = globalMax * 0.8;
         const range = globalMax * 0.3; // Rivals can slightly beat the leader
@@ -1380,6 +1379,10 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     gameState.cash -= cost;
     gameState.researchPts -= variantInjectAmount;
     
+    // --- VARIANT LOGIC FIX ---
+    // Variants are NEW products that go to Staging.
+    // They are NOT updates.
+    
     gameState.products.push({
         id: Date.now().toString(),
         name: `${parent.name} ${suffix}`,
@@ -1387,7 +1390,9 @@ document.getElementById('btn-confirm-variant').onclick = () => {
         version: 1.0,
         quality: parent.quality,
         revenue: 0, hype: 0, released: false,
-        isUpdating: true, updateType: selectedVariantType,
+        isUpdating: false, // Ensure this is false so it processes weeks
+        isStaged: true,    // Send to Staging
+        updateType: selectedVariantType, // Keep for reference if needed
         isOpenSource: parent.isOpenSource,
         weeksLeft: time,
         researchBonus: variantInjectAmount,
@@ -1397,7 +1402,7 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     });
     
     variantModal.classList.add('hidden'); renderTab('dash'); updateHUD();
-    showToast(`Developing variant...`, 'success');
+    showToast(`Variant ${suffix} sent to Lab!`, 'success');
 };
 
 
@@ -1429,7 +1434,8 @@ document.getElementById('nav-settings').addEventListener('click', () => {
             fixBtn.innerHTML = `⚠️ EMERGENCY FIX SAVE ⚠️`;
             fixBtn.onclick = () => {
                 if(confirm('This will delete broken/duplicate products and force-release stuck ones. Do it?')) {
-                    gameState = cleanAndRepairData(gameState).data;
+                    const result = cleanAndRepairData(gameState);
+                    gameState = result.data;
                     saveGame();
                     updateHUD();
                     renderTab('dash');
