@@ -24,7 +24,7 @@ const ADMIN_EMAIL = 'anymousxe.info@gmail.com';
 let historyStack = [];
 let godMode = false;
 
-// --- DATA & ASSETS ---
+// --- ASSETS & DATA ---
 const HARDWARE = (typeof HARDWARE_DB !== 'undefined') ? HARDWARE_DB : [];
 const COMPANIES = (typeof COMPANIES_DB !== 'undefined') ? COMPANIES_DB : [];
 const CAMPAIGNS = (typeof CAMPAIGNS_DB !== 'undefined') ? CAMPAIGNS_DB : [];
@@ -46,13 +46,14 @@ const RESEARCH = [
     { id: 'agi_theory', name: 'AGI Theory', cost: 15000, desc: 'Unlock AGI Model Development' }
 ];
 
+// RESTORED FULL PRODUCT DESCRIPTIONS
 const PRODUCTS = [
-    { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5 },
-    { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15 },
-    { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 10 },
-    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40 },
-    { id: 'custom', name: 'Custom Architecture', cost: 100000, time: 6, compute: 20, desc: 'Specialized for Dreaming, Feelings, etc.' },
-    { id: 'agi', name: 'AGI Core', cost: 5000000, time: 24, compute: 5000, reqTech: 'agi_theory' }
+    { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5, specs: ['Chatbot', 'Coding', 'Writing'], desc: "Standard language model. Reliable and versatile." },
+    { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15, specs: ['Realistic', 'Anime', 'Logo'], desc: "Generates high-fidelity images from text prompts." },
+    { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 10, specs: ['Music', 'Voice', 'SFX'], desc: "Synthesizes voice and music with low latency." },
+    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40, specs: ['Deepfake', 'Cinema', 'VFX'], desc: "Heavy compute. Generates short video clips." },
+    { id: 'custom', name: 'Custom Architecture', cost: 100000, time: 6, compute: 20, specs: ['Specialized', 'Unique', 'Experimental'], desc: "Build a model with a specific neural trait (Dreamer, Sentient, etc)." },
+    { id: 'agi', name: 'AGI Core', cost: 5000000, time: 24, compute: 5000, reqTech: 'agi_theory', specs: ['Sentience', 'Omniscience', 'Singularity'], desc: "Artificial General Intelligence. The final frontier." }
 ];
 
 // --- AUTH & SETUP ---
@@ -185,7 +186,6 @@ function cleanAndRepairData(data) {
     let wasModified = false;
     let corrupted = false;
 
-    // 1. Structure Check
     if (!data.products) { data.products = []; wasModified = true; }
     if (!data.reviews) { data.reviews = []; wasModified = true; }
     if (!data.employees) { data.employees = { count: 1, morale: 100 }; wasModified = true; }
@@ -193,56 +193,40 @@ function cleanAndRepairData(data) {
     if (!data.purchasedItems) { data.purchasedItems = []; wasModified = true; }
     if (!data.unlockedTechs) { data.unlockedTechs = []; wasModified = true; }
 
-    // 2. Remove Duplicates & Fix Objects
     const seenIds = new Set();
     const cleanProducts = [];
 
     data.products.forEach(p => {
-        // Drop garbage data
-        if (!p || typeof p !== 'object' || !p.name) {
-            wasModified = true;
-            corrupted = true;
-            return;
-        } 
+        if (!p || typeof p !== 'object' || !p.name) { wasModified = true; corrupted = true; return; } 
+        if (!p.id) { p.id = Math.random().toString(36).substr(2, 9); wasModified = true; }
         
-        // Fix ID
-        if (!p.id) { 
-            p.id = Math.random().toString(36).substr(2, 9); 
-            wasModified = true; 
-        }
-        
-        // Remove Duplicate IDs
-        if (seenIds.has(p.id)) {
-            wasModified = true;
-            return;
-        }
+        if (seenIds.has(p.id)) { wasModified = true; return; }
         seenIds.add(p.id);
 
-        // 3. Normalize Fields
-        if (typeof p.weeksLeft !== 'number' || isNaN(p.weeksLeft)) { p.weeksLeft = 0; wasModified = true; corrupted = true; }
+        // Fix Numbers & Types
+        p.weeksLeft = Number(p.weeksLeft);
+        if (isNaN(p.weeksLeft)) { p.weeksLeft = 0; wasModified = true; }
+        
         if (!p.type || p.type === 'undefined') { p.type = 'text'; wasModified = true; }
         
         // Migrate "specialty" to "trait"
-        if (p.specialty && !p.trait) { 
-            p.trait = p.specialty; 
-            delete p.specialty; 
-            wasModified = true; 
-        }
+        if (p.specialty && !p.trait) { p.trait = p.specialty; delete p.specialty; wasModified = true; }
         if (!p.trait) p.trait = null;
 
         // Ensure arrays
         if (!p.capabilities) { p.capabilities = []; wasModified = true; }
         if (!p.contracts) { p.contracts = []; wasModified = true; }
         if (!p.apiConfig) { p.apiConfig = { active: false, price: 0, limit: 100 }; wasModified = true; }
-        
         if (p.isOpenSource === undefined) { p.isOpenSource = false; wasModified = true; }
 
-        // 4. UNSTICK LOGIC: If 0 weeks, not released, not updating -> FORCE STAGE
-        if (!p.released && !p.isUpdating && !p.isStaged && p.weeksLeft <= 0) {
+        // --- UNSTICK LOGIC ---
+        // If it's at 0 weeks, not updating, not released, and NOT in staging -> Force it to Staging
+        if (p.weeksLeft <= 0 && !p.released && !p.isUpdating && !p.isStaged) {
+            console.log("Unsticking Model:", p.name);
             p.isStaged = true;
             p.weeksLeft = 0;
             wasModified = true;
-            corrupted = true; // Flag to show toast
+            corrupted = true;
         }
 
         cleanProducts.push(p);
@@ -251,7 +235,6 @@ function cleanAndRepairData(data) {
     if (cleanProducts.length !== data.products.length) wasModified = true;
     data.products = cleanProducts;
 
-    // Return object wrapper to know if we need to save
     return { data: data, modified: wasModified, corrupted: corrupted };
 }
 
@@ -262,12 +245,9 @@ function startGame(id, data) {
     const result = cleanAndRepairData(data);
     gameState = result.data;
 
-    // IF DATA WAS BAD, SAVE TO DB IMMEDIATELY
     if (result.modified || result.corrupted) {
-        showToast("⚠️ FILE CORRUPTED - AUTO-REPAIRING...", "error");
-        // We use .set() to OVERWRITE the database, ensuring ghosts are deleted
+        showToast("⚠️ DATA REPAIRED - SYNCING...", "error");
         db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).set(gameState)
-            .then(() => console.log("Save repaired and synced."))
             .catch(e => console.error("Repair sync failed", e));
     }
 
@@ -343,21 +323,24 @@ function setupRealtimeListener(saveId) {
     realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
         .doc(saveId).onSnapshot(doc => {
             if (doc.exists) {
-                // FORCE SANITIZATION ON EVERY UPDATE
+                // CONSTANT SANITIZATION
                 const result = cleanAndRepairData(doc.data());
                 gameState = result.data;
                 
                 updateHUD();
+                
+                // ONLY re-render Dash/Market/Shop automatically.
+                // Re-rendering Dev form while typing destroys input.
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-                // Don't re-render Dev while typing to avoid input loss
-                if (activeTab !== 'dev' || !document.getElementById('new-proj-name')) renderTab(activeTab);
+                if (activeTab === 'dash' || activeTab === 'stats' || activeTab === 'rivals') {
+                    renderTab(activeTab);
+                }
             }
         });
 }
 
 function saveGame() {
     if(!activeSaveId || !gameState) return;
-    // Using .update here for regular autosaves to be efficient, but start/repair uses .set
     db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).update(gameState).catch(console.error);
 }
 
@@ -372,7 +355,7 @@ function updateHUD() {
     if (godMode) {
         document.getElementById('admin-edit-cash').classList.remove('hidden');
         document.getElementById('admin-edit-research').classList.remove('hidden');
-        renderGodModeList(); // Refresh God Mode List if open
+        renderGodModeList();
     } else {
         document.getElementById('admin-edit-cash').classList.add('hidden');
         document.getElementById('admin-edit-research').classList.add('hidden');
@@ -416,7 +399,7 @@ function showToast(msg, type = 'info') {
     document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
 }
 
-// --- GENERATE RIVAL RELEASE (AGGRESSIVE SCALING) ---
+// --- GENERATE RIVAL RELEASE (AGGRESSIVE) ---
 function generateRivalRelease() {
     const rival = RIVALS_LIST[Math.floor(Math.random() * RIVALS_LIST.length)];
     const pre = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
@@ -424,25 +407,21 @@ function generateRivalRelease() {
     const ver = VERSIONS[Math.floor(Math.random() * VERSIONS.length)];
     const type = ['text', 'image', 'audio', 'video'][Math.floor(Math.random() * 4)];
 
-    // 1. Determine Global Max Quality (Player + Market)
     let globalMax = 0;
     if(gameState.products) gameState.products.forEach(p => globalMax = Math.max(globalMax, p.quality));
     if(gameState.marketModels) gameState.marketModels.forEach(m => globalMax = Math.max(globalMax, m.quality));
 
-    let baseQ = 50 + (gameState.year - 2025) * 20; // Default floor
+    let baseQ = 50 + (gameState.year - 2025) * 20; 
     let quality;
 
-    // 2. Target Quality: Dynamic Rubber-banding
     if (globalMax > baseQ * 1.5) {
-        const minTarget = globalMax * 0.8;
-        const range = globalMax * 0.3; // Rivals can slightly beat the leader
+        const minTarget = globalMax * 0.8; // Target 80% of leader
+        const range = globalMax * 0.3; // Can exceed leader by 10%
         quality = Math.floor(minTarget + Math.random() * range);
     } else {
-        // Standard progression
         quality = Math.floor(baseQ + Math.random() * 50);
     }
     
-    // 3. Open Source Chance (20%)
     const isOpenSource = Math.random() < 0.20;
 
     if(!gameState.marketModels) gameState.marketModels = [];
@@ -469,34 +448,21 @@ function generateReviews() {
     const liveProducts = gameState.products.filter(p => p.released);
     if(liveProducts.length === 0) return;
 
-    if(Math.random() > 0.6) { // 40% chance
+    if(Math.random() > 0.6) { 
         const p = liveProducts[Math.floor(Math.random() * liveProducts.length)];
         let sentimentPool = [];
         let rating = 0;
 
-        // Dynamic Quality Standards (Expectations rise every year)
         const yearOffset = (gameState.year - 2025) * 25;
         const relativeQuality = p.quality - yearOffset;
 
-        if (relativeQuality > 120) {
-            sentimentPool = REVIEWS_DB.god;
-            rating = 5;
-        } else if (relativeQuality > 80) {
-            sentimentPool = REVIEWS_DB.high;
-            rating = Math.random() > 0.5 ? 5 : 4;
-        } else if (relativeQuality > 40) {
-            sentimentPool = REVIEWS_DB.mid;
-            rating = Math.random() > 0.5 ? 4 : 3;
-        } else {
-            sentimentPool = REVIEWS_DB.low;
-            rating = Math.random() > 0.5 ? 2 : 1;
-        }
+        if (relativeQuality > 120) { sentimentPool = REVIEWS_DB.god; rating = 5; } 
+        else if (relativeQuality > 80) { sentimentPool = REVIEWS_DB.high; rating = Math.random() > 0.5 ? 5 : 4; } 
+        else if (relativeQuality > 40) { sentimentPool = REVIEWS_DB.mid; rating = Math.random() > 0.5 ? 4 : 3; } 
+        else { sentimentPool = REVIEWS_DB.low; rating = Math.random() > 0.5 ? 2 : 1; }
 
-        if(p.type === 'agi' && rating > 3) {
-            sentimentPool.push("It's... alive.");
-        }
+        if(p.type === 'agi' && rating > 3) sentimentPool.push("It's... alive.");
         if(p.trait === 'dreamer' && rating > 3) sentimentPool.push("The dreams this thing has are wild.");
-        if(p.trait === 'sentient') sentimentPool.push("I think it fell in love with me?");
 
         const text = sentimentPool[Math.floor(Math.random() * sentimentPool.length)];
 
@@ -545,30 +511,33 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
 
             if (gameState.products) {
                 gameState.products.forEach(p => {
-                    // Update Development Logic - THE FIX
-                    // Check if it should process progress
-                    if (p.weeksLeft > 0 && (!p.released || p.isUpdating)) {
-                        const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
-                        p.weeksLeft -= (1 * speedMult);
-                        
-                        // Check if just finished
-                        if(p.weeksLeft <= 0) {
-                            p.weeksLeft = 0;
-                            if(p.isUpdating) {
-                                p.released = true;
-                                p.isUpdating = false;
-                                if(p.updateType === 'major') { p.version = parseFloat((p.version + 1.0).toFixed(1)); p.quality += 15 + (p.researchBonus || 0); } 
-                                else if (p.updateType !== 'minor') { p.version = 1.0; p.quality += (p.researchBonus || 0); } 
-                                else { p.version = parseFloat((p.version + 0.1).toFixed(1)); p.quality += 5 + (p.researchBonus || 0); }
-                                p.hype = 100;
-                                showToast(`${p.name} Update Released!`, 'success');
-                            } else {
-                                p.isStaged = true;
-                                showToast(`${p.name} is ready for polish!`, 'success');
-                            }
-                        }
+                    // Update Development Logic (INCL. VARIANTS)
+                    // If it has weeks left, decrement.
+                    if (p.weeksLeft > 0) {
+                         const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
+                         p.weeksLeft -= (1 * speedMult);
+                         
+                         // If finished this tick...
+                         if(p.weeksLeft <= 0) {
+                             p.weeksLeft = 0;
+                             if(p.isUpdating) {
+                                 // Patches/Updates auto-release
+                                 p.released = true;
+                                 p.isUpdating = false;
+                                 if(p.updateType === 'major') { p.version = parseFloat((p.version + 1.0).toFixed(1)); p.quality += 15 + (p.researchBonus || 0); } 
+                                 else if (p.updateType !== 'minor') { /* Variant Update? Shouldn't happen here usually */ } 
+                                 else { p.version = parseFloat((p.version + 0.1).toFixed(1)); p.quality += 5 + (p.researchBonus || 0); }
+                                 p.hype = 100;
+                                 showToast(`${p.name} Update Released!`, 'success');
+                             } else {
+                                 // New Products & VARIANTS go to Staging
+                                 p.isStaged = true; 
+                                 showToast(`${p.name} is ready for polish!`, 'success');
+                             }
+                         }
                     }
 
+                    // Live Logic
                     if(p.released && !p.isUpdating) {
                         let weeklyRev = 0;
                         const organicUsers = Math.floor((p.quality * p.hype * 25)); 
@@ -645,7 +614,7 @@ function renderTab(tab) {
     content.innerHTML = '';
     content.className = 'animate-in';
 
-    // --- DASHBOARD ---
+    // --- DASHBOARD (RESTORED FULL VISUALS) ---
     if(tab === 'dash') {
         const liveProducts = (gameState.products || []).filter(p => p.released).length;
         const rev = (gameState.products || []).reduce((acc, p) => acc + (p.revenue||0), 0);
@@ -670,24 +639,34 @@ function renderTab(tab) {
 
         const list = document.getElementById('product-list');
         (gameState.products || []).forEach(p => {
-            // Safety Check inside render loop to prevent crashing entire dashboard
             try {
                 const card = document.createElement('div');
                 card.className = 'glass-panel p-6 relative group hover:border-cyan-500/50 transition-all rounded-2xl overflow-hidden';
                 
+                // Get display traits/specs
+                const prodType = PRODUCTS.find(pt => pt.id === p.type);
+                const displaySpecs = prodType ? prodType.specs.join(' • ') : "Legacy Model";
+
                 // --- STAGING STATE (READY TO LAUNCH OR ADD CAPABILITIES) ---
                 if (!p.released && p.isStaged) {
                     card.classList.add('border-green-500', 'bg-green-900/10');
                     
-                    // Dropdown options for capabilities
                     const availableCaps = CAPABILITIES.filter(cap => !(p.capabilities || []).includes(cap.id));
                     const capsOptions = availableCaps.map(c => `<option value="${c.id}">${c.name} (+${c.time}w, $${c.cost})</option>`).join('');
                     
                     card.innerHTML = `
                         <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-bold text-white text-xl">${p.name}</h3>
+                            <div>
+                                <h3 class="font-bold text-white text-xl">${p.name}</h3>
+                                <div class="text-[10px] text-slate-400 uppercase tracking-widest">${displaySpecs}</div>
+                            </div>
                             <span class="text-xs font-black bg-green-500 text-black px-2 py-1 rounded animate-pulse">COOKING</span>
                         </div>
+                        
+                        <div class="p-3 bg-slate-900/50 rounded-xl mb-4 border border-slate-800 text-xs text-slate-400 italic">
+                            "${p.description || 'No description provided.'}"
+                        </div>
+
                         <div class="grid grid-cols-2 gap-4 mb-4">
                             <div class="bg-black/40 p-3 rounded-xl border border-white/5">
                                 <div class="text-[9px] text-slate-500 uppercase font-bold">Current Quality</div>
@@ -764,6 +743,7 @@ function renderTab(tab) {
                                     ${p.isOpenSource ? `<div class="text-xs font-bold bg-blue-900/50 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded flex items-center gap-1">OPEN SOURCE</div>` : ''}
                                     ${p.capabilities ? p.capabilities.map(c => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${c}</div>`).join('') : ''}
                                 </div>
+                                <div class="text-xs text-slate-500 mt-2 font-mono">${displaySpecs}</div>
                             </div>
                             <div class="text-right mt-2">
                                 <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Weekly Rev</div>
@@ -805,7 +785,7 @@ function renderTab(tab) {
                             <h3 class="font-bold text-white text-lg">${p.name}</h3>
                             <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${Math.ceil(p.weeksLeft)}w LEFT</span>
                         </div>
-                        <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : 'Training Model...'}</div>
+                        <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : `Training (${p.trait || 'Vanilla'})...`}</div>
                         <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div class="h-full bg-cyan-500 animate-pulse" style="width: 50%"></div></div>
                     `;
                 }
@@ -882,24 +862,64 @@ function renderTab(tab) {
         
         let selectedType = null;
         PRODUCTS.forEach(p => {
-            const btn = document.createElement('div'); btn.className = `p-6 border cursor-pointer rounded-2xl transition-all border-slate-700 hover:border-cyan-500`; btn.innerHTML = `<div class="font-bold text-white">${p.name}</div>`;
-            btn.onclick = () => { document.querySelectorAll('#dev-types > div').forEach(d=>d.classList.remove('border-cyan-500')); btn.classList.add('border-cyan-500'); selectedType = p; document.getElementById('specialty-container').classList.toggle('hidden', p.id !== 'custom'); };
+            const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
+            const btn = document.createElement('div');
+            btn.className = `p-6 border cursor-pointer rounded-2xl transition-all relative ${locked ? 'border-slate-800 opacity-40 bg-slate-900/10' : 'border-slate-700 hover:border-cyan-500 hover:bg-slate-900/60 bg-slate-900/30'}`;
+            btn.innerHTML = `
+                <div class="flex justify-between mb-3">
+                    <div class="font-bold text-white text-lg">${p.name}</div>
+                    ${locked ? '<i data-lucide="lock" class="w-4 h-4 text-red-500"></i>' : ''}
+                </div>
+                <div class="text-xs text-slate-500 font-mono space-y-1">
+                    <div>Base Cost: $${p.cost.toLocaleString()}</div>
+                    <div>Base Compute: ${p.compute} TF</div>
+                    <div>Base Time: ${p.time} Weeks</div>
+                </div>
+                <div class="mt-3 flex gap-1 flex-wrap">
+                    ${p.specs ? p.specs.map(s => `<span class="px-2 py-0.5 bg-slate-800 rounded text-[9px] text-slate-400 font-bold uppercase tracking-wide">${s}</span>`).join('') : ''}
+                </div>
+                `;
+            
+            if(!locked) {
+                btn.onclick = () => {
+                    document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500', 'bg-cyan-900/20'));
+                    btn.classList.add('border-cyan-500', 'bg-cyan-900/20');
+                    selectedType = p;
+                    if(p.id === 'custom') {
+                        document.getElementById('specialty-container').classList.remove('hidden');
+                    } else {
+                        document.getElementById('specialty-container').classList.add('hidden');
+                    }
+                };
+            }
             document.getElementById('dev-types').appendChild(btn);
         });
+
+        // Specialty Description Update
+        const specialtySelect = document.getElementById('specialty-select');
+        const specialtyDesc = document.getElementById('specialty-desc');
+        specialtySelect.onchange = () => {
+             const spec = TRAITS.find(s => s.id === specialtySelect.value);
+             if(spec) specialtyDesc.textContent = `${spec.desc} (x${spec.multCost} Cost, x${spec.multTime} Time)`;
+        };
 
         const slider = document.getElementById('research-inject');
         const numInput = document.getElementById('research-inject-input');
         
         const syncInputs = (val) => {
             let v = parseInt(val); if(isNaN(v)) v = 0; if(v > gameState.researchPts) v = gameState.researchPts;
-            slider.value = v; numInput.value = v; document.getElementById('inject-val').textContent = v;
+            slider.value = v; numInput.value = v; 
+            document.getElementById('inject-val').textContent = `${v} PTS`;
+            document.getElementById('quality-boost').textContent = v;
         };
         slider.oninput = (e) => syncInputs(e.target.value);
         numInput.oninput = (e) => syncInputs(e.target.value);
 
         document.getElementById('btn-start-dev').onclick = () => {
             const name = document.getElementById('new-proj-name').value;
+            const desc = document.getElementById('new-proj-specs').value;
             const isOS = document.getElementById('chk-opensource').checked;
+
             if(!name || !selectedType) return showToast('Missing Info', 'error');
             const cost = selectedType.cost; 
             if(gameState.cash < cost) return showToast('No Money', 'error');
@@ -907,13 +927,19 @@ function renderTab(tab) {
             gameState.cash -= cost;
             gameState.researchPts -= parseInt(slider.value);
             
+            let traitId = null;
+            if(selectedType.id === 'custom') {
+                traitId = specialtySelect.value;
+            }
+
             gameState.products.push({
                 id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 50 + parseInt(slider.value),
                 weeksLeft: selectedType.time, released: false, isStaged: false, isUpdating: false,
-                trait: selectedType.id === 'custom' ? document.getElementById('specialty-select').value : null,
+                trait: traitId,
+                description: desc || "A cool model.",
                 revenue: 0, hype: 0, isOpenSource: isOS
             });
-            updateHUD(); showToast('Started', 'success'); renderTab('dash');
+            updateHUD(); showToast('Development Started. Let him cook.', 'success'); renderTab('dash');
         };
         lucide.createIcons();
     } 
@@ -1149,14 +1175,10 @@ function openUpdateModal(productId, type) {
 
 // Sync Update Modal Slider/Input
 const updateSlider = document.getElementById('update-research-slider');
-// Inject manual input field dynamically if not present in HTML (it was added via JS before)
-// We need to ensure the HTML structure supports it.
-// PATCH: Add the input field to the modal HTML structure dynamically if missing
 const updateInputContainer = updateSlider.parentElement;
 if(!document.getElementById('update-research-input')) {
     const div = document.createElement('div');
     div.className = "flex gap-2 mt-2";
-    // Move slider into div
     updateInputContainer.insertBefore(div, updateSlider);
     div.appendChild(updateSlider);
     
@@ -1380,9 +1402,7 @@ document.getElementById('btn-confirm-variant').onclick = () => {
     gameState.researchPts -= variantInjectAmount;
     
     // --- VARIANT LOGIC FIX ---
-    // Variants are NEW products that go to Staging.
-    // They are NOT updates.
-    
+    // Variants start as NEW products, not updates.
     gameState.products.push({
         id: Date.now().toString(),
         name: `${parent.name} ${suffix}`,
@@ -1390,19 +1410,21 @@ document.getElementById('btn-confirm-variant').onclick = () => {
         version: 1.0,
         quality: parent.quality,
         revenue: 0, hype: 0, released: false,
-        isUpdating: false, // Ensure this is false so it processes weeks
-        isStaged: true,    // Send to Staging
-        updateType: selectedVariantType, // Keep for reference if needed
+        isUpdating: false, // Important: Treat as new product so it counts down
+        isStaged: false,   // Start in Dev phase
+        updateType: selectedVariantType,
         isOpenSource: parent.isOpenSource,
         weeksLeft: time,
         researchBonus: variantInjectAmount,
         contracts: [], apiConfig: { active: false, price: 0, limit: 100 },
         customFeatures: parent.customFeatures,
-        specialty: parent.specialty
+        specialty: parent.specialty,
+        trait: parent.trait,
+        description: `Variant of ${parent.name}. Optimized for ${selectedVariantType}.`
     });
     
     variantModal.classList.add('hidden'); renderTab('dash'); updateHUD();
-    showToast(`Variant ${suffix} sent to Lab!`, 'success');
+    showToast(`Variant ${suffix} started development!`, 'success');
 };
 
 
