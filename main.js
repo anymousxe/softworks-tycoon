@@ -8,1622 +8,333 @@ const firebaseConfig = {
     appId: "1:591489940224:web:9e355e8a43dc06446a91e5"
 };
 
-try { firebase.initializeApp(firebaseConfig); } catch (e) { console.error("Firebase Init Error:", e); }
+try {
+    firebase.initializeApp(firebaseConfig);
+} catch (e) {
+    console.error("Firebase Init Error:", e);
+}
+
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// --- XSS PROTECTION UTILITIES ---
-function sanitizeHTML(str) {
-    if (str === null || str === undefined) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;')
-        .replace(/\//g, '&#x2F;')
-        .replace(/\\/g, '&#x5C;')
-        .replace(/`/g, '&#x60;');
-}
-
-// Validate and sanitize input fields
-function validateInput(input, maxLength = 50) {
-    if (!input || typeof input !== 'string') return '';
-    // Remove any script tags and event handlers
-    let clean = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-    clean = clean.replace(/on\w+\s*=/gi, '');
-    clean = clean.replace(/javascript:/gi, '');
-    clean = clean.replace(/data:/gi, '');
-    // Truncate to max length
-    return sanitizeHTML(clean.substring(0, maxLength));
-}
-
-// --- 2. GAME DATA (HARDCODED TO PREVENT LOADING ERRORS) ---
-const HARDWARE = [
-    { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 5, upkeep: 10 },
-    { id: 'rtx_4090_farm', name: 'RTX 4090 Farm', cost: 5500, compute: 15, upkeep: 40 },
-    { id: 'a100', name: 'A100 Rack', cost: 8000, compute: 30, upkeep: 80 },
-    { id: 'v100_legacy', name: 'V100 Legacy Rack', cost: 12000, compute: 45, upkeep: 120 },
-    { id: 'h100', name: 'H100 Cluster', cost: 15000, compute: 80, upkeep: 150 },
-    { id: 'h200', name: 'Nvidia H200', cost: 35000, compute: 150, upkeep: 300, reqTech: 'h200_unlock' },
-    { id: 'gh200_super', name: 'GH200 Superchip', cost: 48000, compute: 250, upkeep: 450, reqTech: 'blackwell_arch' },
-    { id: 'b200', name: 'Blackwell B200', cost: 60000, compute: 400, upkeep: 600, reqTech: 'blackwell_arch' },
-    { id: 'tpu_pod', name: 'Google TPU Pod', cost: 250000, compute: 1500, upkeep: 1500, reqTech: 'tpu_opt' },
-    { id: 'cerebras', name: 'Wafer Scale Engine', cost: 500000, compute: 3500, upkeep: 2500, reqTech: 'wafer_scale' },
-    { id: 'quantum', name: 'Q-Bit Array', cost: 1500000, compute: 10000, upkeep: 5000, reqTech: 'quantum_tech' }
-];
-
-const RIVALS_LIST = [
-    { name: 'OpenAI', strength: 98, color: 'text-green-400' },
-    { name: 'Anthropic', strength: 92, color: 'text-yellow-400' },
-    { name: 'Google DeepMind', strength: 95, color: 'text-blue-400' },
-    { name: 'Meta AI', strength: 88, color: 'text-blue-300' },
-    { name: 'X.AI', strength: 80, color: 'text-slate-200' },
-    { name: 'Stability', strength: 75, color: 'text-purple-400' },
-    { name: 'Mistral', strength: 78, color: 'text-orange-400' },
-    { name: 'Cohere', strength: 70, color: 'text-teal-400' },
-    { name: 'Midjourney', strength: 85, color: 'text-pink-400' },
-    { name: 'Character.AI', strength: 82, color: 'text-cyan-400' },
-    { name: 'Perplexity', strength: 65, color: 'text-indigo-400' },
-    { name: 'HuggingFace', strength: 60, color: 'text-yellow-200' },
-    { name: 'Tencent', strength: 85, color: 'text-green-600' },
-    { name: 'Baidu', strength: 82, color: 'text-blue-600' },
-    { name: 'Alibaba', strength: 80, color: 'text-orange-600' },
-    { name: 'Apple ML', strength: 90, color: 'text-slate-400' },
-    { name: 'Amazon AGI', strength: 88, color: 'text-yellow-600' },
-    { name: 'IBM Watson', strength: 50, color: 'text-blue-800' },
-    { name: 'Tesla AI', strength: 75, color: 'text-red-500' },
-    { name: 'Nvidia Research', strength: 99, color: 'text-green-500' },
-    { name: 'Sora Video', strength: 95, color: 'text-red-400' },
-    { name: 'Runway ML', strength: 70, color: 'text-pink-500' }
-];
-
-const COMPANIES = [
-    { name: 'Indie Devs', budget: 1500 }, { name: 'Startup Inc', budget: 3500 }, { name: 'Lmsite', budget: 5000 },
-    { name: 'Facebooc', budget: 8000 }, { name: 'StreamFlix', budget: 12000 }, { name: 'Microhard', budget: 15000 },
-    { name: 'Joggle', budget: 18000 }, { name: 'Amacon', budget: 22000 }, { name: 'NvidiaX', budget: 25000 },
-    { name: 'Tessla', budget: 30000 }, { name: 'OpenAI (Real)', budget: 45000 }, { name: 'Global Gov', budget: 500000 }
-];
-
-const CAMPAIGNS = [
-    { id: 'social_ads', name: 'Social Media Blast', cost: 2000, hype: 15 },
-    { id: 'influencer', name: 'Tech Influencer', cost: 15000, hype: 40 },
-    { id: 'billboard', name: 'Times Square Billboard', cost: 50000, hype: 100 },
-    { id: 'superbowl', name: 'Super Bowl Ad', cost: 5000000, hype: 5000 }
-];
-
-const SHOP_ITEMS = [
-    { id: 'pizza_party', name: 'Pizza Party', cost: 5000, type: 'consumable_emp', amount: 15, effect: '+15 Morale' },
-    { id: 'research_grant_s', name: 'Small Grant', cost: 10000, type: 'consumable_res', amount: 500, effect: '+500 Research Pts' },
-    { id: 'marketing_team', name: 'Marketing Firm', cost: 75000, type: 'upgrade', effect: 'Passive Hype Gen' }
-];
-
-const TRAITS = [
-    { id: 'dreamer', name: 'Lucid Dreamer', multCost: 1.2, multTime: 1.5, multCompute: 1.2, desc: 'High hallucinations. Can "dream" up new concepts.' },
-    { id: 'sentient', name: 'Emotional Core', multCost: 2.0, multTime: 2.0, multCompute: 2.0, desc: 'Simulated feelings. High user engagement.' },
-    { id: 'chaos', name: 'Chaos Engine', multCost: 1.5, multTime: 1.2, multCompute: 1.5, desc: 'Unpredictable outputs. Fun but dangerous.' }
-];
-
-const CAPABILITIES = [
-    { id: 'web_search', name: 'Web Search', cost: 15000, time: 2, quality: 15 },
-    { id: 'memory', name: 'Long-Term Memory', cost: 40000, time: 4, quality: 30 }
-];
-
-const PREFIXES = ['Super', 'Ultra', 'Hyper', 'Mega', 'Omni', 'Quantum', 'Cyber', 'Neo', 'Flux', 'Astro'];
-const SUFFIXES = ['GPT', 'Mind', 'Core', 'Flow', 'Net', 'Vision', 'Voice', 'Sim'];
-const VERSIONS = ['1.0', '2.0', '3.0', '4.0', '5.0', 'X', 'Pro', 'Max'];
-
-const REVIEWS_DB = {
-    low: ["Trash.", "Garbage.", "Refund.", "Why?", "Broken."],
-    mid: ["Okay.", "Decent.", "Meh.", "Works.", "Fine."],
-    high: ["Amazing!", "Incredible.", "SOTA.", "Love it.", "Wow."],
-    god: ["AGI IS HERE.", "Consciousness?", "Scary good.", "Unbelievable."]
-};
-
-const RESEARCH = [
-    { id: 'opt_algos', name: 'Optimized Algos', cost: 50, desc: '-1 Week Dev Time' },
-    { id: 'h200_unlock', name: 'H200 Hardware', cost: 150, desc: 'Unlock H200 Chips' },
-    { id: 'blackwell_arch', name: 'Blackwell Arch', cost: 300, desc: 'Unlock B200/GH200' },
-    { id: 'tpu_opt', name: 'TPU Optimization', cost: 600, desc: 'Unlock TPU Pods' },
-    { id: 'wafer_scale', name: 'Wafer Scale', cost: 2000, desc: 'Unlock Cerebras WSE' },
-    { id: 'quantum_tech', name: 'Quantum Supremacy', cost: 5000, desc: 'Unlock Quantum Servers' },
-    { id: 'agi_theory', name: 'AGI Theory', cost: 15000, desc: 'Unlock AGI Model Development' }
-];
-
-const PRODUCTS = [
-    { id: 'text', name: 'LLM (Text)', cost: 50000, time: 4, compute: 5, specs: ['Chatbot', 'Coding', 'Writing'], desc: "Standard language model. Reliable and versatile." },
-    { id: 'image', name: 'Image Model', cost: 80000, time: 6, compute: 15, specs: ['Realistic', 'Anime', 'Logo'], desc: "Generates high-fidelity images from text prompts." },
-    { id: 'audio', name: 'Audio Model', cost: 60000, time: 5, compute: 10, specs: ['Music', 'Voice', 'SFX'], desc: "Synthesizes voice and music with low latency." },
-    { id: 'video', name: 'Video Gen', cost: 150000, time: 8, compute: 40, specs: ['Deepfake', 'Cinema', 'VFX'], desc: "Heavy compute. Generates short video clips." },
-    { id: 'custom', name: 'Custom Architecture', cost: 100000, time: 6, compute: 20, specs: ['Specialized', 'Unique', 'Experimental'], desc: "Build a model with a specific neural trait (Dreamer, Sentient, etc)." },
-    { id: 'agi', name: 'AGI Core', cost: 5000000, time: 24, compute: 5000, reqTech: 'agi_theory', specs: ['Sentience', 'Omniscience', 'Singularity'], desc: "Artificial General Intelligence. The final frontier." }
-];
-
-// Global State
-let currentUser = null;
-let activeSaveId = null;
-let gameState = null;
-let saveInterval = null;
-let realtimeUnsubscribe = null;
-const APP_ID = 'softworks-tycoon';
-const ADMIN_EMAIL = 'anymousxe.info@gmail.com';
-
-let historyStack = [];
-let godMode = false;
-
-// --- AUTH & SETUP ---
-
-auth.onAuthStateChanged(user => {
-    currentUser = user;
-    if (user) {
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('menu-screen').classList.remove('hidden');
-
-        const name = user.displayName || (user.isAnonymous ? 'Guest Agent' : 'User');
-        const photo = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
-        document.getElementById('user-name').textContent = name;
-        document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0, 8);
-        document.getElementById('user-photo').src = photo;
-
-        checkAdminAccess();
-        loadSaves();
-    } else {
-        document.getElementById('login-screen').classList.remove('hidden');
-        document.getElementById('menu-screen').classList.add('hidden');
-    }
-});
-
-function checkAdminAccess() {
-    const godWrapper = document.getElementById('godmode-control-wrapper');
-    if (currentUser && currentUser.email === ADMIN_EMAIL) {
-        godWrapper.classList.remove('hidden');
-    } else {
-        godWrapper.classList.add('hidden');
-        if (godMode) { godMode = false; updateHUD(); }
-    }
-}
-
-document.getElementById('btn-login-google').addEventListener('click', () => {
-    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert(e.message));
-});
-document.getElementById('btn-login-guest').addEventListener('click', () => {
-    auth.signInAnonymously().catch(e => alert(e.message));
-});
-document.getElementById('btn-logout').addEventListener('click', () => {
-    auth.signOut().then(() => location.reload());
-});
-
-// --- SAVE SYSTEM ---
-
-function loadSaves() {
-    const savesRef = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves');
-    savesRef.onSnapshot(snapshot => {
-        const container = document.getElementById('save-slots');
-        container.innerHTML = '';
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            const el = document.createElement('div');
-            el.className = 'glass-panel p-8 rounded-2xl cursor-pointer hover:border-cyan-500 transition-all group relative hover:-translate-y-1';
-            el.innerHTML = `
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h3 class="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors tracking-tight">${sanitizeHTML(data.companyName)}</h3>
-                        <div class="mt-2 inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-800 text-slate-400'}">
-                            ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
-                        </div>
-                    </div>
-                    <button class="text-slate-600 hover:text-red-500 delete-btn p-2" data-id="${doc.id}"><i data-lucide="trash-2"></i></button>
-                </div>
-                <div class="flex justify-between text-sm font-mono text-slate-500 border-t border-slate-700/50 pt-4">
-                    <div class="flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4"></i> W${data.week} Y${data.year}</div>
-                    <div class="${data.cash < 0 ? 'text-red-500' : 'text-green-400'} font-bold">$${data.cash.toLocaleString()}</div>
-                </div>
-            `;
-            el.addEventListener('click', (e) => { if (!e.target.closest('.delete-btn')) startGame(doc.id, data); });
-            el.querySelector('.delete-btn').addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (confirm('Delete save?')) savesRef.doc(doc.id).delete();
-            });
-            container.appendChild(el);
-        });
-        lucide.createIcons();
-        if (snapshot.size < 6) {
-            const btn = document.createElement('button');
-            btn.className = 'border-2 border-dashed border-slate-800 text-slate-600 p-8 rounded-2xl hover:text-cyan-400 hover:border-cyan-500 hover:bg-slate-900/50 transition flex flex-col items-center justify-center gap-3 min-h-[200px] group';
-            btn.innerHTML = `<i data-lucide="plus" class="w-10 h-10 group-hover:scale-110 transition-transform"></i><span class="font-bold tracking-widest">NEW SAVE</span>`;
-            btn.onclick = () => document.getElementById('create-screen').classList.remove('hidden');
-            container.appendChild(btn);
-            lucide.createIcons();
-        }
-    });
-}
-
 let isSandbox = false;
-document.getElementById('btn-toggle-sandbox').addEventListener('click', () => {
-    isSandbox = !isSandbox;
-    const div = document.getElementById('btn-toggle-sandbox');
-    div.classList.toggle('border-yellow-500', isSandbox);
-    div.classList.toggle('bg-yellow-500/10', isSandbox);
-});
+let apiTempActive = false;
 
-document.getElementById('btn-confirm-create').addEventListener('click', async () => {
-    const name = validateInput(document.getElementById('inp-comp-name').value, 30);
-    if (!name) return;
-    const newSave = {
-        companyName: name,
-        isSandbox,
-        cash: isSandbox ? 100000000 : 25000,
-        week: 1, year: 2025,
-        researchPts: isSandbox ? 5000 : 0,
-        reputation: 0,
-        hardware: [],
-        products: [],
-        marketModels: [],
-        reviews: [],
-        unlockedTechs: [],
-        purchasedItems: [],
-        employees: { count: 1, morale: 100, happiness: 100 },
-        tutorialStep: 0,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').add(newSave);
-    document.getElementById('create-screen').classList.add('hidden');
-});
+// --- 2. INITIALIZATION ---
 
-document.getElementById('btn-cancel-create').addEventListener('click', () => document.getElementById('create-screen').classList.add('hidden'));
-
-// --- GAME LOGIC ---
-
-function cleanAndRepairData(data) {
-    if (!data) return data;
-
-    let wasModified = false;
-    let corrupted = false;
-
-    if (!data.products) { data.products = []; wasModified = true; }
-    if (!data.reviews) { data.reviews = []; wasModified = true; }
-    if (!data.employees) { data.employees = { count: 1, morale: 100 }; wasModified = true; }
-    if (!data.marketModels) { data.marketModels = []; wasModified = true; }
-    if (!data.purchasedItems) { data.purchasedItems = []; wasModified = true; }
-    if (!data.unlockedTechs) { data.unlockedTechs = []; wasModified = true; }
-
-    const seenIds = new Set();
-    const cleanProducts = [];
-
-    data.products.forEach(p => {
-        // Soft delete truly broken items (missing ID/Name)
-        if (!p || typeof p !== 'object' || !p.name) { wasModified = true; return; }
-
-        // Repair IDs
-        if (!p.id) { p.id = Math.random().toString(36).substr(2, 9); wasModified = true; }
-
-        // Remove duplicates
-        if (seenIds.has(p.id)) { wasModified = true; return; }
-        seenIds.add(p.id);
-
-        // Fix Numbers
-        p.weeksLeft = Number(p.weeksLeft);
-        if (isNaN(p.weeksLeft)) { p.weeksLeft = 0; wasModified = true; }
-
-        // Fix Types
-        if (!p.type || p.type === 'undefined') { p.type = 'text'; wasModified = true; }
-        if (p.specialty && !p.trait) { p.trait = p.specialty; delete p.specialty; wasModified = true; }
-        if (!p.trait) p.trait = null;
-
-        // Fix Arrays
-        if (!p.capabilities) { p.capabilities = []; wasModified = true; }
-        if (!p.contracts) { p.contracts = []; wasModified = true; }
-        if (!p.apiConfig) { p.apiConfig = { active: false, price: 0, limit: 100 }; wasModified = true; }
-        if (p.isOpenSource === undefined) { p.isOpenSource = false; wasModified = true; }
-
-        // --- ZOMBIE UNSTICKER ---
-        // If 0 weeks left but not released/staged/updating -> FORCE STAGE
-        if (!p.released && !p.isUpdating && !p.isStaged && p.weeksLeft <= 0) {
-            console.log(`[Fix] Unsticking ${p.name}`);
-            p.isStaged = true;
-            p.weeksLeft = 0;
-            wasModified = true;
-            corrupted = true; // Trigger toast
-        }
-
-        cleanProducts.push(p);
-    });
-
-    if (cleanProducts.length !== data.products.length) wasModified = true;
-    data.products = cleanProducts;
-
-    return { data: data, modified: wasModified, corrupted: corrupted };
-}
-
-function startGame(id, data) {
-    activeSaveId = id;
-
-    const result = cleanAndRepairData(data);
-    gameState = result.data;
-
-    // Save repaired state immediately
-    if (result.modified || result.corrupted) {
-        showToast("⚠️ FILE REPAIRED - SYNCING...", "error");
-        db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).set(gameState)
-            .catch(e => console.error("Sync failed", e));
-    }
-
-    document.getElementById('menu-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-
-    setupRealtimeListener(id);
-    updateHUD();
-    renderTab('dash');
-    lucide.createIcons();
-
-    if (gameState.tutorialStep === undefined) gameState.tutorialStep = 99;
-    setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
-    setTimeout(() => document.getElementById('changelog-modal').classList.remove('hidden'), 500);
-
-    if (saveInterval) clearInterval(saveInterval);
-    saveInterval = setInterval(saveGame, 5000);
-}
-
-document.getElementById('btn-close-changelog').onclick = () => document.getElementById('changelog-modal').classList.add('hidden');
-
-// --- TUTORIAL ---
-const tutorialOverlay = document.getElementById('tutorial-overlay');
-const tutorialHighlight = document.getElementById('tutorial-highlight');
-const tutorialText = document.getElementById('tutorial-text');
-const btnNextTut = document.getElementById('btn-next-tutorial');
-const btnTriggerSkip = document.getElementById('btn-trigger-skip');
-
-function runTutorial(step) {
-    if (step >= 99) {
-        tutorialOverlay.classList.add('hidden');
-        return;
-    }
-    tutorialOverlay.classList.remove('hidden');
-    tutorialHighlight.style.opacity = '1';
-    btnNextTut.style.display = 'block';
-
-    if (step === 0) {
-        positionHighlight(null);
-        tutorialText.textContent = "Welcome, CEO. We need compute power to run AI models.";
-        btnNextTut.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); saveGame(); };
-    } else if (step === 1) {
-        positionHighlight(document.getElementById('nav-market'));
-        tutorialText.textContent = "Go to the MARKET tab.";
-        btnNextTut.style.display = 'none';
-    } else if (step === 2) {
-        setTimeout(() => {
-            const btn = document.querySelector('#server-grid button');
-            if (btn) { positionHighlight(btn); tutorialText.textContent = "Buy a 'Consumer GPU Cluster'."; btnNextTut.style.display = 'none'; }
-        }, 500);
-    } else if (step === 3) {
-        positionHighlight(document.getElementById('nav-dev'));
-        tutorialText.textContent = "Now, go to the CREATE tab to build your AI.";
-        btnNextTut.style.display = 'none';
-    } else if (step === 4) {
-        gameState.tutorialStep = 99; saveGame(); tutorialOverlay.classList.add('hidden');
-    }
-}
-function positionHighlight(element) {
-    if (!element) { tutorialHighlight.style.opacity = '0'; return; }
-    const rect = element.getBoundingClientRect();
-    tutorialHighlight.style.opacity = '1';
-    tutorialHighlight.style.top = `${rect.top}px`;
-    tutorialHighlight.style.left = `${rect.left}px`;
-    tutorialHighlight.style.width = `${rect.width}px`;
-    tutorialHighlight.style.height = `${rect.height}px`;
-}
-if (btnTriggerSkip) btnTriggerSkip.addEventListener('click', () => { gameState.tutorialStep = 99; saveGame(); tutorialOverlay.classList.add('hidden'); });
-
-// --- REALTIME ---
-function setupRealtimeListener(saveId) {
-    if (realtimeUnsubscribe) realtimeUnsubscribe();
-    realtimeUnsubscribe = db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves')
-        .doc(saveId).onSnapshot(doc => {
-            if (doc.exists) {
-                // CONSTANT SANITIZATION ON INCOMING DATA
-                const result = cleanAndRepairData(doc.data());
-                gameState = result.data;
-
-                updateHUD();
-
-                // Only re-render non-input tabs
-                const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-                if (activeTab === 'dash' || activeTab === 'stats' || activeTab === 'rivals') {
-                    renderTab(activeTab);
-                }
-            }
-        });
-}
-
-function saveGame() {
-    if (!activeSaveId || !gameState) return;
-    db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).update(gameState).catch(console.error);
-}
-
-function updateHUD() {
-    document.getElementById('hud-company-name').textContent = gameState.companyName;
-    document.getElementById('hud-cash').textContent = '$' + gameState.cash.toLocaleString();
-    document.getElementById('hud-compute').textContent = getCompute() + ' TF';
-    document.getElementById('hud-research').textContent = Math.floor(gameState.researchPts) + ' PTS';
-    document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`;
-
-    checkAdminAccess();
-    if (godMode) {
-        document.getElementById('admin-edit-cash').classList.remove('hidden');
-        document.getElementById('admin-edit-research').classList.remove('hidden');
-        renderGodModeList();
-    } else {
-        document.getElementById('admin-edit-cash').classList.add('hidden');
-        document.getElementById('admin-edit-research').classList.add('hidden');
-    }
-}
-
-document.getElementById('admin-edit-cash').addEventListener('click', () => {
-    const val = prompt("GOD MODE: Set Cash Amount", gameState.cash);
-    if (val) { gameState.cash = parseInt(val); updateHUD(); saveGame(); }
-});
-document.getElementById('admin-edit-research').addEventListener('click', () => {
-    const val = prompt("GOD MODE: Set Research Points", gameState.researchPts);
-    if (val) { gameState.researchPts = parseInt(val); updateHUD(); saveGame(); }
-});
-document.getElementById('trigger-rename').addEventListener('click', () => {
-    document.getElementById('rename-modal').classList.remove('hidden');
-    document.getElementById('inp-rename-company').value = gameState.companyName;
-});
-document.getElementById('btn-cancel-rename').onclick = () => document.getElementById('rename-modal').classList.add('hidden');
-document.getElementById('btn-confirm-rename').onclick = () => {
-    gameState.companyName = validateInput(document.getElementById('inp-rename-company').value, 30);
-    updateHUD(); saveGame(); document.getElementById('rename-modal').classList.add('hidden');
-};
-
-function getCompute() {
-    return gameState.hardware.reduce((total, hw) => {
-        const tier = HARDWARE.find(h => h.id === hw.typeId);
-        return total + (tier ? tier.compute * hw.count : 0);
-    }, 0);
-}
-
-function showToast(msg, type = 'info') {
-    const container = document.getElementById('toast-container');
-    const el = document.createElement('div');
-    const colors = type === 'success' ? 'border-green-500 bg-green-900/90 text-green-100' : (type === 'error' ? 'border-red-500 bg-red-900/90 text-red-100' : 'border-cyan-500 bg-slate-900/90 text-cyan-400');
-    el.className = `toast-enter p-4 rounded-xl border-l-4 shadow-2xl backdrop-blur-md font-bold text-sm max-w-sm flex items-center gap-3 ${colors}`;
-    el.innerHTML = type === 'success' ? `<i data-lucide="check-circle" class="w-5 h-5"></i> ${msg}` : `<i data-lucide="info" class="w-5 h-5"></i> ${msg}`;
-    container.appendChild(el);
-    lucide.createIcons();
-    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }, 4000);
-    document.getElementById('hud-ticker').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span> ${msg}`;
-}
-
-// --- GENERATE RIVAL RELEASE (AGGRESSIVE SCALING) ---
-function generateRivalRelease() {
-    const rival = RIVALS_LIST[Math.floor(Math.random() * RIVALS_LIST.length)];
-    const pre = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
-    const suf = SUFFIXES[Math.floor(Math.random() * SUFFIXES.length)];
-    const ver = VERSIONS[Math.floor(Math.random() * VERSIONS.length)];
-    const type = ['text', 'image', 'audio', 'video'][Math.floor(Math.random() * 4)];
-
-    let globalMax = 0;
-    if (gameState.products) gameState.products.forEach(p => globalMax = Math.max(globalMax, p.quality));
-    if (gameState.marketModels) gameState.marketModels.forEach(m => globalMax = Math.max(globalMax, m.quality));
-
-    let baseQ = 50 + (gameState.year - 2025) * 20;
-    let quality;
-
-    if (globalMax > baseQ * 1.5) {
-        const minTarget = globalMax * 0.8;
-        const range = globalMax * 0.3;
-        quality = Math.floor(minTarget + Math.random() * range);
-    } else {
-        quality = Math.floor(baseQ + Math.random() * 50);
-    }
-
-    const isOpenSource = Math.random() < 0.20;
-
-    if (!gameState.marketModels) gameState.marketModels = [];
-    gameState.marketModels.push({
-        id: Date.now().toString(),
-        name: `${pre}${suf} ${ver}`,
-        company: rival.name,
-        color: rival.color,
-        quality: quality,
-        modelType: type,
-        week: gameState.week,
-        year: gameState.year,
-        isOpenSource: isOpenSource
-    });
-
-    if (gameState.marketModels.length > 50) gameState.marketModels.shift();
-    showToast(`${rival.name} released ${pre}${suf} (Q: ${quality}) ${isOpenSource ? '[OPEN SOURCE]' : ''}`, 'error');
-}
-
-// --- NEW DIVERSE REVIEW GENERATION ---
-function generateReviews() {
-    if (!gameState.reviews) gameState.reviews = [];
-
-    const liveProducts = gameState.products.filter(p => p.released);
-    if (liveProducts.length === 0) return;
-
-    if (Math.random() > 0.6) {
-        const p = liveProducts[Math.floor(Math.random() * liveProducts.length)];
-        let sentimentPool = [];
-        let rating = 0;
-
-        const yearOffset = (gameState.year - 2025) * 25;
-        const relativeQuality = p.quality - yearOffset;
-
-        if (relativeQuality > 120) { sentimentPool = REVIEWS_DB.god; rating = 5; }
-        else if (relativeQuality > 80) { sentimentPool = REVIEWS_DB.high; rating = Math.random() > 0.5 ? 5 : 4; }
-        else if (relativeQuality > 40) { sentimentPool = REVIEWS_DB.mid; rating = Math.random() > 0.5 ? 4 : 3; }
-        else { sentimentPool = REVIEWS_DB.low; rating = Math.random() > 0.5 ? 2 : 1; }
-
-        if (p.type === 'agi' && rating > 3) sentimentPool.push("It's... alive.");
-        if (p.trait === 'dreamer' && rating > 3) sentimentPool.push("The dreams this thing has are wild.");
-
-        const text = sentimentPool[Math.floor(Math.random() * sentimentPool.length)];
-
-        gameState.reviews.unshift({
-            user: "User" + Math.floor(1000 + Math.random() * 9000),
-            text: text,
-            rating: rating,
-            product: p.name,
-            date: `W${gameState.week}`
-        });
-
-        if (gameState.reviews.length > 20) gameState.reviews.pop();
-        showToast(`New review for ${p.name}`, 'info');
-    }
-}
-
-// --- NEXT WEEK LOGIC ---
-document.getElementById('btn-next-week').addEventListener('click', () => {
-    const btn = document.getElementById('btn-next-week');
-    btn.disabled = true;
-    btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i>`;
-    lucide.createIcons();
-
-    setTimeout(() => {
-        try {
-            if (gameState) {
-                historyStack.push(JSON.parse(JSON.stringify(gameState)));
-                if (historyStack.length > 6) historyStack.shift();
-            }
-
-            gameState.week++;
-            if (gameState.week > 52) { gameState.week = 1; gameState.year++; }
-
-            if (Math.random() > 0.7) generateRivalRelease();
-            generateReviews();
-
-            const wages = (gameState.employees.count || 1) * 800;
-            gameState.cash -= wages;
-            const upkeep = gameState.hardware.reduce((sum, hw) => {
-                const tier = HARDWARE.find(x => x.id === hw.typeId);
-                return sum + (tier ? tier.upkeep * hw.count : 0);
-            }, 0);
-            gameState.cash -= upkeep;
-
-            gameState.researchPts += Math.floor(gameState.reputation / 5) + Math.floor(getCompute() * 0.05) + 5;
-
-            if (gameState.products) {
-                gameState.products.forEach(p => {
-                    // Update Development Logic (INCL. VARIANTS)
-                    if (p.weeksLeft > 0) {
-                        const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
-                        p.weeksLeft -= (1 * speedMult);
-
-                        if (p.weeksLeft <= 0) {
-                            p.weeksLeft = 0;
-                            if (p.isUpdating) {
-                                p.released = true;
-                                p.isUpdating = false;
-                                if (p.updateType === 'major') { p.version = parseFloat((p.version + 1.0).toFixed(1)); p.quality += 15 + (p.researchBonus || 0); }
-                                else if (p.updateType !== 'minor') { /* Variant done */ }
-                                else { p.version = parseFloat((p.version + 0.1).toFixed(1)); p.quality += 5 + (p.researchBonus || 0); }
-                                p.hype = 100;
-                                showToast(`${p.name} Update Released!`, 'success');
-                            } else {
-                                p.isStaged = true;
-                                showToast(`${p.name} is ready for polish!`, 'success');
-                            }
-                        }
-                    }
-
-                    if (p.released && !p.isUpdating) {
-                        let weeklyRev = 0;
-                        const organicUsers = Math.floor((p.quality * p.hype * 25));
-                        let organicRev = Math.floor(organicUsers * 0.5);
-                        if (p.trait === 'dreamer') organicRev *= 1.3;
-                        if (p.type === 'agi') organicRev *= 5.0;
-                        weeklyRev += organicRev;
-
-                        if (p.contracts) {
-                            p.contracts.forEach(cName => {
-                                const comp = COMPANIES.find(c => c.name === cName);
-                                if (comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
-                            });
-                        }
-
-                        if (p.apiConfig && p.apiConfig.active) {
-                            if (p.apiConfig.price === 0) {
-                                p.hype = Math.min(500, p.hype + 5);
-                                const limitMult = p.apiConfig.limit / 100;
-                                gameState.cash -= (200 * limitMult);
-                            } else {
-                                const apiUsers = Math.floor(organicUsers * 0.1);
-                                const limitPenalty = p.apiConfig.limit < 500 ? 0.8 : 1.0;
-                                const priceFactor = (100 - p.apiConfig.price) / 100;
-                                weeklyRev += Math.floor(apiUsers * p.apiConfig.price * priceFactor * limitPenalty);
-                                p.hype = Math.max(0, p.hype - 1);
-                            }
-                        } else { p.hype = Math.max(0, p.hype - 2); }
-
-                        if (p.isOpenSource) { if (p.hype > 0) gameState.reputation += (p.quality / 50); }
-                        else { gameState.cash += weeklyRev; p.revenue += weeklyRev; }
-                    }
-                });
-            }
-
-            if (gameState.week % 4 === 0) {
-                COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random() * 500) - 100)));
-            }
-
-            saveGame();
-            const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
-            renderTab(activeTab);
-
-        } catch (err) { console.error(err); } finally {
-            btn.disabled = false;
-            btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Next`;
-            lucide.createIcons();
-        }
-    }, 400);
-});
-
-// --- RENDER LOGIC ---
-
-document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        if (btn.id === 'btn-exit-game') {
-            saveGame();
-            if (saveInterval) clearInterval(saveInterval);
-            document.getElementById('game-screen').classList.add('hidden');
-            document.getElementById('menu-screen').classList.remove('hidden');
-            loadSaves();
-            return;
-        }
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        renderTab(btn.dataset.tab);
-        if (btn.dataset.tab === 'market' && gameState.tutorialStep === 1) { gameState.tutorialStep = 2; runTutorial(2); }
-        if (btn.dataset.tab === 'dev' && gameState.tutorialStep === 3) { gameState.tutorialStep = 4; runTutorial(4); }
-    });
-});
-
-function renderTab(tab) {
-    const content = document.getElementById('content-area');
-    content.innerHTML = '';
-    content.className = 'animate-in';
-
-    // --- DASHBOARD (RESTORED FULL VISUALS) ---
-    if (tab === 'dash') {
-        const liveProducts = (gameState.products || []).filter(p => p.released).length;
-        const rev = (gameState.products || []).reduce((acc, p) => acc + (p.revenue || 0), 0);
-
-        content.innerHTML = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="bg-slate-900/50 border border-slate-800 p-8 rounded-2xl">
-                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Live Products</div>
-                    <div class="text-4xl font-black text-white mt-2">${liveProducts}</div>
-                </div>
-                <div class="bg-slate-900/50 border border-slate-800 p-8 rounded-2xl">
-                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Lifetime Revenue</div>
-                    <div class="text-4xl font-black text-green-400 mt-2">$${rev.toLocaleString()}</div>
-                </div>
-                <div class="bg-slate-900/50 border border-slate-800 p-8 rounded-2xl">
-                    <div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Reputation</div>
-                    <div class="text-4xl font-black text-purple-400 mt-2">${Math.floor(gameState.reputation)}</div>
-                </div>
-            </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="product-list"></div>
-        `;
-
-        const list = document.getElementById('product-list');
-        (gameState.products || []).forEach(p => {
-            try {
-                const card = document.createElement('div');
-                card.className = 'glass-panel p-6 relative group hover:border-cyan-500/50 transition-all rounded-2xl overflow-hidden';
-
-                // Get display traits/specs
-                const prodType = PRODUCTS.find(pt => pt.id === p.type);
-                const displaySpecs = prodType ? prodType.specs.join(' • ') : "Legacy Model";
-
-                // --- STAGING STATE ---
-                if (!p.released && p.isStaged) {
-                    card.classList.add('border-green-500', 'bg-green-900/10');
-
-                    const availableCaps = CAPABILITIES.filter(cap => !(p.capabilities || []).includes(cap.id));
-                    const capsOptions = availableCaps.map(c => `<option value="${c.id}">${c.name} (+${c.time}w, $${c.cost})</option>`).join('');
-
-                    card.innerHTML = `
-                        <div class="flex justify-between items-center mb-4">
-                            <div>
-                                <h3 class="font-bold text-white text-xl">${sanitizeHTML(p.name)}</h3>
-                                <div class="text-[10px] text-slate-400 uppercase tracking-widest">${displaySpecs}</div>
-                            </div>
-                            <span class="text-xs font-black bg-green-500 text-black px-2 py-1 rounded animate-pulse">COOKING</span>
-                        </div>
-                        
-                        <div class="p-3 bg-slate-900/50 rounded-xl mb-4 border border-slate-800 text-xs text-slate-400 italic">
-                            "${sanitizeHTML(p.description || 'No description provided.')}"
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-4">
-                            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                                <div class="text-[9px] text-slate-500 uppercase font-bold">Current Quality</div>
-                                <div class="text-white font-black text-xl">${p.quality}</div>
-                            </div>
-                            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                                <div class="text-[9px] text-slate-500 uppercase font-bold">Trait</div>
-                                <div class="text-purple-400 font-bold uppercase text-xs mt-1">${p.trait ? p.trait.toUpperCase() : 'NONE'}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-4">
-                             <label class="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mb-2">Install Module</label>
-                             <div class="flex gap-2">
-                                <select class="cap-selector bg-slate-900 border border-slate-700 text-white text-xs rounded-lg p-2 flex-1 outline-none">
-                                    ${capsOptions || '<option disabled>Maxed Out!</option>'}
-                                </select>
-                                <button class="btn-add-cap bg-slate-800 hover:bg-white hover:text-black text-white px-4 py-2 rounded-lg font-bold text-xs">INSTALL</button>
-                             </div>
-                        </div>
-
-                        <button class="btn-launch w-full bg-green-500 hover:bg-green-400 text-black py-3 rounded-xl font-black text-xs tracking-widest transition-all shadow-lg shadow-green-500/20">
-                            LAUNCH MODEL 🚀
-                        </button>
-                    `;
-
-                    card.querySelector('.btn-add-cap').onclick = () => {
-                        const sel = card.querySelector('.cap-selector');
-                        const capId = sel.value;
-                        const cap = CAPABILITIES.find(c => c.id === capId);
-                        if (cap) {
-                            if (gameState.cash >= cap.cost) {
-                                gameState.cash -= cap.cost;
-                                p.weeksLeft += cap.time;
-                                p.quality += cap.quality;
-                                p.isStaged = false; // Go back to "dev" mode
-                                if (!p.capabilities) p.capabilities = [];
-                                p.capabilities.push(cap.id);
-                                updateHUD();
-                                renderTab('dash');
-                                showToast(`Installing ${cap.name}...`, 'success');
-                            } else {
-                                showToast(`Need $${cap.cost}`, 'error');
-                            }
-                        }
-                    };
-
-                    card.querySelector('.btn-launch').onclick = () => {
-                        p.released = true;
-                        p.isStaged = false;
-                        p.hype = 100;
-                        gameState.reputation += 25;
-                        updateHUD(); renderTab('dash');
-                        showToast(`${p.name} is LIVE!`, 'success');
-                    };
-
-                }
-                // --- LIVE PRODUCT ---
-                else if (p.released && !p.isUpdating) {
-                    const apiActive = p.apiConfig && p.apiConfig.active;
-                    const apiStatus = apiActive ? (p.apiConfig.price === 0 ? 'text-purple-400' : 'text-green-400') : 'text-slate-600';
-
-                    card.innerHTML += `
-                        <div class="flex justify-between items-start mb-6">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <h3 class="text-2xl font-bold text-white tracking-tight">${sanitizeHTML(p.name)} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mt-2">
-                                    <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${(p.type || 'text').toUpperCase()}</div>
-                                    ${p.trait ? `<div class="text-xs text-pink-300 font-bold bg-pink-900/30 border border-pink-500/30 px-2 py-0.5 rounded">${p.trait.toUpperCase()}</div>` : ''}
-                                    <div class="text-xs font-bold bg-slate-900/50 inline-block px-2 py-0.5 rounded ${apiStatus} flex items-center gap-1"><i data-lucide="globe" class="w-3 h-3"></i> API</div>
-                                    ${p.isOpenSource ? `<div class="text-xs font-bold bg-blue-900/50 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded flex items-center gap-1">OPEN SOURCE</div>` : ''}
-                                    ${p.capabilities ? p.capabilities.map(c => `<div class="text-[10px] bg-purple-900/50 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded font-bold">${c}</div>`).join('') : ''}
-                                </div>
-                                <div class="text-xs text-slate-500 mt-2 font-mono">${displaySpecs}</div>
-                            </div>
-                            <div class="text-right mt-2">
-                                <div class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Weekly Rev</div>
-                                <div class="text-green-400 font-mono font-bold">$${p.isOpenSource ? 0 : Math.floor(p.revenue * 0.01).toLocaleString()}</div>
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                                <div class="text-[9px] text-slate-500 uppercase font-bold">Quality</div>
-                                <div class="text-green-400 font-black text-xl">${p.quality} <span class="text-xs text-slate-600">/ ∞</span></div>
-                            </div>
-                            <div class="bg-black/40 p-3 rounded-xl border border-white/5">
-                                <div class="text-[9px] text-slate-500 uppercase font-bold">Hype</div>
-                                <div class="text-purple-400 font-black text-xl">${p.hype} <span class="text-xs text-slate-600">/ 500</span></div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2 mb-2">
-                             <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH</button>
-                             <button class="bg-white text-black px-3 py-3 text-[10px] font-bold hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v${Math.floor(p.version) + 1}.0</button>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                             <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
-                             <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-green-500 btn-api rounded-xl tracking-wider transition-colors" data-id="${p.id}">CONFIG API</button>
-                        </div>
-                        <button class="w-full mt-2 text-slate-500 hover:text-red-500 text-[10px] font-bold py-2 btn-delete transition-colors">DISCONTINUE</button>
-                    `;
-                    card.querySelector('.btn-patch').onclick = () => openUpdateModal(p.id, 'minor');
-                    card.querySelector('.btn-major').onclick = () => openUpdateModal(p.id, 'major');
-                    card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id);
-                    card.querySelector('.btn-api').onclick = () => openApiModal(p.id);
-                    card.querySelector('.btn-delete').onclick = () => { if (confirm('Discontinue?')) { gameState.products = gameState.products.filter(x => x.id !== p.id); saveGame(); renderTab('dash'); } };
-                }
-                // --- IN DEVELOPMENT ---
-                else {
-                    card.innerHTML += `
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="font-bold text-white text-lg">${sanitizeHTML(p.name)}</h3>
-                            <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${Math.ceil(p.weeksLeft)}w LEFT</span>
-                        </div>
-                        <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : `Training (${p.trait || 'Vanilla'})...`}</div>
-                        <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden"><div class="h-full bg-cyan-500 animate-pulse" style="width: 50%"></div></div>
-                    `;
-                }
-                list.appendChild(card);
-            } catch (err) { console.error("Error rendering product card", err); }
-        });
-        lucide.createIcons();
-    }
-
-    // --- STATS TAB (FULL RESTORATION) ---
-    else if (tab === 'stats') {
-        content.innerHTML = `
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-black text-white tracking-tight">GLOBAL LEADERBOARD</h2>
-                <div class="text-xs text-slate-500 font-mono">RANKING BY QUALITY</div>
-            </div>
-            <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800">
-                <div class="grid grid-cols-6 bg-slate-900/80 p-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                    <div>Rank</div>
-                    <div>Type</div>
-                    <div class="col-span-2">Model Name</div>
-                    <div>Developer</div>
-                    <div class="text-right">Quality</div>
-                </div>
-                <div id="stats-list" class="divide-y divide-slate-800/50"></div>
-            </div>
-        `;
-        const allModels = [...((gameState.products || []).filter(p => p.released).map(p => ({ ...p, company: gameState.companyName, isUser: true }))), ...(gameState.marketModels || [])].sort((a, b) => b.quality - a.quality);
-        allModels.forEach((m, i) => {
-            const el = document.createElement('div'); el.className = `grid grid-cols-6 p-4 items-center text-sm ${m.isUser ? 'bg-cyan-900/10' : ''}`; el.innerHTML = `<div class="text-slate-500">#${i + 1}</div><div class="text-slate-400 flex items-center gap-2"><span class="text-[9px] font-bold uppercase tracking-wider text-slate-600">${m.type ? m.type.substring(0, 4) : 'UNK'}</span></div><div class="col-span-2 font-bold text-white flex items-center">${sanitizeHTML(m.name)}</div><div class="${m.color || 'text-slate-400'} text-xs font-bold">${sanitizeHTML(m.company)}</div><div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>`;
-            document.getElementById('stats-list').appendChild(el);
-        });
-        lucide.createIcons();
-    }
-
-    // --- DEV TAB (FULL RESTORATION) ---
-    else if (tab === 'dev') {
-        content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">NEW PROJECT</h2>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4" id="dev-types"></div>
-                <div class="glass-panel p-8 rounded-2xl h-fit border-l-4 border-cyan-500">
-                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Codename</label>
-                    <input id="new-proj-name" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-4 rounded-xl focus:border-cyan-500 outline-none font-bold" placeholder="Project Name">
-                    
-                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Description (Fluff)</label>
-                    <textarea id="new-proj-specs" class="w-full bg-black/50 border border-slate-700 p-4 text-white mb-6 rounded-xl focus:border-cyan-500 outline-none font-mono text-sm h-20 resize-none" placeholder="e.g. Best for coding Python..."></textarea>
-
-                    <div id="specialty-container" class="mb-6 hidden">
-                        <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Special Trait</label>
-                        <select id="specialty-select" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-purple-500 outline-none text-sm font-bold mb-2">
-                             ${TRAITS.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
-                        </select>
-                        <p id="specialty-desc" class="text-xs text-slate-500 italic">Select a model type.</p>
-                    </div>
-
-                    <div class="flex items-center gap-2 mb-4">
-                        <input type="checkbox" id="chk-opensource" class="accent-cyan-500 w-4 h-4 cursor-pointer">
-                        <label for="chk-opensource" class="text-xs text-slate-400 font-bold uppercase tracking-wider cursor-pointer">Release as Open Source (Rep++ / No Revenue)</label>
-                    </div>
-
-                    <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
-                        <div class="flex justify-between text-xs font-bold text-purple-300 mb-2"><span>Research Injection</span><span id="inject-val">0 PTS</span></div>
-                        <div class="flex gap-2">
-                            <input type="range" id="research-inject" min="0" max="${gameState.researchPts}" value="0" class="flex-1 accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer self-center">
-                            <input type="number" id="research-inject-input" class="w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500" value="0" min="0" max="${gameState.researchPts}">
-                        </div>
-                        <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="quality-boost" class="text-white font-bold">0</span> Quality</div>
-                    </div>
-                    <button id="btn-start-dev" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl transition-all shadow-lg shadow-white/5 tracking-widest text-sm">INITIALIZE</button>
-                </div>
-            </div>
-        `;
-
-        let selectedType = null;
-        PRODUCTS.forEach(p => {
-            const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
-            const btn = document.createElement('div');
-            btn.className = `p-6 border cursor-pointer rounded-2xl transition-all relative ${locked ? 'border-slate-800 opacity-40 bg-slate-900/10' : 'border-slate-700 hover:border-cyan-500 hover:bg-slate-900/60 bg-slate-900/30'}`;
-            btn.innerHTML = `
-                <div class="flex justify-between mb-3">
-                    <div class="font-bold text-white text-lg">${p.name}</div>
-                    ${locked ? '<i data-lucide="lock" class="w-4 h-4 text-red-500"></i>' : ''}
-                </div>
-                <div class="text-xs text-slate-500 font-mono space-y-1">
-                    <div>Base Cost: $${p.cost.toLocaleString()}</div>
-                    <div>Base Compute: ${p.compute} TF</div>
-                    <div>Base Time: ${p.time} Weeks</div>
-                </div>
-                <div class="mt-3 flex gap-1 flex-wrap">
-                    ${p.specs ? p.specs.map(s => `<span class="px-2 py-0.5 bg-slate-800 rounded text-[9px] text-slate-400 font-bold uppercase tracking-wide">${s}</span>`).join('') : ''}
-                </div>
-                `;
-
-            if (!locked) {
-                btn.onclick = () => {
-                    document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500', 'bg-cyan-900/20'));
-                    btn.classList.add('border-cyan-500', 'bg-cyan-900/20');
-                    selectedType = p;
-                    if (p.id === 'custom') {
-                        document.getElementById('specialty-container').classList.remove('hidden');
-                    } else {
-                        document.getElementById('specialty-container').classList.add('hidden');
-                    }
-                };
-            }
-            document.getElementById('dev-types').appendChild(btn);
-        });
-
-        // Specialty Description Update
-        const specialtySelect = document.getElementById('specialty-select');
-        const specialtyDesc = document.getElementById('specialty-desc');
-        specialtySelect.onchange = () => {
-            const spec = TRAITS.find(s => s.id === specialtySelect.value);
-            if (spec) specialtyDesc.textContent = `${spec.desc} (x${spec.multCost} Cost, x${spec.multTime} Time)`;
-        };
-
-        const slider = document.getElementById('research-inject');
-        const numInput = document.getElementById('research-inject-input');
-
-        const syncInputs = (val) => {
-            let v = parseInt(val); if (isNaN(v)) v = 0; if (v > gameState.researchPts) v = gameState.researchPts;
-            slider.value = v; numInput.value = v;
-            document.getElementById('inject-val').textContent = `${v} PTS`;
-            document.getElementById('quality-boost').textContent = v;
-        };
-        slider.oninput = (e) => syncInputs(e.target.value);
-        numInput.oninput = (e) => syncInputs(e.target.value);
-
-        document.getElementById('btn-start-dev').onclick = () => {
-            const name = validateInput(document.getElementById('new-proj-name').value, 40);
-            const desc = validateInput(document.getElementById('new-proj-specs').value, 200);
-            const isOS = document.getElementById('chk-opensource').checked;
-
-            if (!name || !selectedType) return showToast('Missing Info', 'error');
-            const cost = selectedType.cost;
-            if (gameState.cash < cost) return showToast('No Money', 'error');
-
-            gameState.cash -= cost;
-            gameState.researchPts -= parseInt(slider.value);
-
-            let traitId = null;
-            if (selectedType.id === 'custom') {
-                traitId = specialtySelect.value;
-            }
-
-            gameState.products.push({
-                id: Date.now().toString(), name, type: selectedType.id, version: 1.0, quality: 50 + parseInt(slider.value),
-                weeksLeft: selectedType.time, released: false, isStaged: false, isUpdating: false,
-                trait: traitId,
-                description: desc || "A cool model.",
-                revenue: 0, hype: 0, isOpenSource: isOS
-            });
-            updateHUD(); showToast('Development Started. Let him cook.', 'success'); renderTab('dash');
-        };
-        lucide.createIcons();
-    }
-
-    // --- MARKET TAB (FULL RESTORATION) ---
-    else if (tab === 'market') {
-        content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">HARDWARE MARKET</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" id="server-grid"></div>
-        `;
-        const grid = document.getElementById('server-grid');
-        HARDWARE.forEach(h => {
-            const locked = h.reqTech && !gameState.unlockedTechs.includes(h.reqTech);
-            const owned = gameState.hardware.find(x => x.typeId === h.id)?.count || 0;
-            const el = document.createElement('div');
-            el.className = `glass-panel p-6 rounded-2xl transition-all ${locked ? 'opacity-50 bg-slate-900/20' : 'hover:border-cyan-500/50'}`;
-            el.innerHTML = `
-                <div class="text-white font-bold text-lg mb-1">${h.name}</div>
-                <div class="text-slate-500 text-xs mb-6 font-mono">${h.compute} TF / $${h.upkeep} wk</div>
-                <div class="text-4xl font-black text-white mb-6">${owned}</div>
-                <div class="flex gap-2">
-                    <button class="flex-1 border border-slate-600 text-white py-3 text-[10px] tracking-widest font-bold hover:bg-white hover:text-black rounded-xl uppercase transition-colors btn-buy" ${locked ? 'disabled' : ''}>BUY $${h.cost.toLocaleString()}</button>
-                    ${owned > 0 ? `<button class="px-3 border border-red-900 text-red-500 hover:bg-red-900 rounded-xl btn-sell"><i data-lucide="minus"></i></button>` : ''}
-                </div>
-            `;
-            if (!locked) {
-                el.querySelector('.btn-buy').onclick = () => {
-                    if (gameState.cash >= h.cost) {
-                        gameState.cash -= h.cost;
-                        const hw = gameState.hardware.find(x => x.typeId === h.id);
-                        if (hw) hw.count++; else gameState.hardware.push({ typeId: h.id, count: 1 });
-                        updateHUD(); renderTab('market'); showToast(`Purchased ${h.name}`, 'success');
-                        if (gameState.tutorialStep === 2 && h.id === 'gtx_cluster') { gameState.tutorialStep = 3; runTutorial(3); }
-                    } else showToast('Insufficient Funds', 'error');
-                };
-                if (owned > 0) {
-                    el.querySelector('.btn-sell').onclick = () => {
-                        const hw = gameState.hardware.find(x => x.typeId === h.id);
-                        if (hw && hw.count > 0) { hw.count--; gameState.cash += Math.floor(h.cost * 0.5); updateHUD(); renderTab('market'); showToast(`Sold ${h.name}`, 'info'); }
-                    };
-                }
-            }
-            grid.appendChild(el);
-        });
-        lucide.createIcons();
-    }
-
-    // --- SHOP TAB (FULL RESTORATION) ---
-    else if (tab === 'shop') {
-        content.innerHTML = `
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-black text-white tracking-tight">CORPORATE ASSETS</h2>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="shop-grid"></div>
-        `;
-        const grid = document.getElementById('shop-grid');
-        // Filter out one-time items already bought, keep consumables
-        const availableItems = SHOP_ITEMS.filter(item => {
-            if (item.type.includes('consumable')) return true;
-            return !(gameState.purchasedItems || []).includes(item.id);
-        });
-        availableItems.forEach(item => {
-            const el = document.createElement('div');
-            el.className = 'glass-panel p-6 rounded-2xl hover:border-cyan-500/50 transition-colors';
-            el.innerHTML = `<h3 class="font-bold text-white text-lg mb-1">${item.name}</h3><div class="text-xs text-cyan-400 mb-4 font-mono">${item.effect}</div><button class="w-full border border-slate-700 text-white font-bold py-3 rounded-xl hover:bg-white hover:text-black transition-colors">BUY $${item.cost.toLocaleString()}</button>`;
-            el.querySelector('button').onclick = () => {
-                if (gameState.cash >= item.cost) {
-                    gameState.cash -= item.cost;
-                    if (item.type === 'consumable_res') { gameState.researchPts += item.amount; showToast('Research Acquired!', 'success'); }
-                    else if (item.type === 'consumable_emp') { if (!gameState.employees) gameState.employees = { morale: 100 }; gameState.employees.morale = Math.min(100, gameState.employees.morale + item.amount); showToast(`Staff Morale Increased!`, 'success'); }
-                    else { if (!gameState.purchasedItems) gameState.purchasedItems = []; gameState.purchasedItems.push(item.id); }
-                    updateHUD(); saveGame(); renderTab('shop');
-                } else showToast('Insufficient Funds!', 'error');
-            };
-            grid.appendChild(el);
-        });
-        lucide.createIcons();
-    }
-
-    // --- REVIEWS TAB (FULL RESTORATION) ---
-    else if (tab === 'reviews') {
-        content.innerHTML = `
-            <h2 class="text-3xl font-black text-white mb-6 tracking-tight">PUBLIC SENTIMENT</h2>
-            ${!gameState.reviews || gameState.reviews.length === 0 ? '<div class="text-slate-500 italic">No reviews yet. Release products to get feedback!</div>' : '<div class="space-y-4" id="reviews-list"></div>'}
-        `;
-        if (gameState.reviews) {
-            const list = document.getElementById('reviews-list');
-            gameState.reviews.forEach(r => {
-                const el = document.createElement('div');
-                el.className = 'glass-panel p-4 rounded-xl flex gap-4 animate-in';
-                const color = r.rating >= 4 ? 'bg-green-500' : (r.rating <= 2 ? 'bg-red-500' : 'bg-yellow-500');
-                el.innerHTML = `
-                    <div class="w-2 rounded-full ${color} shrink-0"></div>
-                    <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="font-bold text-white text-sm">@${sanitizeHTML(r.user)}</span>
-                            <span class="text-xs text-slate-500">on ${sanitizeHTML(r.product)}</span>
-                            <div class="flex text-yellow-500 text-[10px]">${"★".repeat(Math.min(5, Math.max(0, r.rating)))}</div>
-                        </div>
-                        <p class="text-slate-300 text-sm">"${sanitizeHTML(r.text)}"</p>
-                    </div>
-                `;
-                list.appendChild(el);
-            });
-        }
-    }
-
-    // --- BIZ TAB (FULL RESTORATION) ---
-    else if (tab === 'biz') {
-        const empCount = (gameState.employees && gameState.employees.count) || 1;
-        const morale = (gameState.employees && gameState.employees.morale) || 100;
-        content.innerHTML = `
-            <div class="grid grid-cols-1 gap-8">
-                <div class="glass-panel p-6 rounded-2xl border-l-4 border-yellow-500">
-                    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="users" class="text-yellow-500"></i> HR DEPARTMENT</h3>
-                    <div class="flex justify-between items-center gap-4">
-                        <div class="flex items-center gap-4 bg-slate-900/50 p-4 rounded-xl flex-1">
-                            <div><div class="text-[10px] uppercase text-slate-500 font-bold">Headcount</div><div class="text-2xl font-black text-white">${empCount}</div></div>
-                            <div class="h-8 w-px bg-white/10"></div>
-                            <div><div class="text-[10px] uppercase text-slate-500 font-bold">Morale</div><div class="text-2xl font-black ${morale > 80 ? 'text-green-400' : 'text-red-500'}">${morale}%</div></div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button id="btn-hire" class="bg-white text-black font-bold px-6 py-2 rounded-lg hover:bg-green-400">HIRE (+1)</button>
-                            <button id="btn-fire" class="border border-slate-700 text-red-500 font-bold px-6 py-2 rounded-lg hover:bg-red-900/20">FIRE (-1)</button>
-                        </div>
-                    </div>
-                </div>
-                <div><h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2"><i data-lucide="briefcase" class="text-green-500"></i> B2B CONTRACTS</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="contract-grid"></div></div>
-                <div><h3 class="text-xl font-bold text-white mt-8 mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-purple-500"></i> CAMPAIGNS & CAMEOS</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ads-grid"></div></div>
-            </div>
-        `;
-        document.getElementById('btn-hire').onclick = () => { if (!gameState.employees) gameState.employees = { count: 1, morale: 100 }; gameState.employees.count++; gameState.cash -= 1000; updateHUD(); renderTab('biz'); };
-        document.getElementById('btn-fire').onclick = () => { if (gameState.employees.count > 1) { gameState.employees.count--; gameState.employees.morale -= 10; updateHUD(); renderTab('biz'); } };
-
-        const cGrid = document.getElementById('contract-grid');
-        const liveProds = (gameState.products || []).filter(p => p.released && !p.isOpenSource);
-        COMPANIES.forEach(c => {
-            const el = document.createElement('div');
-            el.className = 'glass-panel p-5 rounded-xl flex flex-col h-full';
-            el.innerHTML = `
-                <div class="flex justify-between items-start mb-4">
-                    <div><h3 class="font-bold text-white text-lg">${c.name}</h3><div class="text-xs text-green-400 font-mono">$${c.budget.toLocaleString()}/wk</div></div>
-                    <div class="bg-slate-800 p-2 rounded-lg"><i data-lucide="building-2" class="w-4 h-4 text-slate-400"></i></div>
-                </div>
-                <div class="flex-1 space-y-2" id="c-list-${c.name.replace(/\s/g, '')}">${liveProds.length === 0 ? '<div class="text-xs text-slate-600 italic">No commercial models.</div>' : ''}</div>
-            `;
-            const list = el.querySelector(`[id^="c-list-"]`);
-            liveProds.forEach(p => {
-                const active = (p.contracts || []).includes(c.name);
-                const btn = document.createElement('button');
-                btn.className = `w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all border ${active ? 'bg-green-500/10 border-green-500 text-green-400' : 'border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'}`;
-                btn.innerHTML = `<div class="flex justify-between items-center"><span>${p.name}</span>${active ? '<i data-lucide="check" class="w-3 h-3"></i>' : ''}</div>`;
-                btn.onclick = () => { if (!p.contracts) p.contracts = []; if (active) p.contracts = p.contracts.filter(x => x !== c.name); else p.contracts.push(c.name); renderTab('biz'); };
-                list.appendChild(btn);
-            });
-            cGrid.appendChild(el);
-        });
-
-        const adsGrid = document.getElementById('ads-grid');
-        CAMPAIGNS.forEach(ad => {
-            const el = document.createElement('div');
-            el.className = 'glass-panel p-6 rounded-2xl hover:border-purple-500/50 transition-colors relative overflow-hidden';
-            if (ad.type === 'cameo') el.className += ' border-l-4 border-yellow-500';
-            el.innerHTML = `<h3 class="font-bold text-white text-lg mb-1">${ad.name}</h3><div class="text-xs text-slate-400 mb-4 font-mono">Cost: $${ad.cost.toLocaleString()} | Hype: +${ad.hype}</div><button class="w-full bg-slate-800 text-white font-bold py-2 rounded-lg text-xs hover:bg-purple-600 transition-colors">LAUNCH</button>`;
-            el.querySelector('button').onclick = () => { if (gameState.cash >= ad.cost) { gameState.cash -= ad.cost; gameState.products.forEach(p => { if (p.released) p.hype = Math.min(500, p.hype + ad.hype); }); updateHUD(); showToast('Campaign Live!', 'success'); } else showToast('Insufficient Funds', 'error'); };
-            adsGrid.appendChild(el);
-        });
-        lucide.createIcons();
-    }
-
-    // --- LAB TAB (FULL RESTORATION) ---
-    else if (tab === 'lab') {
-        content.innerHTML = `
-            <div class="flex items-center gap-6 mb-8"><h2 class="text-5xl font-black text-white tracking-tighter">R&D LAB</h2><div class="text-purple-400 font-mono font-bold bg-purple-900/20 px-4 py-2 rounded-xl border border-purple-500/30">${Math.floor(gameState.researchPts)} PTS</div></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="research-grid"></div>`;
-        const grid = document.getElementById('research-grid');
-        RESEARCH.forEach(r => {
-            const unlocked = gameState.unlockedTechs.includes(r.id);
-            const el = document.createElement('div');
-            el.className = `glass-panel p-8 rounded-2xl transition-all ${unlocked ? 'border-purple-500 bg-purple-900/10' : 'hover:border-purple-500/50'}`;
-            el.innerHTML = `<h3 class="font-bold text-white mb-2 text-xl">${r.name}</h3><p class="text-xs text-slate-500 mb-6 leading-relaxed">${r.desc}</p>${!unlocked ? `<button class="w-full bg-slate-800 hover:bg-purple-600 text-white font-bold py-3 rounded-xl text-xs tracking-widest transition-colors">UNLOCK (${r.cost} PTS)</button>` : '<span class="text-purple-500 font-bold text-xs tracking-widest bg-purple-900/30 px-3 py-1 rounded">ACQUIRED</span>'}`;
-            if (!unlocked) el.querySelector('button').onclick = () => { if (gameState.researchPts >= r.cost) { gameState.researchPts -= r.cost; gameState.unlockedTechs.push(r.id); updateHUD(); renderTab('lab'); showToast('Researched!', 'success'); } else showToast('Need Points', 'error'); };
-            grid.appendChild(el);
-        });
-    }
-}
-
-// GOD MODE REGISTRY
-function renderGodModeList() {
-    let container = document.getElementById('godmode-list-container');
-    if (!container) {
-        const wrapper = document.querySelector('#godmode-control-wrapper > div');
-        if (wrapper) {
-            container = document.createElement('div'); container.id = 'godmode-list-container'; container.className = "mt-4 space-y-2 max-h-60 overflow-y-auto border-t border-white/10 pt-4";
-            wrapper.appendChild(container);
-        }
-    }
-    if (container && gameState.products) {
-        container.innerHTML = `<h4 class="text-xs font-bold text-slate-500 uppercase">Registry Manager</h4>`;
-        gameState.products.forEach(p => {
-            const row = document.createElement('div'); row.className = "flex justify-between items-center text-xs bg-slate-900/50 p-2 rounded";
-            row.innerHTML = `<span class="text-white">${p.name} <span class="text-slate-500">(${p.weeksLeft}w)</span></span><button class="text-red-500 hover:text-white font-bold">DEL</button>`;
-            row.querySelector('button').onclick = () => { if (confirm('Delete?')) { gameState.products = gameState.products.filter(x => x.id !== p.id); saveGame(); updateHUD(); renderTab('dash'); } };
-            container.appendChild(row);
-        });
-    }
-}
-
-// UPDATE MODAL
-const updateModal = document.getElementById('update-modal');
-let selectedUpdateId = null;
-let selectedUpdateType = null;
-let updateInjectAmount = 0;
-
-function openUpdateModal(productId, type) {
-    const p = gameState.products.find(x => x.id === productId);
-    if (!p) return;
-    selectedUpdateId = productId;
-    selectedUpdateType = type;
-    updateInjectAmount = 0;
-
-    document.getElementById('update-target-name').textContent = p.name;
-    document.getElementById('update-research-slider').value = 0;
-    document.getElementById('update-research-slider').max = gameState.researchPts;
-    document.getElementById('update-inject-val').textContent = "0 PTS";
-    document.getElementById('update-quality-boost').textContent = "0";
-
-    // Reset Manual Input
-    const numInput = document.getElementById('update-research-input');
-    if (numInput) { numInput.value = 0; numInput.max = gameState.researchPts; }
-
-    updateModal.classList.remove('hidden');
-}
-
-// Sync Update Modal Slider/Input
-const updateSlider = document.getElementById('update-research-slider');
-// Inject manual input field dynamically if not present in HTML (it was added via JS before)
-// We need to ensure the HTML structure supports it.
-// PATCH: Add the input field to the modal HTML structure dynamically if missing
-const updateInputContainer = updateSlider.parentElement;
-if (!document.getElementById('update-research-input')) {
-    const div = document.createElement('div');
-    div.className = "flex gap-2 mt-2";
-    // Move slider into div
-    updateInputContainer.insertBefore(div, updateSlider);
-    div.appendChild(updateSlider);
-
-    const inp = document.createElement('input');
-    inp.type = 'number';
-    inp.id = 'update-research-input';
-    inp.className = "w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500";
-    inp.value = 0;
-    div.appendChild(inp);
-
-    const syncUpdate = (val) => {
-        let v = parseInt(val); if (isNaN(v)) v = 0; if (v < 0) v = 0; if (v > gameState.researchPts) v = gameState.researchPts;
-        updateSlider.value = v; inp.value = v; updateInjectAmount = v;
-        document.getElementById('update-inject-val').textContent = `${v} PTS`;
-        document.getElementById('update-quality-boost').textContent = v;
-    };
-    updateSlider.oninput = (e) => syncUpdate(e.target.value);
-    inp.oninput = (e) => syncUpdate(e.target.value);
-}
-
-
-document.getElementById('btn-cancel-update').onclick = () => updateModal.classList.add('hidden');
-document.getElementById('btn-confirm-update').onclick = () => {
-    if (!selectedUpdateId) return;
-    const p = gameState.products.find(x => x.id === selectedUpdateId);
-
-    if (gameState.researchPts < updateInjectAmount && !gameState.isSandbox) return showToast('Insufficient Research Points', 'error');
-
-    gameState.researchPts -= updateInjectAmount;
-    p.isUpdating = true;
-    p.updateType = selectedUpdateType;
-    p.weeksLeft = selectedUpdateType === 'major' ? 6 : 2;
-    p.researchBonus = updateInjectAmount;
-
-    updateModal.classList.add('hidden');
-    renderTab('dash');
-    updateHUD();
-    showToast(`Update started for ${p.name}`);
-};
-
-// --- RESTORED API MODAL LOGIC ---
-const apiModal = document.getElementById('api-modal');
-let selectedApiId = null;
-
-function openApiModal(productId) {
-    const p = gameState.products.find(x => x.id === productId);
-    if (!p) return;
-    selectedApiId = productId;
-    if (!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
-
-    const statusBtn = document.getElementById('btn-toggle-api-status');
-    const dot = statusBtn.querySelector('div');
-    const statusText = document.getElementById('api-status-text');
-
-    if (p.apiConfig.active) {
-        statusBtn.classList.replace('bg-slate-700', 'bg-green-500');
-        dot.classList.replace('left-1', 'left-7');
-        statusText.textContent = "API Online";
-        statusText.className = "text-[10px] text-green-400";
-    } else {
-        statusBtn.classList.replace('bg-green-500', 'bg-slate-700');
-        dot.classList.replace('left-7', 'left-1');
-        statusText.textContent = "Currently Offline";
-        statusText.className = "text-[10px] text-slate-500";
-    }
-
-    document.getElementById('api-price-input').value = p.apiConfig.price;
-    document.getElementById('api-price-slider').value = p.apiConfig.price;
-    document.getElementById('api-limit-input').value = p.apiConfig.limit;
-    document.getElementById('api-limit-slider').value = p.apiConfig.limit;
-
-    apiModal.classList.remove('hidden');
-}
-
-const priceInput = document.getElementById('api-price-input');
-const priceSlider = document.getElementById('api-price-slider');
-if (priceInput) priceInput.oninput = () => { priceSlider.value = priceInput.value; };
-if (priceSlider) priceSlider.oninput = () => { priceInput.value = priceSlider.value; };
-
-const limitInput = document.getElementById('api-limit-input');
-const limitSlider = document.getElementById('api-limit-slider');
-if (limitInput) limitInput.oninput = () => { limitSlider.value = limitInput.value; };
-if (limitSlider) limitSlider.oninput = () => { limitInput.value = limitSlider.value; };
-
-document.getElementById('btn-toggle-api-status').onclick = (e) => {
-    const btn = e.currentTarget;
-    const dot = btn.querySelector('div');
-    const isActive = btn.classList.contains('bg-green-500');
-    const statusText = document.getElementById('api-status-text');
-
-    if (isActive) {
-        btn.classList.replace('bg-green-500', 'bg-slate-700');
-        dot.classList.replace('left-7', 'left-1');
-        statusText.textContent = "Currently Offline";
-        statusText.className = "text-[10px] text-slate-500";
-    } else {
-        btn.classList.replace('bg-slate-700', 'bg-green-500');
-        dot.classList.replace('left-1', 'left-7');
-        statusText.textContent = "API Online";
-        statusText.className = "text-[10px] text-green-400";
-    }
-};
-
-document.getElementById('btn-save-api').onclick = () => {
-    if (!selectedApiId) return;
-    const p = gameState.products.find(x => x.id === selectedApiId);
-    if (p) {
-        const isActive = document.getElementById('btn-toggle-api-status').classList.contains('bg-green-500');
-        p.apiConfig = {
-            active: isActive,
-            price: parseFloat(document.getElementById('api-price-input').value),
-            limit: parseInt(document.getElementById('api-limit-input').value)
-        };
-        showToast('API Configuration Deployed', 'success');
-        apiModal.classList.add('hidden');
-        renderTab('dash');
-    }
-};
-document.getElementById('btn-close-api').onclick = () => apiModal.classList.add('hidden');
-
-// --- RESTORED VARIANT MODAL LOGIC ---
-const variantModal = document.getElementById('variant-modal');
-let selectedVariantId = null;
-let selectedVariantType = null;
-let variantInjectAmount = 0;
-
-function openVariantModal(productId) {
-    const p = gameState.products.find(x => x.id === productId);
-    if (!p) return;
-    selectedVariantId = productId;
-    selectedVariantType = null;
-    variantInjectAmount = 0;
-
-    document.getElementById('variant-research-slider').value = 0;
-    document.getElementById('variant-inject-val').textContent = "0 PTS";
-    document.getElementById('variant-quality-boost').textContent = "0";
-    document.getElementById('variant-base-name').textContent = p.name;
-    document.getElementById('custom-variant-input').classList.add('hidden');
-
-    document.querySelectorAll('.variant-opt').forEach(b => {
-        b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
-        b.classList.add('border-slate-700');
-    });
-
-    document.getElementById('btn-confirm-variant').disabled = true;
-    document.getElementById('btn-confirm-variant').classList.add('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
-
-    // Inject Input if missing (same patch logic)
-    const varSlider = document.getElementById('variant-research-slider');
-    const varWrapper = varSlider.parentElement;
-    if (!document.getElementById('variant-research-input')) {
-        const div = document.createElement('div'); div.className = "flex gap-2 mt-2";
-        varWrapper.insertBefore(div, varSlider); div.appendChild(varSlider);
-        const inp = document.createElement('input'); inp.type = 'number'; inp.id = 'variant-research-input';
-        inp.className = "w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500";
-        inp.value = 0; div.appendChild(inp);
-
-        const syncVar = (val) => {
-            let v = parseInt(val); if (isNaN(v)) v = 0; if (v < 0) v = 0; if (v > gameState.researchPts) v = gameState.researchPts;
-            varSlider.value = v; inp.value = v; variantInjectAmount = v;
-            document.getElementById('variant-inject-val').textContent = `${v} PTS`;
-            document.getElementById('variant-quality-boost').textContent = v;
-        };
-        varSlider.oninput = (e) => syncVar(e.target.value);
-        inp.oninput = (e) => syncVar(e.target.value);
-    }
-
-    variantModal.classList.remove('hidden');
-}
-
-document.querySelectorAll('.variant-opt').forEach(btn => {
-    btn.onclick = () => {
-        selectedVariantType = btn.dataset.type;
-        document.querySelectorAll('.variant-opt').forEach(b => {
-            b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
-            b.classList.add('border-slate-700');
-        });
-
-        btn.classList.remove('border-slate-700');
-        if (selectedVariantType === 'lite') btn.classList.add('border-green-500', 'bg-slate-800');
-        if (selectedVariantType === 'flash') btn.classList.add('border-yellow-500', 'bg-slate-800');
-        if (selectedVariantType === 'pro') btn.classList.add('border-cyan-500', 'bg-slate-800');
-        if (selectedVariantType === 'ultra') btn.classList.add('border-purple-500', 'bg-slate-800');
-        if (selectedVariantType === 'custom') {
-            btn.classList.add('border-pink-500', 'bg-slate-800');
-            document.getElementById('custom-variant-input').classList.remove('hidden');
-        } else {
-            document.getElementById('custom-variant-input').classList.add('hidden');
-        }
-
-        const confirmBtn = document.getElementById('btn-confirm-variant');
-        confirmBtn.disabled = false;
-        confirmBtn.textContent = `INITIALIZE VARIANT`;
-        confirmBtn.classList.remove('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
-        confirmBtn.classList.add('text-black', 'bg-white', 'hover:bg-cyan-400');
-    }
-});
-document.getElementById('btn-close-variant').onclick = () => variantModal.classList.add('hidden');
-
-document.getElementById('btn-confirm-variant').onclick = () => {
-    if (!selectedVariantId || !selectedVariantType) return;
-    const parent = gameState.products.find(x => x.id === selectedVariantId);
-
-    let costMult = 1; let time = 2; let suffix = "";
-    if (selectedVariantType === 'lite') { costMult = 0.5; time = 2; suffix = "[Lite]"; }
-    if (selectedVariantType === 'flash') { costMult = 0.8; time = 1; suffix = "[Flash]"; }
-    if (selectedVariantType === 'pro') { costMult = 1.2; time = 4; suffix = "[Pro]"; }
-    if (selectedVariantType === 'ultra') { costMult = 2.0; time = 8; suffix = "[Ultra]"; }
-    if (selectedVariantType === 'custom') {
-        const customName = document.getElementById('inp-custom-variant').value;
-        if (!customName) return showToast('Enter a custom name!', 'error');
-        costMult = 1.5; time = 5; suffix = `[${customName}]`;
-    }
-
-    const cost = Math.floor(50000 * costMult);
-    if ((gameState.cash < cost || gameState.researchPts < variantInjectAmount) && !gameState.isSandbox) {
-        showToast('Insufficient Funds/Research', 'error'); return;
-    }
-
-    gameState.cash -= cost;
-    gameState.researchPts -= variantInjectAmount;
-
-    // --- VARIANT LOGIC FIX ---
-    // Variants start as NEW products, not updates.
-    gameState.products.push({
-        id: Date.now().toString(),
-        name: `${parent.name} ${suffix}`,
-        type: parent.type,
-        version: 1.0,
-        quality: parent.quality,
-        revenue: 0, hype: 0, released: false,
-        isUpdating: false, // Important: Treat as new product so it counts down
-        isStaged: false,   // Start in Dev phase
-        updateType: selectedVariantType,
-        isOpenSource: parent.isOpenSource,
-        weeksLeft: time,
-        researchBonus: variantInjectAmount,
-        contracts: [], apiConfig: { active: false, price: 0, limit: 100 },
-        customFeatures: parent.customFeatures,
-        specialty: parent.specialty,
-        trait: parent.trait,
-        description: `Variant of ${parent.name}. Optimized for ${selectedVariantType}.`
-    });
-
-    variantModal.classList.add('hidden'); renderTab('dash'); updateHUD();
-    showToast(`Variant ${suffix} started development!`, 'success');
-};
-
-
-// GOD MODE SETTINGS
-const settingsOverlay = document.getElementById('settings-overlay');
-const undoBtn = document.getElementById('btn-undo-week');
-const godModeToggle = document.getElementById('btn-toggle-godmode');
-
-// --- NEW EMERGENCY FIX BUTTON ---
-document.getElementById('nav-settings').addEventListener('click', () => {
-    settingsOverlay.classList.remove('hidden');
-    const dotsContainer = document.getElementById('history-dots');
-    dotsContainer.innerHTML = '';
-    for (let i = 0; i < 6; i++) {
-        const isActive = i < historyStack.length;
-        const dot = document.createElement('div');
-        dot.className = `w-2 h-2 rounded-full transition-colors ${isActive ? 'bg-cyan-500' : 'bg-slate-800'}`;
-        dotsContainer.appendChild(dot);
-    }
-
-    // Inject Fix Button if not exists
-    let fixBtn = document.getElementById('btn-emergency-fix');
-    if (!fixBtn) {
-        const wrapper = document.querySelector('#godmode-control-wrapper > div'); // Find GodMode area
-        if (wrapper) {
-            fixBtn = document.createElement('button');
-            fixBtn.id = 'btn-emergency-fix';
-            fixBtn.className = 'w-full bg-red-900/50 hover:bg-red-600 text-red-200 hover:text-white font-black py-4 rounded-xl text-xs tracking-widest mt-4 border border-red-500/30 transition-all';
-            fixBtn.innerHTML = `⚠️ EMERGENCY FIX SAVE ⚠️`;
-            fixBtn.onclick = () => {
-                if (confirm('This will delete broken/duplicate products and force-release stuck ones. Do it?')) {
-                    const result = cleanAndRepairData(gameState);
-                    gameState = result.data;
-                    saveGame();
-                    updateHUD();
-                    renderTab('dash');
-                    showToast('Save File Repaired', 'success');
-                }
-            };
-            wrapper.appendChild(fixBtn);
-        }
-    }
-
-    if (historyStack.length === 0) {
-        undoBtn.disabled = true;
-        undoBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    } else {
-        undoBtn.disabled = false;
-        undoBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
-    lucide.createIcons();
-});
-
-document.getElementById('btn-close-settings').addEventListener('click', () => settingsOverlay.classList.add('hidden'));
-
-undoBtn.addEventListener('click', () => {
-    if (historyStack.length === 0) return;
-    if (confirm('Revert time by 1 week?')) {
-        gameState = historyStack.pop();
-        saveGame();
-        updateHUD();
-        renderTab('dash');
-        settingsOverlay.classList.add('hidden');
-        showToast('Timeline Restored', 'success');
-    }
-});
-
-godModeToggle.addEventListener('click', () => {
-    if (!currentUser || currentUser.email !== ADMIN_EMAIL) return showToast('ACCESS DENIED', 'error');
-    godMode = !godMode;
-    const dot = godModeToggle.querySelector('div');
-    if (godMode) {
-        godModeToggle.classList.replace('bg-slate-800', 'bg-red-600');
-        dot.classList.replace('left-1', 'left-9');
-        document.getElementById('godmode-status').classList.remove('hidden');
-    } else {
-        godModeToggle.classList.replace('bg-red-600', 'bg-slate-800');
-        dot.classList.replace('left-9', 'left-1');
-        document.getElementById('godmode-status').classList.add('hidden');
-    }
-    updateHUD();
-});
-
-// --- NEW: MODE SELECTION LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
-    const landingScreen = document.getElementById('landing-screen');
-    const btnAI = document.getElementById('btn-mode-ai');
-    const btnMovie = document.getElementById('btn-mode-movie');
+    initAuth();
+    setupEventListeners();
 
-    if (btnAI) {
-        btnAI.addEventListener('click', () => {
-            landingScreen.classList.add('fade-out-up');
-            setTimeout(() => {
-                landingScreen.classList.add('hidden');
-            }, 500);
-        });
-    }
-
-    if (btnMovie) {
-        btnMovie.addEventListener('click', () => {
-            btnMovie.style.transform = 'scale(0.98)';
-            btnMovie.style.borderColor = '#ec4899';
-            setTimeout(() => {
-                window.location.href = 'https://softworks-tycoon.xyz/movie-star';
-            }, 150);
-        });
-    }
+    // Initial UI Setup
+    if (window.lucide) lucide.createIcons();
 });
+
+function setupEventListeners() {
+    // Landing Screen
+    const btnAI = document.getElementById('btn-mode-ai');
+    if (btnAI) btnAI.onclick = () => {
+        btnAI.classList.add('fade-out-up');
+        setTimeout(() => document.getElementById('landing-screen').classList.add('hidden'), 500);
+    };
+
+    const btnMovie = document.getElementById('btn-mode-movie');
+    if (btnMovie) btnMovie.onclick = () => window.location.href = 'https://softworks-tycoon.xyz/movie-star';
+
+    // Save Creation
+    document.getElementById('btn-confirm-create').onclick = async () => {
+        const name = validateInput(document.getElementById('inp-comp-name').value, 30);
+        if (!name) return;
+
+        const newSave = {
+            companyName: name,
+            isSandbox: !!isSandbox,
+            cash: isSandbox ? 100000000 : 25000,
+            week: 1, year: 2025,
+            researchPts: isSandbox ? 5000 : 0,
+            reputation: 0,
+            hardware: [],
+            products: [],
+            marketModels: [],
+            reviews: [],
+            unlockedTechs: [],
+            purchasedItems: [],
+            employees: { count: 1, morale: 100 },
+            tutorialStep: 0,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').add(newSave);
+        document.getElementById('create-screen').classList.add('hidden');
+    };
+
+    document.getElementById('btn-cancel-create').onclick = () => document.getElementById('create-screen').classList.add('hidden');
+
+    document.getElementById('btn-toggle-sandbox').onclick = () => {
+        window.isSandbox = !window.isSandbox;
+        const div = document.getElementById('btn-toggle-sandbox');
+        div.classList.toggle('border-yellow-500', isSandbox);
+        div.classList.toggle('bg-yellow-500/10', isSandbox);
+    };
+
+    // Navigation
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderTab(btn.dataset.tab);
+        };
+    });
+
+    // Game Controls
+    document.getElementById('btn-next-week').onclick = () => {
+        const btn = document.getElementById('btn-next-week');
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i>`;
+        if (window.lucide) lucide.createIcons();
+
+        setTimeout(() => {
+            try {
+                if (gameState) {
+                    historyStack.push(JSON.parse(JSON.stringify(gameState)));
+                    if (historyStack.length > 6) historyStack.shift();
+                    processNextWeek();
+                }
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="fast-forward" class="w-4 h-4"></i> <span>NEXT WEEK</span>`;
+                if (window.lucide) lucide.createIcons();
+            }
+        }, 300);
+    };
+
+    // Modals
+    setupModalListeners();
+}
+
+function setupModalListeners() {
+    // Update Modal
+    document.getElementById('btn-close-update').onclick = () => document.getElementById('update-modal').classList.add('hidden');
+    document.getElementById('btn-cancel-update').onclick = () => document.getElementById('update-modal').classList.add('hidden');
+
+    // API Modal
+    document.getElementById('btn-close-api').onclick = () => document.getElementById('api-modal').classList.add('hidden');
+    document.getElementById('btn-save-api').onclick = () => {
+        const pId = document.getElementById('api-modal').dataset.productId;
+        const p = gameState.products.find(x => x.id === pId);
+        if (p) {
+            p.apiConfig = {
+                active: window.apiTempActive,
+                price: parseFloat(document.getElementById('api-price-slider').value),
+                limit: parseInt(document.getElementById('api-limit-slider').value)
+            };
+            saveGame();
+            renderTab('dash');
+            document.getElementById('api-modal').classList.add('hidden');
+            showToast('API Config Saved', 'success');
+        }
+    };
+
+    // God Mode
+    document.getElementById('btn-toggle-godmode').onclick = () => {
+        godMode = !godMode;
+        document.getElementById('godmode-status').classList.toggle('hidden', !godMode);
+        document.getElementById('btn-toggle-godmode').querySelector('div').classList.toggle('translate-x-8', godMode);
+        updateHUD();
+    };
+
+    document.getElementById('admin-edit-cash').onclick = () => {
+        const val = prompt("GOD MODE: Set Cash", gameState.cash);
+        if (val !== null) { gameState.cash = parseInt(val); updateHUD(); saveGame(); }
+    };
+
+    document.getElementById('admin-edit-research').onclick = () => {
+        const val = prompt("GOD MODE: Set Research Points", gameState.researchPts);
+        if (val !== null) { gameState.researchPts = parseInt(val); updateHUD(); saveGame(); }
+    };
+
+    document.getElementById('trigger-rename').onclick = () => {
+        document.getElementById('rename-modal').classList.remove('hidden');
+        document.getElementById('inp-rename-company').value = gameState.companyName;
+    };
+
+    document.getElementById('btn-confirm-rename').onclick = () => {
+        gameState.companyName = validateInput(document.getElementById('inp-rename-company').value, 30);
+        updateHUD(); saveGame(); document.getElementById('rename-modal').classList.add('hidden');
+    };
+
+    document.getElementById('btn-cancel-rename').onclick = () => document.getElementById('rename-modal').classList.add('hidden');
+
+    document.getElementById('btn-undo-week').onclick = () => {
+        if (historyStack.length > 0) {
+            gameState = historyStack.pop();
+            updateHUD();
+            saveGame();
+            renderTab('dash');
+            showToast("Timeline Reverted", "info");
+        } else {
+            showToast("No history found", "error");
+        }
+    };
+
+    // Confirm Update Logic
+    document.getElementById('btn-confirm-update').onclick = () => {
+        const pId = document.getElementById('update-modal').dataset.productId;
+        const type = document.getElementById('update-modal').dataset.updateType;
+        const p = gameState.products.find(x => x.id === pId);
+        const research = parseInt(document.getElementById('update-research-slider').value) || 0;
+
+        if (p && gameState.researchPts >= research) {
+            gameState.researchPts -= research;
+            p.isUpdating = true;
+            p.released = false;
+            p.weeksLeft = type === 'major' ? 6 : 2;
+            p.quality += Math.floor(research / 5);
+            document.getElementById('update-modal').classList.add('hidden');
+            renderTab('dash');
+            updateHUD();
+            showToast(`${p.name} update started!`, 'success');
+        }
+    };
+
+    const updateSlider = document.getElementById('update-research-slider');
+    if (updateSlider) {
+        updateSlider.oninput = (e) => {
+            document.getElementById('update-inject-val').textContent = `${e.target.value} PTS`;
+            document.getElementById('update-quality-boost').textContent = Math.floor(e.target.value / 5);
+        };
+    }
+
+    // Variant Modal Logic
+    document.getElementById('btn-close-variant').onclick = () => document.getElementById('variant-modal').classList.add('hidden');
+
+    document.querySelectorAll('.variant-opt').forEach(opt => {
+        opt.onclick = () => {
+            document.querySelectorAll('.variant-opt').forEach(o => o.classList.remove('border-cyan-500', 'bg-cyan-900/30'));
+            opt.classList.add('border-cyan-500', 'bg-cyan-900/30');
+            window.selectedVariantType = opt.dataset.type;
+            document.getElementById('custom-variant-input').classList.toggle('hidden', opt.dataset.type !== 'custom');
+            document.getElementById('btn-confirm-variant').disabled = false;
+            document.getElementById('btn-confirm-variant').textContent = 'CONFIRM VARIANT';
+            document.getElementById('btn-confirm-variant').classList.add('bg-white', 'text-black');
+        };
+    });
+
+    document.getElementById('btn-confirm-variant').onclick = () => {
+        const pId = document.getElementById('variant-modal').dataset.productId;
+        const base = gameState.products.find(x => x.id === pId);
+        if (!base || !window.selectedVariantType) return;
+
+        let varName = window.selectedVariantType.charAt(0).toUpperCase() + window.selectedVariantType.slice(1);
+        if (window.selectedVariantType === 'custom') {
+            varName = validateInput(document.getElementById('inp-custom-variant').value, 15) || 'Custom';
+        }
+
+        const research = parseInt(document.getElementById('variant-research-slider').value) || 0;
+        if (gameState.researchPts < research) return showToast('Need more research!', 'error');
+
+        const newVar = {
+            id: Date.now().toString(),
+            name: `${base.name} ${varName}`,
+            type: base.type,
+            version: 1.0,
+            quality: Math.floor(base.quality * 0.8) + Math.floor(research / 5),
+            weeksLeft: 4,
+            released: false,
+            isStaged: false,
+            isUpdating: false,
+            trait: base.trait,
+            description: `A ${varName} variant of ${base.name}.`,
+            revenue: 0,
+            hype: 50,
+            isOpenSource: base.isOpenSource
+        };
+
+        gameState.researchPts -= research;
+        gameState.products.push(newVar);
+        document.getElementById('variant-modal').classList.add('hidden');
+        renderTab('dash');
+        updateHUD();
+        showToast(`Variant ${newVar.name} initiated!`, 'success');
+    };
+
+    const variantSlider = document.getElementById('variant-research-slider');
+    if (variantSlider) {
+        variantSlider.oninput = (e) => {
+            document.getElementById('variant-inject-val').textContent = `${e.target.value} PTS`;
+            document.getElementById('variant-quality-boost').textContent = Math.floor(e.target.value / 5);
+        };
+    }
+
+    // API Modal Toggle
+    document.getElementById('btn-toggle-api-status').onclick = () => {
+        window.apiTempActive = !window.apiTempActive;
+        const btn = document.getElementById('btn-toggle-api-status');
+        btn.querySelector('div').classList.toggle('translate-x-6', window.apiTempActive);
+        btn.classList.toggle('bg-green-500', window.apiTempActive);
+        document.getElementById('api-status-text').textContent = window.apiTempActive ? 'API ONLINE' : 'API OFFLINE';
+    };
+}
+
+// --- MODAL OPENERS (Global) ---
+
+window.openUpdateModal = (pId, type) => {
+    const p = gameState.products.find(x => x.id === pId);
+    if (!p) return;
+    const modal = document.getElementById('update-modal');
+    modal.classList.remove('hidden');
+    modal.dataset.productId = pId;
+    modal.dataset.updateType = type;
+
+    document.getElementById('update-title').textContent = type === 'major' ? `v${Math.floor(p.version) + 1}.0 UPGRADE` : 'PATCH UPDATE';
+};
+
+window.openApiModal = (pId) => {
+    const p = gameState.products.find(x => x.id === pId);
+    if (!p) return;
+    const modal = document.getElementById('api-modal');
+    modal.classList.remove('hidden');
+    modal.dataset.productId = pId;
+
+    document.getElementById('api-price-slider').value = p.apiConfig?.price || 0;
+    document.getElementById('api-limit-slider').value = p.apiConfig?.limit || 100;
+};
+
+window.openVariantModal = (pId) => {
+    const p = gameState.products.find(x => x.id === pId);
+    if (!p) return;
+    const modal = document.getElementById('variant-modal');
+    modal.classList.remove('hidden');
+    modal.dataset.productId = pId;
+    document.getElementById('variant-base-name').textContent = p.name;
+
+    // Reset selections
+    document.querySelectorAll('.variant-opt').forEach(o => o.classList.remove('border-cyan-500', 'bg-cyan-900/30'));
+    document.getElementById('btn-confirm-variant').disabled = true;
+    document.getElementById('btn-confirm-variant').textContent = 'SELECT A VARIANT';
+    document.getElementById('btn-confirm-variant').classList.remove('bg-white', 'text-black');
+};
+
+// --- TUTORIAL ENGINE ---
+
+window.runTutorial = (step) => {
+    if (step === 99) return;
+
+    const steps = [
+        { msg: "Welcome, Agent. Let's build the future of AI.", target: null },
+        { msg: "First, you need hardware. Head to the MARKET tab.", target: document.querySelector('[data-tab="market"]') },
+        { msg: "Buy a GPU Cluster to get started.", target: null },
+        { msg: "Now, create your first model in the DEV tab.", target: document.querySelector('[data-tab="dev"]') },
+        { msg: "Once cooked, launch it from the DASHBOARD.", target: document.querySelector('[data-tab="dash"]') }
+    ];
+
+    if (step < steps.length) {
+        showToast(steps[step].msg);
+        positionHighlight(steps[step].target);
+        gameState.tutorialStep = step + 1;
+    } else {
+        positionHighlight(null);
+        gameState.tutorialStep = 99;
+    }
+    saveGame();
+};
