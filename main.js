@@ -12,6 +12,32 @@ try { firebase.initializeApp(firebaseConfig); } catch (e) { console.error("Fireb
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// --- XSS PROTECTION UTILITIES ---
+function sanitizeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+        .replace(/\//g, '&#x2F;')
+        .replace(/\\/g, '&#x5C;')
+        .replace(/`/g, '&#x60;');
+}
+
+// Validate and sanitize input fields
+function validateInput(input, maxLength = 50) {
+    if (!input || typeof input !== 'string') return '';
+    // Remove any script tags and event handlers
+    let clean = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    clean = clean.replace(/on\w+\s*=/gi, '');
+    clean = clean.replace(/javascript:/gi, '');
+    clean = clean.replace(/data:/gi, '');
+    // Truncate to max length
+    return sanitizeHTML(clean.substring(0, maxLength));
+}
+
 // --- 2. GAME DATA (HARDCODED TO PREVENT LOADING ERRORS) ---
 const HARDWARE = [
     { id: 'gtx_cluster', name: 'Consumer GPU Cluster', cost: 2000, compute: 5, upkeep: 10 },
@@ -120,7 +146,7 @@ let gameState = null;
 let saveInterval = null;
 let realtimeUnsubscribe = null;
 const APP_ID = 'softworks-tycoon';
-const ADMIN_EMAIL = 'anymousxe.info@gmail.com'; 
+const ADMIN_EMAIL = 'anymousxe.info@gmail.com';
 
 let historyStack = [];
 let godMode = false;
@@ -132,11 +158,11 @@ auth.onAuthStateChanged(user => {
     if (user) {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('menu-screen').classList.remove('hidden');
-        
+
         const name = user.displayName || (user.isAnonymous ? 'Guest Agent' : 'User');
         const photo = user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.uid}`;
         document.getElementById('user-name').textContent = name;
-        document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0,8);
+        document.getElementById('user-email').textContent = user.email || 'ID: ' + user.uid.slice(0, 8);
         document.getElementById('user-photo').src = photo;
 
         checkAdminAccess();
@@ -153,7 +179,7 @@ function checkAdminAccess() {
         godWrapper.classList.remove('hidden');
     } else {
         godWrapper.classList.add('hidden');
-        if(godMode) { godMode = false; updateHUD(); }
+        if (godMode) { godMode = false; updateHUD(); }
     }
 }
 
@@ -181,7 +207,7 @@ function loadSaves() {
             el.innerHTML = `
                 <div class="flex justify-between items-start mb-6">
                     <div>
-                        <h3 class="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors tracking-tight">${data.companyName}</h3>
+                        <h3 class="text-3xl font-black text-white group-hover:text-cyan-400 transition-colors tracking-tight">${sanitizeHTML(data.companyName)}</h3>
                         <div class="mt-2 inline-block px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-widest ${data.isSandbox ? 'bg-yellow-500/20 text-yellow-400' : 'bg-slate-800 text-slate-400'}">
                             ${data.isSandbox ? 'Sandbox Mode' : 'Career Mode'}
                         </div>
@@ -193,15 +219,15 @@ function loadSaves() {
                     <div class="${data.cash < 0 ? 'text-red-500' : 'text-green-400'} font-bold">$${data.cash.toLocaleString()}</div>
                 </div>
             `;
-            el.addEventListener('click', (e) => { if(!e.target.closest('.delete-btn')) startGame(doc.id, data); });
+            el.addEventListener('click', (e) => { if (!e.target.closest('.delete-btn')) startGame(doc.id, data); });
             el.querySelector('.delete-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
-                if(confirm('Delete save?')) savesRef.doc(doc.id).delete();
+                if (confirm('Delete save?')) savesRef.doc(doc.id).delete();
             });
             container.appendChild(el);
         });
         lucide.createIcons();
-        if(snapshot.size < 6) {
+        if (snapshot.size < 6) {
             const btn = document.createElement('button');
             btn.className = 'border-2 border-dashed border-slate-800 text-slate-600 p-8 rounded-2xl hover:text-cyan-400 hover:border-cyan-500 hover:bg-slate-900/50 transition flex flex-col items-center justify-center gap-3 min-h-[200px] group';
             btn.innerHTML = `<i data-lucide="plus" class="w-10 h-10 group-hover:scale-110 transition-transform"></i><span class="font-bold tracking-widest">NEW SAVE</span>`;
@@ -221,8 +247,8 @@ document.getElementById('btn-toggle-sandbox').addEventListener('click', () => {
 });
 
 document.getElementById('btn-confirm-create').addEventListener('click', async () => {
-    const name = document.getElementById('inp-comp-name').value;
-    if(!name) return;
+    const name = validateInput(document.getElementById('inp-comp-name').value, 30);
+    if (!name) return;
     const newSave = {
         companyName: name,
         isSandbox,
@@ -230,12 +256,12 @@ document.getElementById('btn-confirm-create').addEventListener('click', async ()
         week: 1, year: 2025,
         researchPts: isSandbox ? 5000 : 0,
         reputation: 0,
-        hardware: [], 
+        hardware: [],
         products: [],
-        marketModels: [], 
+        marketModels: [],
         reviews: [],
         unlockedTechs: [],
-        purchasedItems: [], 
+        purchasedItems: [],
         employees: { count: 1, morale: 100, happiness: 100 },
         tutorialStep: 0,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -250,7 +276,7 @@ document.getElementById('btn-cancel-create').addEventListener('click', () => doc
 
 function cleanAndRepairData(data) {
     if (!data) return data;
-    
+
     let wasModified = false;
     let corrupted = false;
 
@@ -266,11 +292,11 @@ function cleanAndRepairData(data) {
 
     data.products.forEach(p => {
         // Soft delete truly broken items (missing ID/Name)
-        if (!p || typeof p !== 'object' || !p.name) { wasModified = true; return; } 
-        
+        if (!p || typeof p !== 'object' || !p.name) { wasModified = true; return; }
+
         // Repair IDs
         if (!p.id) { p.id = Math.random().toString(36).substr(2, 9); wasModified = true; }
-        
+
         // Remove duplicates
         if (seenIds.has(p.id)) { wasModified = true; return; }
         seenIds.add(p.id);
@@ -278,7 +304,7 @@ function cleanAndRepairData(data) {
         // Fix Numbers
         p.weeksLeft = Number(p.weeksLeft);
         if (isNaN(p.weeksLeft)) { p.weeksLeft = 0; wasModified = true; }
-        
+
         // Fix Types
         if (!p.type || p.type === 'undefined') { p.type = 'text'; wasModified = true; }
         if (p.specialty && !p.trait) { p.trait = p.specialty; delete p.specialty; wasModified = true; }
@@ -311,7 +337,7 @@ function cleanAndRepairData(data) {
 
 function startGame(id, data) {
     activeSaveId = id;
-    
+
     const result = cleanAndRepairData(data);
     gameState = result.data;
 
@@ -324,12 +350,12 @@ function startGame(id, data) {
 
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
-    
+
     setupRealtimeListener(id);
     updateHUD();
     renderTab('dash');
     lucide.createIcons();
-    
+
     if (gameState.tutorialStep === undefined) gameState.tutorialStep = 99;
     setTimeout(() => runTutorial(gameState.tutorialStep), 1000);
     setTimeout(() => document.getElementById('changelog-modal').classList.remove('hidden'), 500);
@@ -348,7 +374,7 @@ const btnNextTut = document.getElementById('btn-next-tutorial');
 const btnTriggerSkip = document.getElementById('btn-trigger-skip');
 
 function runTutorial(step) {
-    if(step >= 99) {
+    if (step >= 99) {
         tutorialOverlay.classList.add('hidden');
         return;
     }
@@ -356,29 +382,29 @@ function runTutorial(step) {
     tutorialHighlight.style.opacity = '1';
     btnNextTut.style.display = 'block';
 
-    if(step === 0) {
+    if (step === 0) {
         positionHighlight(null);
         tutorialText.textContent = "Welcome, CEO. We need compute power to run AI models.";
         btnNextTut.onclick = () => { gameState.tutorialStep = 1; runTutorial(1); saveGame(); };
-    } else if(step === 1) {
+    } else if (step === 1) {
         positionHighlight(document.getElementById('nav-market'));
         tutorialText.textContent = "Go to the MARKET tab.";
-        btnNextTut.style.display = 'none'; 
-    } else if(step === 2) {
+        btnNextTut.style.display = 'none';
+    } else if (step === 2) {
         setTimeout(() => {
-            const btn = document.querySelector('#server-grid button'); 
-            if(btn) { positionHighlight(btn); tutorialText.textContent = "Buy a 'Consumer GPU Cluster'."; btnNextTut.style.display = 'none'; }
+            const btn = document.querySelector('#server-grid button');
+            if (btn) { positionHighlight(btn); tutorialText.textContent = "Buy a 'Consumer GPU Cluster'."; btnNextTut.style.display = 'none'; }
         }, 500);
-    } else if(step === 3) {
+    } else if (step === 3) {
         positionHighlight(document.getElementById('nav-dev'));
         tutorialText.textContent = "Now, go to the CREATE tab to build your AI.";
         btnNextTut.style.display = 'none';
-    } else if(step === 4) {
+    } else if (step === 4) {
         gameState.tutorialStep = 99; saveGame(); tutorialOverlay.classList.add('hidden');
     }
 }
 function positionHighlight(element) {
-    if(!element) { tutorialHighlight.style.opacity = '0'; return; }
+    if (!element) { tutorialHighlight.style.opacity = '0'; return; }
     const rect = element.getBoundingClientRect();
     tutorialHighlight.style.opacity = '1';
     tutorialHighlight.style.top = `${rect.top}px`;
@@ -386,7 +412,7 @@ function positionHighlight(element) {
     tutorialHighlight.style.width = `${rect.width}px`;
     tutorialHighlight.style.height = `${rect.height}px`;
 }
-if(btnTriggerSkip) btnTriggerSkip.addEventListener('click', () => { gameState.tutorialStep = 99; saveGame(); tutorialOverlay.classList.add('hidden'); });
+if (btnTriggerSkip) btnTriggerSkip.addEventListener('click', () => { gameState.tutorialStep = 99; saveGame(); tutorialOverlay.classList.add('hidden'); });
 
 // --- REALTIME ---
 function setupRealtimeListener(saveId) {
@@ -397,9 +423,9 @@ function setupRealtimeListener(saveId) {
                 // CONSTANT SANITIZATION ON INCOMING DATA
                 const result = cleanAndRepairData(doc.data());
                 gameState = result.data;
-                
+
                 updateHUD();
-                
+
                 // Only re-render non-input tabs
                 const activeTab = document.querySelector('.nav-btn.active')?.dataset.tab || 'dash';
                 if (activeTab === 'dash' || activeTab === 'stats' || activeTab === 'rivals') {
@@ -410,7 +436,7 @@ function setupRealtimeListener(saveId) {
 }
 
 function saveGame() {
-    if(!activeSaveId || !gameState) return;
+    if (!activeSaveId || !gameState) return;
     db.collection('artifacts').doc(APP_ID).collection('users').doc(currentUser.uid).collection('saves').doc(activeSaveId).update(gameState).catch(console.error);
 }
 
@@ -420,7 +446,7 @@ function updateHUD() {
     document.getElementById('hud-compute').textContent = getCompute() + ' TF';
     document.getElementById('hud-research').textContent = Math.floor(gameState.researchPts) + ' PTS';
     document.getElementById('hud-date').textContent = `W${gameState.week}/${gameState.year}`;
-    
+
     checkAdminAccess();
     if (godMode) {
         document.getElementById('admin-edit-cash').classList.remove('hidden');
@@ -434,11 +460,11 @@ function updateHUD() {
 
 document.getElementById('admin-edit-cash').addEventListener('click', () => {
     const val = prompt("GOD MODE: Set Cash Amount", gameState.cash);
-    if(val) { gameState.cash = parseInt(val); updateHUD(); saveGame(); }
+    if (val) { gameState.cash = parseInt(val); updateHUD(); saveGame(); }
 });
 document.getElementById('admin-edit-research').addEventListener('click', () => {
     const val = prompt("GOD MODE: Set Research Points", gameState.researchPts);
-    if(val) { gameState.researchPts = parseInt(val); updateHUD(); saveGame(); }
+    if (val) { gameState.researchPts = parseInt(val); updateHUD(); saveGame(); }
 });
 document.getElementById('trigger-rename').addEventListener('click', () => {
     document.getElementById('rename-modal').classList.remove('hidden');
@@ -446,7 +472,7 @@ document.getElementById('trigger-rename').addEventListener('click', () => {
 });
 document.getElementById('btn-cancel-rename').onclick = () => document.getElementById('rename-modal').classList.add('hidden');
 document.getElementById('btn-confirm-rename').onclick = () => {
-    gameState.companyName = document.getElementById('inp-rename-company').value;
+    gameState.companyName = validateInput(document.getElementById('inp-rename-company').value, 30);
     updateHUD(); saveGame(); document.getElementById('rename-modal').classList.add('hidden');
 };
 
@@ -478,47 +504,47 @@ function generateRivalRelease() {
     const type = ['text', 'image', 'audio', 'video'][Math.floor(Math.random() * 4)];
 
     let globalMax = 0;
-    if(gameState.products) gameState.products.forEach(p => globalMax = Math.max(globalMax, p.quality));
-    if(gameState.marketModels) gameState.marketModels.forEach(m => globalMax = Math.max(globalMax, m.quality));
+    if (gameState.products) gameState.products.forEach(p => globalMax = Math.max(globalMax, p.quality));
+    if (gameState.marketModels) gameState.marketModels.forEach(m => globalMax = Math.max(globalMax, m.quality));
 
-    let baseQ = 50 + (gameState.year - 2025) * 20; 
+    let baseQ = 50 + (gameState.year - 2025) * 20;
     let quality;
 
     if (globalMax > baseQ * 1.5) {
-        const minTarget = globalMax * 0.8; 
-        const range = globalMax * 0.3; 
+        const minTarget = globalMax * 0.8;
+        const range = globalMax * 0.3;
         quality = Math.floor(minTarget + Math.random() * range);
     } else {
         quality = Math.floor(baseQ + Math.random() * 50);
     }
-    
+
     const isOpenSource = Math.random() < 0.20;
 
-    if(!gameState.marketModels) gameState.marketModels = [];
+    if (!gameState.marketModels) gameState.marketModels = [];
     gameState.marketModels.push({
         id: Date.now().toString(),
         name: `${pre}${suf} ${ver}`,
         company: rival.name,
         color: rival.color,
         quality: quality,
-        modelType: type, 
+        modelType: type,
         week: gameState.week,
         year: gameState.year,
         isOpenSource: isOpenSource
     });
-    
-    if(gameState.marketModels.length > 50) gameState.marketModels.shift();
+
+    if (gameState.marketModels.length > 50) gameState.marketModels.shift();
     showToast(`${rival.name} released ${pre}${suf} (Q: ${quality}) ${isOpenSource ? '[OPEN SOURCE]' : ''}`, 'error');
 }
 
 // --- NEW DIVERSE REVIEW GENERATION ---
 function generateReviews() {
-    if(!gameState.reviews) gameState.reviews = [];
-    
-    const liveProducts = gameState.products.filter(p => p.released);
-    if(liveProducts.length === 0) return;
+    if (!gameState.reviews) gameState.reviews = [];
 
-    if(Math.random() > 0.6) { 
+    const liveProducts = gameState.products.filter(p => p.released);
+    if (liveProducts.length === 0) return;
+
+    if (Math.random() > 0.6) {
         const p = liveProducts[Math.floor(Math.random() * liveProducts.length)];
         let sentimentPool = [];
         let rating = 0;
@@ -526,13 +552,13 @@ function generateReviews() {
         const yearOffset = (gameState.year - 2025) * 25;
         const relativeQuality = p.quality - yearOffset;
 
-        if (relativeQuality > 120) { sentimentPool = REVIEWS_DB.god; rating = 5; } 
-        else if (relativeQuality > 80) { sentimentPool = REVIEWS_DB.high; rating = Math.random() > 0.5 ? 5 : 4; } 
-        else if (relativeQuality > 40) { sentimentPool = REVIEWS_DB.mid; rating = Math.random() > 0.5 ? 4 : 3; } 
+        if (relativeQuality > 120) { sentimentPool = REVIEWS_DB.god; rating = 5; }
+        else if (relativeQuality > 80) { sentimentPool = REVIEWS_DB.high; rating = Math.random() > 0.5 ? 5 : 4; }
+        else if (relativeQuality > 40) { sentimentPool = REVIEWS_DB.mid; rating = Math.random() > 0.5 ? 4 : 3; }
         else { sentimentPool = REVIEWS_DB.low; rating = Math.random() > 0.5 ? 2 : 1; }
 
-        if(p.type === 'agi' && rating > 3) sentimentPool.push("It's... alive.");
-        if(p.trait === 'dreamer' && rating > 3) sentimentPool.push("The dreams this thing has are wild.");
+        if (p.type === 'agi' && rating > 3) sentimentPool.push("It's... alive.");
+        if (p.trait === 'dreamer' && rating > 3) sentimentPool.push("The dreams this thing has are wild.");
 
         const text = sentimentPool[Math.floor(Math.random() * sentimentPool.length)];
 
@@ -543,8 +569,8 @@ function generateReviews() {
             product: p.name,
             date: `W${gameState.week}`
         });
-        
-        if(gameState.reviews.length > 20) gameState.reviews.pop(); 
+
+        if (gameState.reviews.length > 20) gameState.reviews.pop();
         showToast(`New review for ${p.name}`, 'info');
     }
 }
@@ -564,9 +590,9 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             }
 
             gameState.week++;
-            if(gameState.week > 52) { gameState.week = 1; gameState.year++; }
+            if (gameState.week > 52) { gameState.week = 1; gameState.year++; }
 
-            if(Math.random() > 0.7) generateRivalRelease();
+            if (Math.random() > 0.7) generateRivalRelease();
             generateReviews();
 
             const wages = (gameState.employees.count || 1) * 800;
@@ -583,63 +609,63 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
                 gameState.products.forEach(p => {
                     // Update Development Logic (INCL. VARIANTS)
                     if (p.weeksLeft > 0) {
-                         const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
-                         p.weeksLeft -= (1 * speedMult);
-                         
-                         if(p.weeksLeft <= 0) {
-                             p.weeksLeft = 0;
-                             if(p.isUpdating) {
-                                 p.released = true;
-                                 p.isUpdating = false;
-                                 if(p.updateType === 'major') { p.version = parseFloat((p.version + 1.0).toFixed(1)); p.quality += 15 + (p.researchBonus || 0); } 
-                                 else if (p.updateType !== 'minor') { /* Variant done */ } 
-                                 else { p.version = parseFloat((p.version + 0.1).toFixed(1)); p.quality += 5 + (p.researchBonus || 0); }
-                                 p.hype = 100;
-                                 showToast(`${p.name} Update Released!`, 'success');
-                             } else {
-                                 p.isStaged = true; 
-                                 showToast(`${p.name} is ready for polish!`, 'success');
-                             }
-                         }
+                        const speedMult = gameState.employees.morale > 80 ? 1.5 : (gameState.employees.morale < 40 ? 0.5 : 1.0);
+                        p.weeksLeft -= (1 * speedMult);
+
+                        if (p.weeksLeft <= 0) {
+                            p.weeksLeft = 0;
+                            if (p.isUpdating) {
+                                p.released = true;
+                                p.isUpdating = false;
+                                if (p.updateType === 'major') { p.version = parseFloat((p.version + 1.0).toFixed(1)); p.quality += 15 + (p.researchBonus || 0); }
+                                else if (p.updateType !== 'minor') { /* Variant done */ }
+                                else { p.version = parseFloat((p.version + 0.1).toFixed(1)); p.quality += 5 + (p.researchBonus || 0); }
+                                p.hype = 100;
+                                showToast(`${p.name} Update Released!`, 'success');
+                            } else {
+                                p.isStaged = true;
+                                showToast(`${p.name} is ready for polish!`, 'success');
+                            }
+                        }
                     }
 
-                    if(p.released && !p.isUpdating) {
+                    if (p.released && !p.isUpdating) {
                         let weeklyRev = 0;
-                        const organicUsers = Math.floor((p.quality * p.hype * 25)); 
-                        let organicRev = Math.floor(organicUsers * 0.5); 
-                        if(p.trait === 'dreamer') organicRev *= 1.3;
-                        if(p.type === 'agi') organicRev *= 5.0;
+                        const organicUsers = Math.floor((p.quality * p.hype * 25));
+                        let organicRev = Math.floor(organicUsers * 0.5);
+                        if (p.trait === 'dreamer') organicRev *= 1.3;
+                        if (p.type === 'agi') organicRev *= 5.0;
                         weeklyRev += organicRev;
-                        
-                        if(p.contracts) {
+
+                        if (p.contracts) {
                             p.contracts.forEach(cName => {
                                 const comp = COMPANIES.find(c => c.name === cName);
-                                if(comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
+                                if (comp) weeklyRev += Math.floor(comp.budget * (p.quality / 100));
                             });
                         }
-                        
-                        if(p.apiConfig && p.apiConfig.active) {
-                            if(p.apiConfig.price === 0) {
-                                p.hype = Math.min(500, p.hype + 5); 
+
+                        if (p.apiConfig && p.apiConfig.active) {
+                            if (p.apiConfig.price === 0) {
+                                p.hype = Math.min(500, p.hype + 5);
                                 const limitMult = p.apiConfig.limit / 100;
-                                gameState.cash -= (200 * limitMult); 
+                                gameState.cash -= (200 * limitMult);
                             } else {
-                                const apiUsers = Math.floor(organicUsers * 0.1); 
+                                const apiUsers = Math.floor(organicUsers * 0.1);
                                 const limitPenalty = p.apiConfig.limit < 500 ? 0.8 : 1.0;
-                                const priceFactor = (100 - p.apiConfig.price) / 100; 
+                                const priceFactor = (100 - p.apiConfig.price) / 100;
                                 weeklyRev += Math.floor(apiUsers * p.apiConfig.price * priceFactor * limitPenalty);
                                 p.hype = Math.max(0, p.hype - 1);
                             }
                         } else { p.hype = Math.max(0, p.hype - 2); }
-                        
-                        if(p.isOpenSource) { if(p.hype > 0) gameState.reputation += (p.quality / 50); } 
+
+                        if (p.isOpenSource) { if (p.hype > 0) gameState.reputation += (p.quality / 50); }
                         else { gameState.cash += weeklyRev; p.revenue += weeklyRev; }
                     }
                 });
             }
 
-            if(gameState.week % 4 === 0) {
-               COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random()*500)-100)));
+            if (gameState.week % 4 === 0) {
+                COMPANIES.forEach(c => c.budget = Math.max(500, c.budget + (Math.floor(Math.random() * 500) - 100)));
             }
 
             saveGame();
@@ -651,26 +677,26 @@ document.getElementById('btn-next-week').addEventListener('click', () => {
             btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-current"></i> Next`;
             lucide.createIcons();
         }
-    }, 400); 
+    }, 400);
 });
 
 // --- RENDER LOGIC ---
 
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        if(btn.id === 'btn-exit-game') {
+        if (btn.id === 'btn-exit-game') {
             saveGame();
-            if(saveInterval) clearInterval(saveInterval);
+            if (saveInterval) clearInterval(saveInterval);
             document.getElementById('game-screen').classList.add('hidden');
             document.getElementById('menu-screen').classList.remove('hidden');
-            loadSaves(); 
+            loadSaves();
             return;
         }
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         renderTab(btn.dataset.tab);
-        if(btn.dataset.tab === 'market' && gameState.tutorialStep === 1) { gameState.tutorialStep = 2; runTutorial(2); }
-        if(btn.dataset.tab === 'dev' && gameState.tutorialStep === 3) { gameState.tutorialStep = 4; runTutorial(4); }
+        if (btn.dataset.tab === 'market' && gameState.tutorialStep === 1) { gameState.tutorialStep = 2; runTutorial(2); }
+        if (btn.dataset.tab === 'dev' && gameState.tutorialStep === 3) { gameState.tutorialStep = 4; runTutorial(4); }
     });
 });
 
@@ -680,10 +706,10 @@ function renderTab(tab) {
     content.className = 'animate-in';
 
     // --- DASHBOARD (RESTORED FULL VISUALS) ---
-    if(tab === 'dash') {
+    if (tab === 'dash') {
         const liveProducts = (gameState.products || []).filter(p => p.released).length;
-        const rev = (gameState.products || []).reduce((acc, p) => acc + (p.revenue||0), 0);
-        
+        const rev = (gameState.products || []).reduce((acc, p) => acc + (p.revenue || 0), 0);
+
         content.innerHTML = `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div class="bg-slate-900/50 border border-slate-800 p-8 rounded-2xl">
@@ -707,7 +733,7 @@ function renderTab(tab) {
             try {
                 const card = document.createElement('div');
                 card.className = 'glass-panel p-6 relative group hover:border-cyan-500/50 transition-all rounded-2xl overflow-hidden';
-                
+
                 // Get display traits/specs
                 const prodType = PRODUCTS.find(pt => pt.id === p.type);
                 const displaySpecs = prodType ? prodType.specs.join(' • ') : "Legacy Model";
@@ -715,21 +741,21 @@ function renderTab(tab) {
                 // --- STAGING STATE ---
                 if (!p.released && p.isStaged) {
                     card.classList.add('border-green-500', 'bg-green-900/10');
-                    
+
                     const availableCaps = CAPABILITIES.filter(cap => !(p.capabilities || []).includes(cap.id));
                     const capsOptions = availableCaps.map(c => `<option value="${c.id}">${c.name} (+${c.time}w, $${c.cost})</option>`).join('');
-                    
+
                     card.innerHTML = `
                         <div class="flex justify-between items-center mb-4">
                             <div>
-                                <h3 class="font-bold text-white text-xl">${p.name}</h3>
+                                <h3 class="font-bold text-white text-xl">${sanitizeHTML(p.name)}</h3>
                                 <div class="text-[10px] text-slate-400 uppercase tracking-widest">${displaySpecs}</div>
                             </div>
                             <span class="text-xs font-black bg-green-500 text-black px-2 py-1 rounded animate-pulse">COOKING</span>
                         </div>
                         
                         <div class="p-3 bg-slate-900/50 rounded-xl mb-4 border border-slate-800 text-xs text-slate-400 italic">
-                            "${p.description || 'No description provided.'}"
+                            "${sanitizeHTML(p.description || 'No description provided.')}"
                         </div>
 
                         <div class="grid grid-cols-2 gap-4 mb-4">
@@ -757,18 +783,18 @@ function renderTab(tab) {
                             LAUNCH MODEL 🚀
                         </button>
                     `;
-                    
+
                     card.querySelector('.btn-add-cap').onclick = () => {
                         const sel = card.querySelector('.cap-selector');
                         const capId = sel.value;
                         const cap = CAPABILITIES.find(c => c.id === capId);
-                        if(cap) {
-                            if(gameState.cash >= cap.cost) {
+                        if (cap) {
+                            if (gameState.cash >= cap.cost) {
                                 gameState.cash -= cap.cost;
                                 p.weeksLeft += cap.time;
                                 p.quality += cap.quality;
                                 p.isStaged = false; // Go back to "dev" mode
-                                if(!p.capabilities) p.capabilities = [];
+                                if (!p.capabilities) p.capabilities = [];
                                 p.capabilities.push(cap.id);
                                 updateHUD();
                                 renderTab('dash');
@@ -788,9 +814,9 @@ function renderTab(tab) {
                         showToast(`${p.name} is LIVE!`, 'success');
                     };
 
-                } 
+                }
                 // --- LIVE PRODUCT ---
-                else if(p.released && !p.isUpdating) {
+                else if (p.released && !p.isUpdating) {
                     const apiActive = p.apiConfig && p.apiConfig.active;
                     const apiStatus = apiActive ? (p.apiConfig.price === 0 ? 'text-purple-400' : 'text-green-400') : 'text-slate-600';
 
@@ -798,7 +824,7 @@ function renderTab(tab) {
                         <div class="flex justify-between items-start mb-6">
                             <div>
                                 <div class="flex items-center gap-2">
-                                    <h3 class="text-2xl font-bold text-white tracking-tight">${p.name} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
+                                    <h3 class="text-2xl font-bold text-white tracking-tight">${sanitizeHTML(p.name)} <span class="text-cyan-500 text-sm font-mono">v${p.version}</span></h3>
                                 </div>
                                 <div class="flex flex-wrap gap-2 mt-2">
                                     <div class="text-xs text-slate-500 font-bold bg-slate-800 px-2 py-0.5 rounded">${(p.type || 'text').toUpperCase()}</div>
@@ -828,7 +854,7 @@ function renderTab(tab) {
 
                         <div class="grid grid-cols-2 gap-2 mb-2">
                              <button class="bg-slate-800 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-700 btn-patch rounded-xl tracking-wider transition-colors" data-id="${p.id}">PATCH</button>
-                             <button class="bg-white text-black px-3 py-3 text-[10px] font-bold hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v${Math.floor(p.version)+1}.0</button>
+                             <button class="bg-white text-black px-3 py-3 text-[10px] font-bold hover:bg-cyan-400 btn-major rounded-xl tracking-wider transition-colors" data-id="${p.id}">v${Math.floor(p.version) + 1}.0</button>
                         </div>
                         <div class="grid grid-cols-2 gap-2">
                              <button class="border border-slate-700 text-white px-3 py-3 text-[10px] font-bold hover:bg-slate-800 hover:border-purple-500 btn-variant rounded-xl tracking-wider transition-colors" data-id="${p.id}">EXTEND LINE</button>
@@ -838,15 +864,15 @@ function renderTab(tab) {
                     `;
                     card.querySelector('.btn-patch').onclick = () => openUpdateModal(p.id, 'minor');
                     card.querySelector('.btn-major').onclick = () => openUpdateModal(p.id, 'major');
-                    card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id); 
-                    card.querySelector('.btn-api').onclick = () => openApiModal(p.id); 
-                    card.querySelector('.btn-delete').onclick = () => { if(confirm('Discontinue?')) { gameState.products = gameState.products.filter(x => x.id !== p.id); saveGame(); renderTab('dash'); }};
-                } 
+                    card.querySelector('.btn-variant').onclick = () => openVariantModal(p.id);
+                    card.querySelector('.btn-api').onclick = () => openApiModal(p.id);
+                    card.querySelector('.btn-delete').onclick = () => { if (confirm('Discontinue?')) { gameState.products = gameState.products.filter(x => x.id !== p.id); saveGame(); renderTab('dash'); } };
+                }
                 // --- IN DEVELOPMENT ---
                 else {
                     card.innerHTML += `
                         <div class="flex justify-between items-center mb-3">
-                            <h3 class="font-bold text-white text-lg">${p.name}</h3>
+                            <h3 class="font-bold text-white text-lg">${sanitizeHTML(p.name)}</h3>
                             <span class="text-xs font-mono text-cyan-500 bg-cyan-900/20 px-2 py-1 rounded">${Math.ceil(p.weeksLeft)}w LEFT</span>
                         </div>
                         <div class="text-slate-500 text-xs font-mono mb-3 uppercase tracking-wider">${p.isUpdating ? 'Updating...' : `Training (${p.trait || 'Vanilla'})...`}</div>
@@ -857,8 +883,8 @@ function renderTab(tab) {
             } catch (err) { console.error("Error rendering product card", err); }
         });
         lucide.createIcons();
-    } 
-    
+    }
+
     // --- STATS TAB (FULL RESTORATION) ---
     else if (tab === 'stats') {
         content.innerHTML = `
@@ -877,14 +903,14 @@ function renderTab(tab) {
                 <div id="stats-list" class="divide-y divide-slate-800/50"></div>
             </div>
         `;
-        const allModels = [...((gameState.products||[]).filter(p=>p.released).map(p=>({...p, company:gameState.companyName, isUser:true}))), ...(gameState.marketModels||[])].sort((a,b)=>b.quality-a.quality);
-        allModels.forEach((m,i) => {
-             const el = document.createElement('div'); el.className = `grid grid-cols-6 p-4 items-center text-sm ${m.isUser?'bg-cyan-900/10':''}`; el.innerHTML=`<div class="text-slate-500">#${i+1}</div><div class="text-slate-400 flex items-center gap-2"><span class="text-[9px] font-bold uppercase tracking-wider text-slate-600">${m.type ? m.type.substring(0,4) : 'UNK'}</span></div><div class="col-span-2 font-bold text-white flex items-center">${m.name}</div><div class="${m.color || 'text-slate-400'} text-xs font-bold">${m.company}</div><div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>`;
-             document.getElementById('stats-list').appendChild(el);
+        const allModels = [...((gameState.products || []).filter(p => p.released).map(p => ({ ...p, company: gameState.companyName, isUser: true }))), ...(gameState.marketModels || [])].sort((a, b) => b.quality - a.quality);
+        allModels.forEach((m, i) => {
+            const el = document.createElement('div'); el.className = `grid grid-cols-6 p-4 items-center text-sm ${m.isUser ? 'bg-cyan-900/10' : ''}`; el.innerHTML = `<div class="text-slate-500">#${i + 1}</div><div class="text-slate-400 flex items-center gap-2"><span class="text-[9px] font-bold uppercase tracking-wider text-slate-600">${m.type ? m.type.substring(0, 4) : 'UNK'}</span></div><div class="col-span-2 font-bold text-white flex items-center">${sanitizeHTML(m.name)}</div><div class="${m.color || 'text-slate-400'} text-xs font-bold">${sanitizeHTML(m.company)}</div><div class="text-right font-mono font-bold ${m.quality > 100 ? 'text-purple-400' : 'text-slate-300'}">${m.quality}</div>`;
+            document.getElementById('stats-list').appendChild(el);
         });
         lucide.createIcons();
-    } 
-    
+    }
+
     // --- DEV TAB (FULL RESTORATION) ---
     else if (tab === 'dev') {
         content.innerHTML = `
@@ -923,7 +949,7 @@ function renderTab(tab) {
                 </div>
             </div>
         `;
-        
+
         let selectedType = null;
         PRODUCTS.forEach(p => {
             const locked = p.reqTech && !gameState.unlockedTechs.includes(p.reqTech);
@@ -943,13 +969,13 @@ function renderTab(tab) {
                     ${p.specs ? p.specs.map(s => `<span class="px-2 py-0.5 bg-slate-800 rounded text-[9px] text-slate-400 font-bold uppercase tracking-wide">${s}</span>`).join('') : ''}
                 </div>
                 `;
-            
-            if(!locked) {
+
+            if (!locked) {
                 btn.onclick = () => {
                     document.querySelectorAll('#dev-types > div').forEach(d => d.classList.remove('border-cyan-500', 'bg-cyan-900/20'));
                     btn.classList.add('border-cyan-500', 'bg-cyan-900/20');
                     selectedType = p;
-                    if(p.id === 'custom') {
+                    if (p.id === 'custom') {
                         document.getElementById('specialty-container').classList.remove('hidden');
                     } else {
                         document.getElementById('specialty-container').classList.add('hidden');
@@ -963,16 +989,16 @@ function renderTab(tab) {
         const specialtySelect = document.getElementById('specialty-select');
         const specialtyDesc = document.getElementById('specialty-desc');
         specialtySelect.onchange = () => {
-             const spec = TRAITS.find(s => s.id === specialtySelect.value);
-             if(spec) specialtyDesc.textContent = `${spec.desc} (x${spec.multCost} Cost, x${spec.multTime} Time)`;
+            const spec = TRAITS.find(s => s.id === specialtySelect.value);
+            if (spec) specialtyDesc.textContent = `${spec.desc} (x${spec.multCost} Cost, x${spec.multTime} Time)`;
         };
 
         const slider = document.getElementById('research-inject');
         const numInput = document.getElementById('research-inject-input');
-        
+
         const syncInputs = (val) => {
-            let v = parseInt(val); if(isNaN(v)) v = 0; if(v > gameState.researchPts) v = gameState.researchPts;
-            slider.value = v; numInput.value = v; 
+            let v = parseInt(val); if (isNaN(v)) v = 0; if (v > gameState.researchPts) v = gameState.researchPts;
+            slider.value = v; numInput.value = v;
             document.getElementById('inject-val').textContent = `${v} PTS`;
             document.getElementById('quality-boost').textContent = v;
         };
@@ -980,19 +1006,19 @@ function renderTab(tab) {
         numInput.oninput = (e) => syncInputs(e.target.value);
 
         document.getElementById('btn-start-dev').onclick = () => {
-            const name = document.getElementById('new-proj-name').value;
-            const desc = document.getElementById('new-proj-specs').value;
+            const name = validateInput(document.getElementById('new-proj-name').value, 40);
+            const desc = validateInput(document.getElementById('new-proj-specs').value, 200);
             const isOS = document.getElementById('chk-opensource').checked;
 
-            if(!name || !selectedType) return showToast('Missing Info', 'error');
-            const cost = selectedType.cost; 
-            if(gameState.cash < cost) return showToast('No Money', 'error');
-            
+            if (!name || !selectedType) return showToast('Missing Info', 'error');
+            const cost = selectedType.cost;
+            if (gameState.cash < cost) return showToast('No Money', 'error');
+
             gameState.cash -= cost;
             gameState.researchPts -= parseInt(slider.value);
-            
+
             let traitId = null;
-            if(selectedType.id === 'custom') {
+            if (selectedType.id === 'custom') {
                 traitId = specialtySelect.value;
             }
 
@@ -1006,8 +1032,8 @@ function renderTab(tab) {
             updateHUD(); showToast('Development Started. Let him cook.', 'success'); renderTab('dash');
         };
         lucide.createIcons();
-    } 
-    
+    }
+
     // --- MARKET TAB (FULL RESTORATION) ---
     else if (tab === 'market') {
         content.innerHTML = `
@@ -1029,28 +1055,28 @@ function renderTab(tab) {
                     ${owned > 0 ? `<button class="px-3 border border-red-900 text-red-500 hover:bg-red-900 rounded-xl btn-sell"><i data-lucide="minus"></i></button>` : ''}
                 </div>
             `;
-            if(!locked) {
-                el.querySelector('.btn-buy').onclick = () => { 
-                    if(gameState.cash >= h.cost) { 
-                        gameState.cash -= h.cost; 
-                        const hw = gameState.hardware.find(x => x.typeId === h.id); 
-                        if(hw) hw.count++; else gameState.hardware.push({typeId:h.id, count:1}); 
-                        updateHUD(); renderTab('market'); showToast(`Purchased ${h.name}`, 'success'); 
-                        if(gameState.tutorialStep === 2 && h.id === 'gtx_cluster') { gameState.tutorialStep = 3; runTutorial(3); }
-                    } else showToast('Insufficient Funds', 'error'); 
+            if (!locked) {
+                el.querySelector('.btn-buy').onclick = () => {
+                    if (gameState.cash >= h.cost) {
+                        gameState.cash -= h.cost;
+                        const hw = gameState.hardware.find(x => x.typeId === h.id);
+                        if (hw) hw.count++; else gameState.hardware.push({ typeId: h.id, count: 1 });
+                        updateHUD(); renderTab('market'); showToast(`Purchased ${h.name}`, 'success');
+                        if (gameState.tutorialStep === 2 && h.id === 'gtx_cluster') { gameState.tutorialStep = 3; runTutorial(3); }
+                    } else showToast('Insufficient Funds', 'error');
                 };
-                if(owned > 0) {
+                if (owned > 0) {
                     el.querySelector('.btn-sell').onclick = () => {
                         const hw = gameState.hardware.find(x => x.typeId === h.id);
-                        if(hw && hw.count > 0) { hw.count--; gameState.cash += Math.floor(h.cost*0.5); updateHUD(); renderTab('market'); showToast(`Sold ${h.name}`, 'info'); }
+                        if (hw && hw.count > 0) { hw.count--; gameState.cash += Math.floor(h.cost * 0.5); updateHUD(); renderTab('market'); showToast(`Sold ${h.name}`, 'info'); }
                     };
                 }
             }
             grid.appendChild(el);
         });
         lucide.createIcons();
-    } 
-    
+    }
+
     // --- SHOP TAB (FULL RESTORATION) ---
     else if (tab === 'shop') {
         content.innerHTML = `
@@ -1062,7 +1088,7 @@ function renderTab(tab) {
         const grid = document.getElementById('shop-grid');
         // Filter out one-time items already bought, keep consumables
         const availableItems = SHOP_ITEMS.filter(item => {
-            if(item.type.includes('consumable')) return true;
+            if (item.type.includes('consumable')) return true;
             return !(gameState.purchasedItems || []).includes(item.id);
         });
         availableItems.forEach(item => {
@@ -1070,26 +1096,26 @@ function renderTab(tab) {
             el.className = 'glass-panel p-6 rounded-2xl hover:border-cyan-500/50 transition-colors';
             el.innerHTML = `<h3 class="font-bold text-white text-lg mb-1">${item.name}</h3><div class="text-xs text-cyan-400 mb-4 font-mono">${item.effect}</div><button class="w-full border border-slate-700 text-white font-bold py-3 rounded-xl hover:bg-white hover:text-black transition-colors">BUY $${item.cost.toLocaleString()}</button>`;
             el.querySelector('button').onclick = () => {
-                if(gameState.cash >= item.cost) {
+                if (gameState.cash >= item.cost) {
                     gameState.cash -= item.cost;
-                    if(item.type === 'consumable_res') { gameState.researchPts += item.amount; showToast('Research Acquired!', 'success'); }
-                    else if(item.type === 'consumable_emp') { if(!gameState.employees) gameState.employees = { morale: 100 }; gameState.employees.morale = Math.min(100, gameState.employees.morale + item.amount); showToast(`Staff Morale Increased!`, 'success'); }
-                    else { if(!gameState.purchasedItems) gameState.purchasedItems = []; gameState.purchasedItems.push(item.id); }
+                    if (item.type === 'consumable_res') { gameState.researchPts += item.amount; showToast('Research Acquired!', 'success'); }
+                    else if (item.type === 'consumable_emp') { if (!gameState.employees) gameState.employees = { morale: 100 }; gameState.employees.morale = Math.min(100, gameState.employees.morale + item.amount); showToast(`Staff Morale Increased!`, 'success'); }
+                    else { if (!gameState.purchasedItems) gameState.purchasedItems = []; gameState.purchasedItems.push(item.id); }
                     updateHUD(); saveGame(); renderTab('shop');
                 } else showToast('Insufficient Funds!', 'error');
             };
             grid.appendChild(el);
         });
         lucide.createIcons();
-    } 
-    
+    }
+
     // --- REVIEWS TAB (FULL RESTORATION) ---
     else if (tab === 'reviews') {
         content.innerHTML = `
             <h2 class="text-3xl font-black text-white mb-6 tracking-tight">PUBLIC SENTIMENT</h2>
             ${!gameState.reviews || gameState.reviews.length === 0 ? '<div class="text-slate-500 italic">No reviews yet. Release products to get feedback!</div>' : '<div class="space-y-4" id="reviews-list"></div>'}
         `;
-        if(gameState.reviews) {
+        if (gameState.reviews) {
             const list = document.getElementById('reviews-list');
             gameState.reviews.forEach(r => {
                 const el = document.createElement('div');
@@ -1099,18 +1125,18 @@ function renderTab(tab) {
                     <div class="w-2 rounded-full ${color} shrink-0"></div>
                     <div>
                         <div class="flex items-center gap-2 mb-1">
-                            <span class="font-bold text-white text-sm">@${r.user}</span>
-                            <span class="text-xs text-slate-500">on ${r.product}</span>
-                            <div class="flex text-yellow-500 text-[10px]">${"★".repeat(r.rating)}</div>
+                            <span class="font-bold text-white text-sm">@${sanitizeHTML(r.user)}</span>
+                            <span class="text-xs text-slate-500">on ${sanitizeHTML(r.product)}</span>
+                            <div class="flex text-yellow-500 text-[10px]">${"★".repeat(Math.min(5, Math.max(0, r.rating)))}</div>
                         </div>
-                        <p class="text-slate-300 text-sm">"${r.text}"</p>
+                        <p class="text-slate-300 text-sm">"${sanitizeHTML(r.text)}"</p>
                     </div>
                 `;
                 list.appendChild(el);
             });
         }
-    } 
-    
+    }
+
     // --- BIZ TAB (FULL RESTORATION) ---
     else if (tab === 'biz') {
         const empCount = (gameState.employees && gameState.employees.count) || 1;
@@ -1135,9 +1161,9 @@ function renderTab(tab) {
                 <div><h3 class="text-xl font-bold text-white mt-8 mb-4 flex items-center gap-2"><i data-lucide="megaphone" class="text-purple-500"></i> CAMPAIGNS & CAMEOS</h3><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="ads-grid"></div></div>
             </div>
         `;
-        document.getElementById('btn-hire').onclick = () => { if(!gameState.employees) gameState.employees = {count:1, morale:100}; gameState.employees.count++; gameState.cash -= 1000; updateHUD(); renderTab('biz'); };
-        document.getElementById('btn-fire').onclick = () => { if(gameState.employees.count > 1) { gameState.employees.count--; gameState.employees.morale -= 10; updateHUD(); renderTab('biz'); }};
-        
+        document.getElementById('btn-hire').onclick = () => { if (!gameState.employees) gameState.employees = { count: 1, morale: 100 }; gameState.employees.count++; gameState.cash -= 1000; updateHUD(); renderTab('biz'); };
+        document.getElementById('btn-fire').onclick = () => { if (gameState.employees.count > 1) { gameState.employees.count--; gameState.employees.morale -= 10; updateHUD(); renderTab('biz'); } };
+
         const cGrid = document.getElementById('contract-grid');
         const liveProds = (gameState.products || []).filter(p => p.released && !p.isOpenSource);
         COMPANIES.forEach(c => {
@@ -1156,7 +1182,7 @@ function renderTab(tab) {
                 const btn = document.createElement('button');
                 btn.className = `w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all border ${active ? 'bg-green-500/10 border-green-500 text-green-400' : 'border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'}`;
                 btn.innerHTML = `<div class="flex justify-between items-center"><span>${p.name}</span>${active ? '<i data-lucide="check" class="w-3 h-3"></i>' : ''}</div>`;
-                btn.onclick = () => { if(!p.contracts) p.contracts = []; if(active) p.contracts = p.contracts.filter(x => x !== c.name); else p.contracts.push(c.name); renderTab('biz'); };
+                btn.onclick = () => { if (!p.contracts) p.contracts = []; if (active) p.contracts = p.contracts.filter(x => x !== c.name); else p.contracts.push(c.name); renderTab('biz'); };
                 list.appendChild(btn);
             });
             cGrid.appendChild(el);
@@ -1164,16 +1190,16 @@ function renderTab(tab) {
 
         const adsGrid = document.getElementById('ads-grid');
         CAMPAIGNS.forEach(ad => {
-             const el = document.createElement('div');
-             el.className = 'glass-panel p-6 rounded-2xl hover:border-purple-500/50 transition-colors relative overflow-hidden';
-             if(ad.type === 'cameo') el.className += ' border-l-4 border-yellow-500';
-             el.innerHTML = `<h3 class="font-bold text-white text-lg mb-1">${ad.name}</h3><div class="text-xs text-slate-400 mb-4 font-mono">Cost: $${ad.cost.toLocaleString()} | Hype: +${ad.hype}</div><button class="w-full bg-slate-800 text-white font-bold py-2 rounded-lg text-xs hover:bg-purple-600 transition-colors">LAUNCH</button>`;
-             el.querySelector('button').onclick = () => { if(gameState.cash >= ad.cost) { gameState.cash -= ad.cost; gameState.products.forEach(p => { if(p.released) p.hype = Math.min(500, p.hype + ad.hype); }); updateHUD(); showToast('Campaign Live!', 'success'); } else showToast('Insufficient Funds', 'error'); };
-             adsGrid.appendChild(el);
+            const el = document.createElement('div');
+            el.className = 'glass-panel p-6 rounded-2xl hover:border-purple-500/50 transition-colors relative overflow-hidden';
+            if (ad.type === 'cameo') el.className += ' border-l-4 border-yellow-500';
+            el.innerHTML = `<h3 class="font-bold text-white text-lg mb-1">${ad.name}</h3><div class="text-xs text-slate-400 mb-4 font-mono">Cost: $${ad.cost.toLocaleString()} | Hype: +${ad.hype}</div><button class="w-full bg-slate-800 text-white font-bold py-2 rounded-lg text-xs hover:bg-purple-600 transition-colors">LAUNCH</button>`;
+            el.querySelector('button').onclick = () => { if (gameState.cash >= ad.cost) { gameState.cash -= ad.cost; gameState.products.forEach(p => { if (p.released) p.hype = Math.min(500, p.hype + ad.hype); }); updateHUD(); showToast('Campaign Live!', 'success'); } else showToast('Insufficient Funds', 'error'); };
+            adsGrid.appendChild(el);
         });
         lucide.createIcons();
-    } 
-    
+    }
+
     // --- LAB TAB (FULL RESTORATION) ---
     else if (tab === 'lab') {
         content.innerHTML = `
@@ -1184,7 +1210,7 @@ function renderTab(tab) {
             const el = document.createElement('div');
             el.className = `glass-panel p-8 rounded-2xl transition-all ${unlocked ? 'border-purple-500 bg-purple-900/10' : 'hover:border-purple-500/50'}`;
             el.innerHTML = `<h3 class="font-bold text-white mb-2 text-xl">${r.name}</h3><p class="text-xs text-slate-500 mb-6 leading-relaxed">${r.desc}</p>${!unlocked ? `<button class="w-full bg-slate-800 hover:bg-purple-600 text-white font-bold py-3 rounded-xl text-xs tracking-widest transition-colors">UNLOCK (${r.cost} PTS)</button>` : '<span class="text-purple-500 font-bold text-xs tracking-widest bg-purple-900/30 px-3 py-1 rounded">ACQUIRED</span>'}`;
-            if(!unlocked) el.querySelector('button').onclick = () => { if(gameState.researchPts >= r.cost) { gameState.researchPts -= r.cost; gameState.unlockedTechs.push(r.id); updateHUD(); renderTab('lab'); showToast('Researched!', 'success'); } else showToast('Need Points', 'error'); };
+            if (!unlocked) el.querySelector('button').onclick = () => { if (gameState.researchPts >= r.cost) { gameState.researchPts -= r.cost; gameState.unlockedTechs.push(r.id); updateHUD(); renderTab('lab'); showToast('Researched!', 'success'); } else showToast('Need Points', 'error'); };
             grid.appendChild(el);
         });
     }
@@ -1193,19 +1219,19 @@ function renderTab(tab) {
 // GOD MODE REGISTRY
 function renderGodModeList() {
     let container = document.getElementById('godmode-list-container');
-    if(!container) {
+    if (!container) {
         const wrapper = document.querySelector('#godmode-control-wrapper > div');
-        if(wrapper) {
+        if (wrapper) {
             container = document.createElement('div'); container.id = 'godmode-list-container'; container.className = "mt-4 space-y-2 max-h-60 overflow-y-auto border-t border-white/10 pt-4";
             wrapper.appendChild(container);
         }
     }
-    if(container && gameState.products) {
+    if (container && gameState.products) {
         container.innerHTML = `<h4 class="text-xs font-bold text-slate-500 uppercase">Registry Manager</h4>`;
         gameState.products.forEach(p => {
             const row = document.createElement('div'); row.className = "flex justify-between items-center text-xs bg-slate-900/50 p-2 rounded";
             row.innerHTML = `<span class="text-white">${p.name} <span class="text-slate-500">(${p.weeksLeft}w)</span></span><button class="text-red-500 hover:text-white font-bold">DEL</button>`;
-            row.querySelector('button').onclick = () => { if(confirm('Delete?')) { gameState.products = gameState.products.filter(x=>x.id!==p.id); saveGame(); updateHUD(); renderTab('dash'); } };
+            row.querySelector('button').onclick = () => { if (confirm('Delete?')) { gameState.products = gameState.products.filter(x => x.id !== p.id); saveGame(); updateHUD(); renderTab('dash'); } };
             container.appendChild(row);
         });
     }
@@ -1219,20 +1245,20 @@ let updateInjectAmount = 0;
 
 function openUpdateModal(productId, type) {
     const p = gameState.products.find(x => x.id === productId);
-    if(!p) return;
+    if (!p) return;
     selectedUpdateId = productId;
     selectedUpdateType = type;
     updateInjectAmount = 0;
-    
+
     document.getElementById('update-target-name').textContent = p.name;
     document.getElementById('update-research-slider').value = 0;
     document.getElementById('update-research-slider').max = gameState.researchPts;
     document.getElementById('update-inject-val').textContent = "0 PTS";
     document.getElementById('update-quality-boost').textContent = "0";
-    
+
     // Reset Manual Input
     const numInput = document.getElementById('update-research-input');
-    if(numInput) { numInput.value = 0; numInput.max = gameState.researchPts; }
+    if (numInput) { numInput.value = 0; numInput.max = gameState.researchPts; }
 
     updateModal.classList.remove('hidden');
 }
@@ -1243,22 +1269,22 @@ const updateSlider = document.getElementById('update-research-slider');
 // We need to ensure the HTML structure supports it.
 // PATCH: Add the input field to the modal HTML structure dynamically if missing
 const updateInputContainer = updateSlider.parentElement;
-if(!document.getElementById('update-research-input')) {
+if (!document.getElementById('update-research-input')) {
     const div = document.createElement('div');
     div.className = "flex gap-2 mt-2";
     // Move slider into div
     updateInputContainer.insertBefore(div, updateSlider);
     div.appendChild(updateSlider);
-    
+
     const inp = document.createElement('input');
     inp.type = 'number';
     inp.id = 'update-research-input';
     inp.className = "w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500";
     inp.value = 0;
     div.appendChild(inp);
-    
+
     const syncUpdate = (val) => {
-        let v = parseInt(val); if(isNaN(v)) v=0; if(v<0) v=0; if(v>gameState.researchPts) v=gameState.researchPts;
+        let v = parseInt(val); if (isNaN(v)) v = 0; if (v < 0) v = 0; if (v > gameState.researchPts) v = gameState.researchPts;
         updateSlider.value = v; inp.value = v; updateInjectAmount = v;
         document.getElementById('update-inject-val').textContent = `${v} PTS`;
         document.getElementById('update-quality-boost').textContent = v;
@@ -1270,17 +1296,17 @@ if(!document.getElementById('update-research-input')) {
 
 document.getElementById('btn-cancel-update').onclick = () => updateModal.classList.add('hidden');
 document.getElementById('btn-confirm-update').onclick = () => {
-    if(!selectedUpdateId) return;
+    if (!selectedUpdateId) return;
     const p = gameState.products.find(x => x.id === selectedUpdateId);
-    
-    if(gameState.researchPts < updateInjectAmount && !gameState.isSandbox) return showToast('Insufficient Research Points', 'error');
-    
+
+    if (gameState.researchPts < updateInjectAmount && !gameState.isSandbox) return showToast('Insufficient Research Points', 'error');
+
     gameState.researchPts -= updateInjectAmount;
     p.isUpdating = true;
     p.updateType = selectedUpdateType;
     p.weeksLeft = selectedUpdateType === 'major' ? 6 : 2;
     p.researchBonus = updateInjectAmount;
-    
+
     updateModal.classList.add('hidden');
     renderTab('dash');
     updateHUD();
@@ -1293,15 +1319,15 @@ let selectedApiId = null;
 
 function openApiModal(productId) {
     const p = gameState.products.find(x => x.id === productId);
-    if(!p) return;
+    if (!p) return;
     selectedApiId = productId;
-    if(!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
-    
+    if (!p.apiConfig) p.apiConfig = { active: false, price: 0, limit: 100 };
+
     const statusBtn = document.getElementById('btn-toggle-api-status');
     const dot = statusBtn.querySelector('div');
     const statusText = document.getElementById('api-status-text');
-    
-    if(p.apiConfig.active) {
+
+    if (p.apiConfig.active) {
         statusBtn.classList.replace('bg-slate-700', 'bg-green-500');
         dot.classList.replace('left-1', 'left-7');
         statusText.textContent = "API Online";
@@ -1317,27 +1343,27 @@ function openApiModal(productId) {
     document.getElementById('api-price-slider').value = p.apiConfig.price;
     document.getElementById('api-limit-input').value = p.apiConfig.limit;
     document.getElementById('api-limit-slider').value = p.apiConfig.limit;
-    
+
     apiModal.classList.remove('hidden');
 }
 
 const priceInput = document.getElementById('api-price-input');
 const priceSlider = document.getElementById('api-price-slider');
-if(priceInput) priceInput.oninput = () => { priceSlider.value = priceInput.value; };
-if(priceSlider) priceSlider.oninput = () => { priceInput.value = priceSlider.value; };
+if (priceInput) priceInput.oninput = () => { priceSlider.value = priceInput.value; };
+if (priceSlider) priceSlider.oninput = () => { priceInput.value = priceSlider.value; };
 
 const limitInput = document.getElementById('api-limit-input');
 const limitSlider = document.getElementById('api-limit-slider');
-if(limitInput) limitInput.oninput = () => { limitSlider.value = limitInput.value; };
-if(limitSlider) limitSlider.oninput = () => { limitInput.value = limitSlider.value; };
+if (limitInput) limitInput.oninput = () => { limitSlider.value = limitInput.value; };
+if (limitSlider) limitSlider.oninput = () => { limitInput.value = limitSlider.value; };
 
 document.getElementById('btn-toggle-api-status').onclick = (e) => {
     const btn = e.currentTarget;
     const dot = btn.querySelector('div');
     const isActive = btn.classList.contains('bg-green-500');
     const statusText = document.getElementById('api-status-text');
-    
-    if(isActive) {
+
+    if (isActive) {
         btn.classList.replace('bg-green-500', 'bg-slate-700');
         dot.classList.replace('left-7', 'left-1');
         statusText.textContent = "Currently Offline";
@@ -1351,9 +1377,9 @@ document.getElementById('btn-toggle-api-status').onclick = (e) => {
 };
 
 document.getElementById('btn-save-api').onclick = () => {
-    if(!selectedApiId) return;
+    if (!selectedApiId) return;
     const p = gameState.products.find(x => x.id === selectedApiId);
-    if(p) {
+    if (p) {
         const isActive = document.getElementById('btn-toggle-api-status').classList.contains('bg-green-500');
         p.apiConfig = {
             active: isActive,
@@ -1375,37 +1401,37 @@ let variantInjectAmount = 0;
 
 function openVariantModal(productId) {
     const p = gameState.products.find(x => x.id === productId);
-    if(!p) return;
+    if (!p) return;
     selectedVariantId = productId;
     selectedVariantType = null;
     variantInjectAmount = 0;
-    
+
     document.getElementById('variant-research-slider').value = 0;
     document.getElementById('variant-inject-val').textContent = "0 PTS";
     document.getElementById('variant-quality-boost').textContent = "0";
     document.getElementById('variant-base-name').textContent = p.name;
     document.getElementById('custom-variant-input').classList.add('hidden');
-    
+
     document.querySelectorAll('.variant-opt').forEach(b => {
-         b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
-         b.classList.add('border-slate-700');
+        b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
+        b.classList.add('border-slate-700');
     });
-    
+
     document.getElementById('btn-confirm-variant').disabled = true;
     document.getElementById('btn-confirm-variant').classList.add('cursor-not-allowed', 'text-slate-500', 'bg-slate-800');
-    
+
     // Inject Input if missing (same patch logic)
     const varSlider = document.getElementById('variant-research-slider');
     const varWrapper = varSlider.parentElement;
-    if(!document.getElementById('variant-research-input')) {
-        const div = document.createElement('div'); div.className="flex gap-2 mt-2";
+    if (!document.getElementById('variant-research-input')) {
+        const div = document.createElement('div'); div.className = "flex gap-2 mt-2";
         varWrapper.insertBefore(div, varSlider); div.appendChild(varSlider);
-        const inp = document.createElement('input'); inp.type='number'; inp.id='variant-research-input';
+        const inp = document.createElement('input'); inp.type = 'number'; inp.id = 'variant-research-input';
         inp.className = "w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-purple-500";
         inp.value = 0; div.appendChild(inp);
-        
+
         const syncVar = (val) => {
-            let v = parseInt(val); if(isNaN(v)) v=0; if(v<0) v=0; if(v>gameState.researchPts) v=gameState.researchPts;
+            let v = parseInt(val); if (isNaN(v)) v = 0; if (v < 0) v = 0; if (v > gameState.researchPts) v = gameState.researchPts;
             varSlider.value = v; inp.value = v; variantInjectAmount = v;
             document.getElementById('variant-inject-val').textContent = `${v} PTS`;
             document.getElementById('variant-quality-boost').textContent = v;
@@ -1421,16 +1447,16 @@ document.querySelectorAll('.variant-opt').forEach(btn => {
     btn.onclick = () => {
         selectedVariantType = btn.dataset.type;
         document.querySelectorAll('.variant-opt').forEach(b => {
-             b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
-             b.classList.add('border-slate-700');
+            b.classList.remove('border-green-500', 'border-yellow-500', 'border-cyan-500', 'border-purple-500', 'border-pink-500', 'bg-slate-800');
+            b.classList.add('border-slate-700');
         });
-        
+
         btn.classList.remove('border-slate-700');
-        if(selectedVariantType === 'lite') btn.classList.add('border-green-500', 'bg-slate-800');
-        if(selectedVariantType === 'flash') btn.classList.add('border-yellow-500', 'bg-slate-800');
-        if(selectedVariantType === 'pro') btn.classList.add('border-cyan-500', 'bg-slate-800');
-        if(selectedVariantType === 'ultra') btn.classList.add('border-purple-500', 'bg-slate-800');
-        if(selectedVariantType === 'custom') {
+        if (selectedVariantType === 'lite') btn.classList.add('border-green-500', 'bg-slate-800');
+        if (selectedVariantType === 'flash') btn.classList.add('border-yellow-500', 'bg-slate-800');
+        if (selectedVariantType === 'pro') btn.classList.add('border-cyan-500', 'bg-slate-800');
+        if (selectedVariantType === 'ultra') btn.classList.add('border-purple-500', 'bg-slate-800');
+        if (selectedVariantType === 'custom') {
             btn.classList.add('border-pink-500', 'bg-slate-800');
             document.getElementById('custom-variant-input').classList.remove('hidden');
         } else {
@@ -1447,28 +1473,28 @@ document.querySelectorAll('.variant-opt').forEach(btn => {
 document.getElementById('btn-close-variant').onclick = () => variantModal.classList.add('hidden');
 
 document.getElementById('btn-confirm-variant').onclick = () => {
-    if(!selectedVariantId || !selectedVariantType) return;
+    if (!selectedVariantId || !selectedVariantType) return;
     const parent = gameState.products.find(x => x.id === selectedVariantId);
-    
+
     let costMult = 1; let time = 2; let suffix = "";
-    if(selectedVariantType === 'lite') { costMult = 0.5; time = 2; suffix = "[Lite]"; }
-    if(selectedVariantType === 'flash') { costMult = 0.8; time = 1; suffix = "[Flash]"; }
-    if(selectedVariantType === 'pro') { costMult = 1.2; time = 4; suffix = "[Pro]"; }
-    if(selectedVariantType === 'ultra') { costMult = 2.0; time = 8; suffix = "[Ultra]"; }
-    if(selectedVariantType === 'custom') {
+    if (selectedVariantType === 'lite') { costMult = 0.5; time = 2; suffix = "[Lite]"; }
+    if (selectedVariantType === 'flash') { costMult = 0.8; time = 1; suffix = "[Flash]"; }
+    if (selectedVariantType === 'pro') { costMult = 1.2; time = 4; suffix = "[Pro]"; }
+    if (selectedVariantType === 'ultra') { costMult = 2.0; time = 8; suffix = "[Ultra]"; }
+    if (selectedVariantType === 'custom') {
         const customName = document.getElementById('inp-custom-variant').value;
-        if(!customName) return showToast('Enter a custom name!', 'error');
+        if (!customName) return showToast('Enter a custom name!', 'error');
         costMult = 1.5; time = 5; suffix = `[${customName}]`;
     }
 
-    const cost = Math.floor(50000 * costMult); 
-    if((gameState.cash < cost || gameState.researchPts < variantInjectAmount) && !gameState.isSandbox) {
+    const cost = Math.floor(50000 * costMult);
+    if ((gameState.cash < cost || gameState.researchPts < variantInjectAmount) && !gameState.isSandbox) {
         showToast('Insufficient Funds/Research', 'error'); return;
     }
 
     gameState.cash -= cost;
     gameState.researchPts -= variantInjectAmount;
-    
+
     // --- VARIANT LOGIC FIX ---
     // Variants start as NEW products, not updates.
     gameState.products.push({
@@ -1490,7 +1516,7 @@ document.getElementById('btn-confirm-variant').onclick = () => {
         trait: parent.trait,
         description: `Variant of ${parent.name}. Optimized for ${selectedVariantType}.`
     });
-    
+
     variantModal.classList.add('hidden'); renderTab('dash'); updateHUD();
     showToast(`Variant ${suffix} started development!`, 'success');
 };
@@ -1506,24 +1532,24 @@ document.getElementById('nav-settings').addEventListener('click', () => {
     settingsOverlay.classList.remove('hidden');
     const dotsContainer = document.getElementById('history-dots');
     dotsContainer.innerHTML = '';
-    for(let i=0; i<6; i++) {
+    for (let i = 0; i < 6; i++) {
         const isActive = i < historyStack.length;
         const dot = document.createElement('div');
         dot.className = `w-2 h-2 rounded-full transition-colors ${isActive ? 'bg-cyan-500' : 'bg-slate-800'}`;
         dotsContainer.appendChild(dot);
     }
-    
+
     // Inject Fix Button if not exists
     let fixBtn = document.getElementById('btn-emergency-fix');
-    if(!fixBtn) {
+    if (!fixBtn) {
         const wrapper = document.querySelector('#godmode-control-wrapper > div'); // Find GodMode area
-        if(wrapper) {
+        if (wrapper) {
             fixBtn = document.createElement('button');
             fixBtn.id = 'btn-emergency-fix';
             fixBtn.className = 'w-full bg-red-900/50 hover:bg-red-600 text-red-200 hover:text-white font-black py-4 rounded-xl text-xs tracking-widest mt-4 border border-red-500/30 transition-all';
             fixBtn.innerHTML = `⚠️ EMERGENCY FIX SAVE ⚠️`;
             fixBtn.onclick = () => {
-                if(confirm('This will delete broken/duplicate products and force-release stuck ones. Do it?')) {
+                if (confirm('This will delete broken/duplicate products and force-release stuck ones. Do it?')) {
                     const result = cleanAndRepairData(gameState);
                     gameState = result.data;
                     saveGame();
@@ -1536,7 +1562,7 @@ document.getElementById('nav-settings').addEventListener('click', () => {
         }
     }
 
-    if(historyStack.length === 0) {
+    if (historyStack.length === 0) {
         undoBtn.disabled = true;
         undoBtn.classList.add('opacity-50', 'cursor-not-allowed');
     } else {
@@ -1549,8 +1575,8 @@ document.getElementById('nav-settings').addEventListener('click', () => {
 document.getElementById('btn-close-settings').addEventListener('click', () => settingsOverlay.classList.add('hidden'));
 
 undoBtn.addEventListener('click', () => {
-    if(historyStack.length === 0) return;
-    if(confirm('Revert time by 1 week?')) {
+    if (historyStack.length === 0) return;
+    if (confirm('Revert time by 1 week?')) {
         gameState = historyStack.pop();
         saveGame();
         updateHUD();
@@ -1564,16 +1590,16 @@ godModeToggle.addEventListener('click', () => {
     if (!currentUser || currentUser.email !== ADMIN_EMAIL) return showToast('ACCESS DENIED', 'error');
     godMode = !godMode;
     const dot = godModeToggle.querySelector('div');
-    if(godMode) {
+    if (godMode) {
         godModeToggle.classList.replace('bg-slate-800', 'bg-red-600');
-        dot.classList.replace('left-1', 'left-9'); 
+        dot.classList.replace('left-1', 'left-9');
         document.getElementById('godmode-status').classList.remove('hidden');
     } else {
         godModeToggle.classList.replace('bg-red-600', 'bg-slate-800');
         dot.classList.replace('left-9', 'left-1');
         document.getElementById('godmode-status').classList.add('hidden');
     }
-    updateHUD(); 
+    updateHUD();
 });
 
 // --- NEW: MODE SELECTION LOGIC ---
@@ -1582,7 +1608,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAI = document.getElementById('btn-mode-ai');
     const btnMovie = document.getElementById('btn-mode-movie');
 
-    if(btnAI) {
+    if (btnAI) {
         btnAI.addEventListener('click', () => {
             landingScreen.classList.add('fade-out-up');
             setTimeout(() => {
@@ -1591,7 +1617,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if(btnMovie) {
+    if (btnMovie) {
         btnMovie.addEventListener('click', () => {
             btnMovie.style.transform = 'scale(0.98)';
             btnMovie.style.borderColor = '#ec4899';

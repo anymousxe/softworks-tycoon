@@ -174,6 +174,7 @@
                             <div><h4 class="text-2xl font-black text-white">Undo Last Week</h4><p class="text-slate-400 text-sm mt-2 max-w-sm">Revert the company state to the previous week.</p></div>
                             <div class="bg-slate-950 p-3 rounded-xl border border-white/10"><i data-lucide="rotate-ccw" class="w-8 h-8 text-cyan-400"></i></div>
                         </div>
+                        <div id="history-dots" class="flex gap-2 mb-4"></div>
                         <button id="btn-undo-week" class="w-full bg-white hover:bg-cyan-400 text-black font-black py-4 rounded-xl text-lg tracking-widest transition-all shadow-lg flex items-center justify-center gap-3"><i data-lucide="history"></i> REVERT TIMELINE</button>
                     </div>
                 </div>
@@ -184,6 +185,7 @@
                             <div><h4 class="text-xl font-bold text-white">God Mode</h4><p class="text-slate-400 text-xs mt-1">Enables direct editing of resources.</p></div>
                             <button id="btn-toggle-godmode" class="w-16 h-8 rounded-full bg-slate-800 relative transition-all"><div class="w-6 h-6 bg-slate-500 rounded-full absolute top-1 left-1"></div></button>
                         </div>
+                        <div id="godmode-status" class="hidden text-xs text-red-400 font-bold uppercase tracking-widest">⚡ GOD MODE ACTIVE ⚡</div>
                     </div>
                 </div>
             </div>
@@ -225,6 +227,7 @@
             <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
                 <div class="flex justify-between text-xs font-bold text-purple-300 mb-2"><span>Research Injection</span><span id="update-inject-val">0 PTS</span></div>
                 <input type="range" id="update-research-slider" min="0" max="1000" value="0" class="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="update-quality-boost" class="text-white font-bold">0</span> Quality</div>
             </div>
             <div class="flex gap-3"><button id="btn-cancel-update" class="px-4 py-2 text-slate-500 hover:text-white text-sm font-bold">CANCEL</button><button id="btn-confirm-update" class="flex-1 bg-white text-black font-bold py-3 rounded-xl text-sm hover:bg-cyan-400">START UPDATE</button></div>
         </div>
@@ -232,11 +235,22 @@
 
     <div id="variant-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
         <div class="glass-panel p-8 rounded-2xl max-w-3xl w-full relative shadow-2xl bg-black border border-cyan-500/20">
-            <div class="flex justify-between items-center mb-6"><div><h2 class="text-2xl font-black text-white tracking-tight">EXPAND PRODUCT LINE</h2></div><button id="btn-close-variant" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button></div>
+            <div class="flex justify-between items-center mb-4"><div><h2 class="text-2xl font-black text-white tracking-tight">EXPAND PRODUCT LINE</h2><p class="text-xs text-slate-500 mt-1">Base: <span id="variant-base-name" class="text-cyan-400">...</span></p></div><button id="btn-close-variant" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button></div>
             <div class="grid grid-cols-5 gap-4 mb-6">
-                <button class="variant-opt p-3 border border-slate-700 bg-slate-900/40 rounded-xl text-left" data-type="lite"><span class="font-bold text-white block mb-1">Lite</span></button>
-                <button class="variant-opt p-3 border border-slate-700 bg-slate-900/40 rounded-xl text-left" data-type="pro"><span class="font-bold text-white block mb-1">Pro</span></button>
-                <button class="variant-opt p-3 border border-slate-700 bg-slate-900/40 rounded-xl text-left" data-type="ultra"><span class="font-bold text-white block mb-1">Ultra</span></button>
+                <button class="variant-opt p-3 border border-slate-700 bg-slate-900/40 rounded-xl text-left" data-type="lite"><span class="font-bold text-white block mb-1">Lite</span><span class="text-[10px] text-slate-500">Faster, Cheaper</span></button>
+                <button class="variant-opt p-3 border border-slate-700 bg-slate-900/40 rounded-xl text-left" data-type="flash"><span class="font-bold text-white block mb-1">Flash</span><span class="text-[10px] text-slate-500">Fastest</span></button>
+                <button class="variant-opt p-3 border border-slate-700 bg-slate-900/40 rounded-xl text-left" data-type="pro"><span class="font-bold text-white block mb-1">Pro</span><span class="text-[10px] text-slate-500">Better Quality</span></button>
+                <button class="variant-opt p-3 border border-slate-700 bg-slate-900/40 rounded-xl text-left" data-type="ultra"><span class="font-bold text-white block mb-1">Ultra</span><span class="text-[10px] text-slate-500">Maximum Power</span></button>
+                <button class="variant-opt p-3 border border-slate-700 bg-slate-900/40 rounded-xl text-left" data-type="custom"><span class="font-bold text-white block mb-1">Custom</span><span class="text-[10px] text-slate-500">Your Name</span></button>
+            </div>
+            <div id="custom-variant-input" class="hidden mb-4">
+                <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Custom Variant Name</label>
+                <input id="inp-custom-variant" class="w-full bg-slate-900 border border-slate-700 p-3 text-white rounded-xl focus:border-pink-500 outline-none" placeholder="e.g. Turbo, Max, Elite...">
+            </div>
+            <div class="mb-6 p-4 bg-purple-900/20 rounded-xl border border-purple-500/30">
+                <div class="flex justify-between text-xs font-bold text-purple-300 mb-2"><span>Research Injection</span><span id="variant-inject-val">0 PTS</span></div>
+                <input type="range" id="variant-research-slider" min="0" max="1000" value="0" class="w-full accent-purple-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                <div class="text-[10px] text-slate-400 mt-2 text-right font-mono">+<span id="variant-quality-boost" class="text-white font-bold">0</span> Quality</div>
             </div>
             <button id="btn-confirm-variant" class="w-full bg-slate-800 text-slate-500 font-bold py-4 rounded-xl tracking-widest text-sm" disabled>SELECT A VARIANT</button>
         </div>
@@ -246,7 +260,25 @@
         <div class="glass-panel p-8 rounded-2xl max-w-md w-full relative shadow-2xl bg-black border border-green-500/20">
             <div class="flex justify-between items-center mb-6"><div><h2 class="text-2xl font-black text-white tracking-tight">API GATEWAY</h2></div><button id="btn-close-api" class="text-slate-500 hover:text-white"><i data-lucide="x"></i></button></div>
             <div class="space-y-6">
-                <div class="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-800"><div><div class="text-sm font-bold text-white">Public API Status</div></div><button id="btn-toggle-api-status" class="w-14 h-8 rounded-full bg-slate-700 relative transition-all"><div class="w-6 h-6 bg-white rounded-full absolute top-1 left-1"></div></button></div>
+                <div class="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <div><div class="text-sm font-bold text-white">Public API Status</div><div id="api-status-text" class="text-[10px] text-slate-500">Currently Offline</div></div>
+                    <button id="btn-toggle-api-status" class="w-14 h-8 rounded-full bg-slate-700 relative transition-all"><div class="w-6 h-6 bg-white rounded-full absolute top-1 left-1"></div></button>
+                </div>
+                <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Price per 1K Tokens ($)</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="range" id="api-price-slider" min="0" max="100" value="0" class="flex-1 accent-green-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                        <input type="number" id="api-price-input" class="w-16 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-green-500" value="0" min="0" max="100">
+                    </div>
+                    <p class="text-[10px] text-slate-600 mt-1">Set to 0 for free tier (costs $200/wk, gains hype)</p>
+                </div>
+                <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <label class="text-[10px] text-slate-500 font-bold uppercase mb-2 block tracking-widest">Rate Limit (req/min)</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="range" id="api-limit-slider" min="10" max="1000" value="100" class="flex-1 accent-green-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                        <input type="number" id="api-limit-input" class="w-20 bg-slate-900 text-white text-xs font-mono text-center border border-slate-700 rounded p-2 outline-none focus:border-green-500" value="100" min="10" max="1000">
+                    </div>
+                </div>
             </div>
             <button id="btn-save-api" class="w-full bg-white hover:bg-green-400 text-black font-black py-4 rounded-xl mt-6 tracking-widest text-sm shadow-lg">DEPLOY CHANGES</button>
         </div>
