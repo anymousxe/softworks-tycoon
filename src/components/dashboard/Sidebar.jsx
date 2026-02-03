@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import useAuthStore from '../../store/authStore';
 import useGameStore from '../../store/gameStore';
 import {
@@ -14,12 +14,21 @@ import {
     ShoppingCart,
     Settings,
     LogOut,
+    ArrowLeftFromLine,
     ChevronRight,
     Shield
 } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
     const { logout, isAdmin } = useAuthStore();
+    const { reset: resetGame } = useGameStore();
+
+    // Exit to save selection (not logout)
+    const handleExitSession = () => {
+        if (confirm('Return to save selection?')) {
+            resetGame(); // Clears activeCompany, goes back to company selector
+        }
+    };
 
     const navItems = [
         { id: 'dash', label: 'Home', icon: LayoutDashboard },
@@ -43,7 +52,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 shrink-0">
                     <Cpu className="text-white w-6 h-6" />
                 </div>
-                <span className="hidden md:block font-black text-xl tracking-tighter text-white">SOFTWORKS</span>
+                <span className="hidden md:block font-black text-xl tracking-tighter text-white">AI TYCOON</span>
             </div>
 
             <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
@@ -72,12 +81,23 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                     <Settings className="w-6 h-6 shrink-0 group-hover:rotate-90 transition-transform duration-500" />
                     <span className="hidden md:block font-bold text-sm">Settings</span>
                 </button>
+
+                {/* Exit Session - goes back to save menu */}
+                <button
+                    onClick={handleExitSession}
+                    className="w-full flex items-center gap-4 p-4 rounded-xl text-yellow-500/60 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all group"
+                >
+                    <ArrowLeftFromLine className="w-6 h-6 shrink-0 group-hover:-translate-x-1 transition-transform" />
+                    <span className="hidden md:block font-bold text-sm">Exit Session</span>
+                </button>
+
+                {/* Logout - actual logout */}
                 <button
                     onClick={logout}
                     className="w-full flex items-center gap-4 p-4 rounded-xl text-red-500/60 hover:text-red-400 hover:bg-red-500/10 transition-all group"
                 >
                     <LogOut className="w-6 h-6 shrink-0 group-hover:-translate-x-1 transition-transform" />
-                    <span className="hidden md:block font-bold text-sm">Exit Session</span>
+                    <span className="hidden md:block font-bold text-sm">Logout</span>
                 </button>
             </div>
         </aside>
