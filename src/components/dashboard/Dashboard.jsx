@@ -4,8 +4,13 @@ import TopBar from './TopBar';
 import DashboardHome from './DashboardHome';
 import AICreator from './AICreator';
 import HardwareMarket from './HardwareMarket';
+import StatsPanel from './StatsPanel';
+import RivalsPanel from './RivalsPanel';
+import LabPanel from './LabPanel';
+import BusinessPanel from './BusinessPanel';
+import ReviewsPanel from './ReviewsPanel';
+import ShopPanel from './ShopPanel';
 import AdminPanel from '../admin/AdminPanel';
-import SubscriptionBuilder from './SubscriptionBuilder';
 
 const Dashboard = () => {
     const [activeTab, setActiveTab] = useState('dash');
@@ -18,16 +23,22 @@ const Dashboard = () => {
                 return <AICreator onFinish={() => setActiveTab('dash')} />;
             case 'market':
                 return <HardwareMarket />;
+            case 'stats':
+                return <StatsPanel />;
+            case 'rivals':
+                return <RivalsPanel />;
+            case 'lab':
+                return <LabPanel />;
+            case 'biz':
+                return <BusinessPanel />;
+            case 'reviews':
+                return <ReviewsPanel />;
+            case 'shop':
+                return <ShopPanel />;
             case 'admin':
                 return <AdminPanel />;
             default:
-                return (
-                    <div className="h-96 flex flex-col items-center justify-center text-center">
-                        <div className="w-12 h-12 rounded-full border-2 border-slate-800 border-t-cyan-500 animate-spin mb-4"></div>
-                        <h3 className="text-slate-500 font-mono text-xs uppercase tracking-widest">Sector Synchronizing...</h3>
-                        <p className="text-slate-700 text-[10px] mt-2 tracking-tighter capitalize">{activeTab} system pending deployment</p>
-                    </div>
-                );
+                return <DashboardHome onNavigate={setActiveTab} />;
         }
     };
 
