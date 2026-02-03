@@ -4,8 +4,10 @@ import ModelCard from './ModelCard';
 import { LayoutDashboard, TrendingUp, BarChart, Globe, Zap, PlusSquare } from 'lucide-react';
 
 const DashboardHome = ({ onNavigate }) => {
-    const { models, activeCompany } = useGameStore();
+    const { activeCompany } = useGameStore();
 
+    // Safe access to models array
+    const models = activeCompany?.models || [];
     const liveModels = models.filter(m => m.released);
     const totalWeeklyRevenue = liveModels.reduce((acc, m) => acc + (m.revenue || 0), 0);
     const avgQuality = liveModels.length > 0
