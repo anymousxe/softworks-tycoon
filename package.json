@@ -15,6 +15,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.0",
+    "framer-motion": "^11.0.8",
     "@supabase/supabase-js": "^2.39.0",
     "firebase": "^10.7.1",
     "zustand": "^4.4.7",

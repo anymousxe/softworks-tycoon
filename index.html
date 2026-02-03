@@ -1,24 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="bg-[#030303]">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Softworks Tycoon</title>
-  
-  <!-- Existing Meta Tags -->
-  <meta property="og:title" content="Softworks Tycoon" />
-  <meta property="og:description" content="Build your AI empire. Research tech, battle rivals, and dominate the market." />
+  <title>AI Tycoon | Neural Simulation Core</title>
+
+  <!-- Meta Identity -->
+  <meta name="description" content="Build the world's most powerful AI corporation. Architect. Innovate. Dominate.">
+  <meta property="og:title" content="AI Tycoon" />
+  <meta property="og:description"
+    content="Build your AI empire. Research tech, battle rivals, and dominate the market." />
   <meta property="og:image" content="https://softworks-tycoon.xyz/banner.png" />
   <meta name="theme-color" content="#06b6d4" />
-  
+
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="/icon.png" />
-  
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;700;900&display=swap" rel="stylesheet" />
+
+  <!-- Ultra-Premium Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=JetBrains+Mono:wght@100..800&display=swap"
+    rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      background: #030303;
+      color: white;
+    }
+
+    /* Prevent layout shift */
+    #root:empty {
+      height: 100vh;
+      background: #030303;
+    }
+  </style>
 </head>
-<body>
+
+<body class="antialiased">
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
 </body>
+
 </html>
