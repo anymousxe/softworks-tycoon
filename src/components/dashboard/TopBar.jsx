@@ -1,7 +1,7 @@
 import React from 'react';
 import useGameStore from '../../store/gameStore';
 import useAuthStore from '../../store/authStore';
-import { DollarSign, Calendar, FastForward, LogOut, User } from 'lucide-react';
+import { DollarSign, Calendar, FastForward, ArrowRightFromLine, User } from 'lucide-react';
 
 const TopBar = () => {
     const { activeCompany, nextWeek } = useGameStore();
@@ -15,9 +15,9 @@ const TopBar = () => {
         }
     };
 
-    // Get display name and photo
-    const displayName = profile?.display_name || user?.displayName || 'User';
-    const photoURL = profile?.photo_url || user?.photoURL;
+    // Get display name and photo - Firebase provides these directly
+    const displayName = user?.displayName || profile?.display_name || 'User';
+    const photoURL = user?.photoURL || profile?.photo_url;
 
     return (
         <header className="h-20 bg-slate-950/40 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-8 fixed top-0 right-0 left-24 md:left-64 z-30 transition-all duration-300">
@@ -75,37 +75,41 @@ const TopBar = () => {
                         <FastForward className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
 
-                    {/* User Profile & Logout */}
-                    <div className="flex items-center gap-3 pl-4 border-l border-white/10">
-                        {/* Profile Picture */}
-                        {photoURL ? (
-                            <img
-                                src={photoURL}
-                                alt={displayName}
-                                className="w-10 h-10 rounded-full border-2 border-white/10 object-cover"
-                                onError={(e) => {
-                                    e.target.style.display = 'none';
-                                }}
-                            />
-                        ) : (
-                            <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white/10 flex items-center justify-center">
-                                <User className="w-5 h-5 text-slate-500" />
-                            </div>
-                        )}
+                    {/* User Profile Box with Logout */}
+                    <div className="glass-panel px-4 py-2 flex items-center gap-3 border-white/10">
+                        {/* Profile Picture or Fallback */}
+                        <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white/10 flex items-center justify-center overflow-hidden">
+                            {photoURL ? (
+                                <img
+                                    src={photoURL}
+                                    alt={displayName}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        // Hide image and show fallback
+                                        e.target.style.display = 'none';
+                                    }}
+                                />
+                            ) : null}
+                            {!photoURL && <User className="w-5 h-5 text-slate-500" />}
+                        </div>
 
-                        {/* Username - Hidden on small screens */}
+                        {/* Username */}
                         <div className="hidden md:block">
-                            <div className="text-white font-bold text-sm leading-none">{displayName}</div>
-                            <div className="text-[9px] text-slate-500 font-mono uppercase tracking-widest mt-1">Neural Architect</div>
+                            <div className="text-white font-bold text-sm leading-none">
+                                {displayName}
+                            </div>
+                            <div className="text-[9px] text-slate-500 font-mono uppercase tracking-widest mt-1">
+                                Authenticated
+                            </div>
                         </div>
 
                         {/* Logout Button */}
                         <button
                             onClick={handleLogout}
-                            className="p-2 hover:bg-red-500/10 rounded-lg transition-colors group"
+                            className="p-2 hover:bg-red-500/20 rounded-lg transition-all group ml-2"
                             title="Logout"
                         >
-                            <LogOut className="w-5 h-5 text-slate-500 group-hover:text-red-500 transition-colors" />
+                            <ArrowRightFromLine className="w-5 h-5 text-slate-400 group-hover:text-red-400 transition-colors" />
                         </button>
                     </div>
                 </div>
