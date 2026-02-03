@@ -1,40 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import useAuthStore from '../../store/authStore';
 import useGameStore from '../../store/gameStore';
-import { Plus, Building2, Briefcase, Trash2, ShieldCheck, Zap } from 'lucide-react';
+import { Plus, Building2, Briefcase, Trash2, ShieldCheck, Zap, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const CompanySelector = () => {
     const { user, profile } = useAuthStore();
-    const { companies, initGame, selectCompany, createCompany } = useGameStore();
+    const { companies, selectCompany, createCompany } = useGameStore();
     const [showCreate, setShowCreate] = useState(false);
     const [newCompanyName, setNewCompanyName] = useState('');
     const [isSandbox, setIsSandbox] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        if (user) initGame(profile?.id || user.uid);
-    }, [user, profile, initGame]);
-
     const handleCreate = async () => {
         if (!newCompanyName.trim()) return toast.error('Enter a company name');
         setLoading(true);
         try {
-            // Check for first save bonus
-            const isFirstSave = companies.length === 0;
-            await createCompany(profile.id, newCompanyName, isSandbox, isFirstSave);
+            await createCompany(newCompanyName, isSandbox);
             toast.success(`${newCompanyName} initialized successfully!`);
-            if (isFirstSave) toast.success('received $15,000 Early Adopter Bonus!', {
-                icon: '🎁',
-                duration: 5000
-            });
             setShowCreate(false);
+            setNewCompanyName('');
         } catch (error) {
-            toast.error('Initialization failed');
+            toast.error(error.message || 'Initialization failed');
         } finally {
             setLoading(false);
         }
     };
+
+    // Get display info
+    const displayName = profile?.display_name || user?.displayName || 'Anonymous CEO';
+    const photoURL = profile?.photo_url || user?.photoURL;
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 mt-16 animate-in">
@@ -43,7 +38,7 @@ const CompanySelector = () => {
             <div className="relative max-w-6xl w-full">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
                     <div className="animate-in slide-in-from-left duration-700">
-                        <h1 className="text-7xl font-black text-white tracking-tighter mb-2">SOFTWORKS</h1>
+                        <h1 className="text-7xl font-black text-white tracking-tighter mb-2">AI TYCOON</h1>
                         <div className="flex items-center gap-3">
                             <div className="h-px w-12 bg-cyan-500"></div>
                             <span className="text-cyan-500 font-mono tracking-[0.4em] text-sm uppercase font-bold">Select Active Simulation</span>
@@ -51,14 +46,21 @@ const CompanySelector = () => {
                     </div>
 
                     <div className="flex items-center gap-4 bg-slate-900/40 p-3 pr-6 pl-3 rounded-full border border-white/5 backdrop-blur-xl animate-in slide-in-from-right duration-700">
-                        <img
-                            src={profile?.photo_url}
-                            className="w-12 h-12 rounded-full border-2 border-cyan-500/50 shadow-lg shadow-cyan-500/20"
-                            alt="Profile"
-                        />
+                        {photoURL ? (
+                            <img
+                                src={photoURL}
+                                className="w-12 h-12 rounded-full border-2 border-cyan-500/50 shadow-lg shadow-cyan-500/20 object-cover"
+                                alt="Profile"
+                                onError={(e) => e.target.style.display = 'none'}
+                            />
+                        ) : (
+                            <div className="w-12 h-12 rounded-full border-2 border-cyan-500/50 bg-slate-800 flex items-center justify-center">
+                                <User className="w-6 h-6 text-slate-500" />
+                            </div>
+                        )}
                         <div>
                             <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest leading-none mb-1">Authenticated As</div>
-                            <div className="text-white font-bold text-sm tracking-tight">{profile?.display_name || 'Anonymous CEO'}</div>
+                            <div className="text-white font-bold text-sm tracking-tight">{displayName}</div>
                         </div>
                     </div>
                 </div>
@@ -67,7 +69,7 @@ const CompanySelector = () => {
                     {companies.map((company) => (
                         <div
                             key={company.id}
-                            onClick={() => selectCompany(company.id)}
+                            onClick={() => selectCompany(company)}
                             className="glass-panel p-8 cursor-pointer hover:border-cyan-500/50 hover:bg-slate-900/60 transition-all group relative overflow-hidden h-64 flex flex-col justify-between"
                         >
                             {/* Animated Background Icon */}
