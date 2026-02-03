@@ -13,6 +13,7 @@ import UpdateModal from './components/ui/UpdateModal';
 import DowntimeScreen from './components/ui/DowntimeScreen';
 import Dashboard from './components/dashboard/Dashboard';
 import CompanySelector from './components/auth/CompanySelector';
+import NotFound from './components/ui/NotFound';
 
 function App() {
     const { user, profile, loading, init, isAdmin } = useAuthStore();
@@ -105,7 +106,7 @@ function App() {
                 } />
 
                 {/* Catch-all for 404s */}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </div>
     );
