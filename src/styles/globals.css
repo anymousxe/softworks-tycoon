@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Liquid Glass Design System */
+@layer base {
+  body {
+    @apply bg-[#050505] text-slate-200 font-sans selection:bg-cyan-500 selection:text-black antialiased;
+  }
+}
+
+@layer components {
+  /* Glass Panel Component */
+  .glass-panel {
+    @apply bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl transition-all duration-300;
+  }
+
+  .glass-panel:hover {
+    @apply border-white/10 bg-slate-900/60;
+  }
+
+  /* Liquid Glass Button */
+  .btn-glass {
+    @apply bg-white/5 hover:bg-white/10 backdrop-blur-md border border-white/10 rounded-xl px-6 py-3 font-bold transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply bg-white hover:bg-cyan-400 text-black font-black rounded-xl px-6 py-3 transition-all duration-300 shadow-lg;
+  }
+
+  /* Glow Effect */
+  .glow-cyan {
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.2);
+  }
+
+  .glow-cyan:hover {
+    box-shadow: 0 0 50px rgba(6, 182, 212, 0.4);
+  }
+
+  /* Smooth Animations */
+  .animate-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-slate-900/50;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-cyan-500/30 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-cyan-500/50;
+  }
+
+  /* Loading Spinner */
+  .spinner {
+    @apply animate-spin rounded-full border-4 border-slate-700 border-t-cyan-500;
+  }
+}
+
+/* Background Glow Effects */
+.bg-glow {
+  position: relative;
+}
+
+.bg-glow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
