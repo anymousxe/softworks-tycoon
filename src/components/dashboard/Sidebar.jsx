@@ -14,11 +14,12 @@ import {
     ShoppingCart,
     Settings,
     LogOut,
-    ChevronRight
+    ChevronRight,
+    Shield
 } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
-    const { logout } = useAuthStore();
+    const { logout, isAdmin } = useAuthStore();
 
     const navItems = [
         { id: 'dash', label: 'Home', icon: LayoutDashboard },
@@ -31,6 +32,10 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         { id: 'reviews', label: 'Reviews', icon: Star },
         { id: 'shop', label: 'Shop', icon: ShoppingCart },
     ];
+
+    if (isAdmin) {
+        navItems.push({ id: 'admin', label: 'Admin', icon: Shield });
+    }
 
     return (
         <aside className="w-24 md:w-64 bg-slate-950/50 backdrop-blur-xl border-r border-white/5 flex flex-col h-screen fixed left-0 top-0 z-40 transition-all duration-300">
@@ -47,8 +52,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                         key={item.id}
                         onClick={() => setActiveTab(item.id)}
                         className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all group ${activeTab === item.id
-                                ? 'bg-cyan-500/10 border border-cyan-500/20 text-cyan-400'
-                                : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'
+                            ? 'bg-cyan-500/10 border border-cyan-500/20 text-cyan-400'
+                            : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'
                             }`}
                     >
                         <item.icon className={`w-6 h-6 shrink-0 transition-transform ${activeTab === item.id ? 'scale-110' : 'group-hover:scale-110'}`} />

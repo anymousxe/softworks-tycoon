@@ -4,6 +4,8 @@ import TopBar from './TopBar';
 import DashboardHome from './DashboardHome';
 import AICreator from './AICreator';
 import HardwareMarket from './HardwareMarket';
+import AdminPanel from '../admin/AdminPanel';
+import SubscriptionBuilder from './SubscriptionBuilder';
 
 const Dashboard = () => {
     const [activeTab, setActiveTab] = useState('dash');
@@ -16,6 +18,8 @@ const Dashboard = () => {
                 return <AICreator onFinish={() => setActiveTab('dash')} />;
             case 'market':
                 return <HardwareMarket />;
+            case 'admin':
+                return <AdminPanel />;
             default:
                 return (
                     <div className="h-96 flex flex-col items-center justify-center text-center">

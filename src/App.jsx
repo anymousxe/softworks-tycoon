@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from './store/authStore';
 import useGameStore from './store/gameStore';
 import { supabase } from './lib/supabase';
+
+// Components
 import LoginScreen from './components/auth/LoginScreen';
 import LoadingState from './components/ui/LoadingState';
 import MigrationModal from './components/auth/MigrationModal';
@@ -13,9 +16,12 @@ import CompanySelector from './components/auth/CompanySelector';
 
 function App() {
     const { user, profile, loading, init, isAdmin } = useAuthStore();
-    const { activeCompany, loading: gameLoading } = useGameStore();
+    const { activeCompany } = useGameStore();
     const [siteStatus, setSiteStatus] = useState({ is_down: false, message: '' });
     const [statusLoading, setStatusLoading] = useState(true);
+
+    const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         init();
@@ -50,6 +56,20 @@ function App() {
         };
     }, [init]);
 
+    // Handle routing logic based on auth and company selection
+    useEffect(() => {
+        if (!loading && !statusLoading) {
+            if (!user) {
+                if (location.pathname !== '/') navigate('/');
+            } else if (activeCompany) {
+                if (location.pathname !== '/ai-tycoon') navigate('/ai-tycoon');
+            } else {
+                // Logged in but no company selected
+                if (location.pathname !== '/') navigate('/');
+            }
+        }
+    }, [user, activeCompany, loading, statusLoading, location.pathname, navigate]);
+
     if (loading || statusLoading) {
         return <LoadingState />;
     }
@@ -59,30 +79,34 @@ function App() {
         return <DowntimeScreen message={siteStatus.message} />;
     }
 
-    // If not logged in, show login screen
-    if (!user) {
-        return <LoginScreen />;
-    }
-
-    // If logged in but no company selected, show selector
-    if (!activeCompany) {
-        return (
-            <div className="bg-[#050505] min-h-screen">
-                <BroadcastBanner />
-                <UpdateModal />
-                <MigrationModal />
-                <CompanySelector />
-            </div>
-        );
-    }
-
-    // Main Dashboard
     return (
-        <div className="bg-[#050505] min-h-screen flex flex-col">
+        <div className="bg-[#050505] min-h-screen text-slate-200 selection:bg-cyan-500 selection:text-black">
             <BroadcastBanner />
             <UpdateModal />
             <MigrationModal />
-            <Dashboard />
+
+            <Routes>
+                <Route path="/" element={
+                    !user ? (
+                        <LoginScreen />
+                    ) : !activeCompany ? (
+                        <CompanySelector />
+                    ) : (
+                        <Navigate to="/ai-tycoon" replace />
+                    )
+                } />
+
+                <Route path="/ai-tycoon" element={
+                    user && activeCompany ? (
+                        <Dashboard />
+                    ) : (
+                        <Navigate to="/" replace />
+                    )
+                } />
+
+                {/* Catch-all for 404s */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
         </div>
     );
 }
