@@ -1,144 +1,142 @@
 import React, { useEffect, useState } from 'react';
-import useAuthStore from '../../store/authStore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle, Trash2, X } from 'lucide-react';
+import { auth } from '../../lib/firebase';
 import { supabase } from '../../lib/supabase';
-import { checkLegacySaves } from '../../lib/firebase';
-import { AlertTriangle, Trash2, RefreshCcw, DollarSign, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const MigrationModal = () => {
-    const { user, profile } = useAuthStore();
     const [show, setShow] = useState(false);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const checkMigration = async () => {
-            if (!user || !profile || profile.has_seen_migration_popup) return;
+        // Check if user has old localStorage data
+        const checkLegacyData = () => {
+            const user = auth.currentUser;
+            if (!user) return;
 
-            const hasLegacy = await checkLegacySaves(user.uid);
-            if (hasLegacy) {
+            // Check for old game data in localStorage
+            const hasLegacyData = localStorage.getItem('gameState') ||
+                localStorage.getItem('currentSave') ||
+                localStorage.getItem('saves');
+
+            // Check if user has already migrated
+            const hasMigrated = localStorage.getItem('migration_completed');
+
+            if (hasLegacyData && !hasMigrated) {
                 setShow(true);
-            } else {
-                // Mark as seen if no legacy data found
-                await supabase
-                    .from('users')
-                    .update({ has_seen_migration_popup: true })
-                    .eq('id', profile.id);
             }
         };
 
-        checkMigration();
-    }, [user, profile]);
+        // Listen for auth state changes
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                setTimeout(checkLegacyData, 1000); // Small delay to ensure everything is loaded
+            }
+        });
 
-    const handleMigrationChoice = async (choice) => {
+        return () => unsubscribe();
+    }, []);
+
+    const handleWipeClean = async () => {
         setLoading(true);
         try {
-            if (choice === 'migrate') {
-                toast.promise(
-                    new Promise(async (resolve, reject) => {
-                        // In a real scenario, this would involve fetching from Firestore 
-                        // and inserting into Supabase. For now, we'll mark as migrated.
-                        const { error } = await supabase
-                            .from('users')
-                            .update({
-                                has_migrated: true,
-                                has_seen_migration_popup: true
-                            })
-                            .eq('id', profile.id);
+            // Clear ALL localStorage data
+            localStorage.clear();
 
-                        if (error) reject(error);
-                        else resolve();
-                    }),
-                    {
-                        loading: 'Migrating legacy data...',
-                        success: 'Migration successful (some data may require manual fix)',
-                        error: 'Migration failed. Please try wiping clean.',
-                    }
-                );
-            } else {
-                // Wipe Clean
-                await supabase
-                    .from('users')
-                    .update({
-                        has_migrated: false,
-                        has_seen_migration_popup: true
-                    })
-                    .eq('id', profile.id);
+            // Mark migration as completed
+            localStorage.setItem('migration_completed', 'true');
 
-                // Delete any existing Supabase data if any
-                await supabase.from('companies').delete().eq('user_id', profile.id);
-
-                toast.success('Campaign wiped clean. Welcome to Version 3.0!');
-            }
+            toast.success('All legacy data wiped clean. Starting fresh!', { icon: '🧹' });
             setShow(false);
         } catch (error) {
+            toast.error('Failed to wipe data');
             console.error(error);
         } finally {
             setLoading(false);
         }
     };
 
+    const handleDismiss = () => {
+        // Just mark as completed without wiping
+        localStorage.setItem('migration_completed', 'true');
+        setShow(false);
+    };
+
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/90 backdrop-blur-md"></div>
-            <div className="relative glass-panel max-w-lg w-full p-8 border-yellow-500/30 overflow-hidden">
-                {/* Warning Glow */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-1 bg-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.5)]"></div>
+        <AnimatePresence>
+            <div className="fixed inset-0 z-[400] flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-black/90 backdrop-blur-xl"
+                    onClick={handleDismiss}
+                />
 
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="p-3 bg-yellow-500/10 rounded-2xl">
-                        <AlertTriangle className="w-8 h-8 text-yellow-500" />
-                    </div>
-                    <h2 className="text-3xl font-black text-white tracking-tight uppercase">Legacy Data Found</h2>
-                </div>
-
-                <p className="text-slate-300 mb-6 leading-relaxed">
-                    We detected existing simulation data from <span className="text-cyan-400 font-bold">Version 2.0</span>.
-                    The infrastructure has changed significantly. You can attempt to migrate your data, but it may cause
-                    <span className="text-red-400 font-bold"> system corruption</span>.
-                </p>
-
-                <div className="space-y-4 mb-8">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="relative glass-panel p-10 max-w-lg w-full border-yellow-500/20 bg-yellow-500/5"
+                >
                     <button
-                        onClick={() => handleMigrationChoice('migrate')}
-                        disabled={loading}
-                        className="w-full group flex items-center justify-between p-5 bg-slate-900/50 border border-white/5 hover:border-cyan-500 transition-all rounded-2xl"
+                        onClick={handleDismiss}
+                        className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors"
                     >
-                        <div className="flex items-center gap-4">
-                            <RefreshCcw className="w-6 h-6 text-cyan-400 group-hover:rotate-180 transition-transform duration-500" />
-                            <div className="text-left">
-                                <div className="font-bold text-white uppercase tracking-wider text-sm">Attempt Migration</div>
-                                <div className="text-[10px] text-slate-500 uppercase">May be buggy or corrupt saves</div>
-                            </div>
-                        </div>
+                        <X className="w-5 h-5" />
                     </button>
 
-                    <button
-                        onClick={() => handleMigrationChoice('wipe')}
-                        disabled={loading}
-                        className="w-full group flex items-center justify-between p-5 bg-red-500/5 border border-red-500/20 hover:bg-red-500/10 hover:border-red-500 transition-all rounded-2xl"
-                    >
-                        <div className="flex items-center gap-4">
-                            <Trash2 className="w-6 h-6 text-red-500" />
-                            <div className="text-left">
-                                <div className="font-bold text-white uppercase tracking-wider text-sm">Wipe Clean</div>
-                                <div className="text-[10px] text-slate-500 uppercase font-mono">Recommended for stability</div>
-                            </div>
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="p-4 bg-yellow-500/10 rounded-2xl border border-yellow-500/20">
+                            <AlertTriangle className="w-8 h-8 text-yellow-500" />
                         </div>
-                    </button>
-                </div>
+                        <div>
+                            <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Legacy Data Detected</h2>
+                            <p className="text-yellow-500/80 text-xs font-mono uppercase tracking-widest mt-1">System Migration Required</p>
+                        </div>
+                    </div>
 
-                <div className="bg-cyan-500/10 border border-cyan-500/20 p-4 rounded-xl flex items-center gap-4">
-                    <div className="p-2 bg-cyan-500/20 rounded-lg">
-                        <DollarSign className="w-5 h-5 text-cyan-400" />
+                    <div className="space-y-6 mb-10">
+                        <div className="glass-panel p-6 bg-red-500/5 border-red-500/20">
+                            <p className="text-slate-300 text-sm leading-relaxed mb-4">
+                                <span className="font-black text-red-400 uppercase">⚠️ Critical Notice:</span> Old game data from the previous version has been detected.
+                                The new AI Tycoon v3.0 uses a completely different architecture.
+                            </p>
+                            <p className="text-slate-400 text-xs leading-relaxed font-mono">
+                                We <span className="text-red-400 font-bold">strongly recommend</span> wiping all legacy data to prevent corruption and ensure optimal performance.
+                            </p>
+                        </div>
+
+                        <div className="text-center">
+                            <p className="text-slate-500 text-[10px] uppercase tracking-[0.3em] font-black">
+                                This action cannot be undone
+                            </p>
+                        </div>
                     </div>
-                    <div className="text-[10px] text-cyan-300 font-bold uppercase tracking-widest leading-relaxed">
-                        NEW USERS (OR WIPED USERS) GET A <span className="text-white">$15,000</span> STARTING BONUS GIFT.
+
+                    <div className="flex gap-4">
+                        <button
+                            onClick={handleDismiss}
+                            disabled={loading}
+                            className="flex-1 btn-glass py-4 text-slate-500 hover:text-white"
+                        >
+                            DISMISS
+                        </button>
+                        <button
+                            onClick={handleWipeClean}
+                            disabled={loading}
+                            className="flex-1 bg-red-600 hover:bg-red-500 text-white font-black py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 uppercase text-xs tracking-widest"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            {loading ? 'WIPING...' : 'WIPE CLEAN'}
+                        </button>
                     </div>
-                </div>
+                </motion.div>
             </div>
-        </div>
+        </AnimatePresence>
     );
 };
 

@@ -3,84 +3,92 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Check if Supabase is configured
+const isSupabaseConfigured = supabaseUrl &&
+    supabaseAnonKey &&
+    !supabaseUrl.includes('YOUR_SUPABASE') &&
+    !supabaseAnonKey.includes('YOUR_SUPABASE');
+
+export const supabase = isSupabaseConfigured
+    ? createClient(supabaseUrl, supabaseAnonKey)
+    : null;
 
 // Sync Firebase user with Supabase
 export const syncUserWithSupabase = async (firebaseUser) => {
-    if (!firebaseUser) return null;
-
-    const { data: existingUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('firebase_uid', firebaseUser.uid)
-        .single();
-
-    if (existingUser) {
-        // Update last_seen
-        await supabase
-            .from('users')
-            .update({ last_seen: new Date().toISOString() })
-            .eq('firebase_uid', firebaseUser.uid);
-        return existingUser;
-    }
-
-    // Create new user
-    const { data: newUser, error } = await supabase
-        .from('users')
-        .insert([{
-            firebase_uid: firebaseUser.uid,
+    if (!supabase) {
+        console.warn('Supabase not configured. Skipping sync.');
+        return {
+            id: firebaseUser.uid,
             email: firebaseUser.email,
-            display_name: firebaseUser.displayName || 'Guest Agent',
-            photo_url: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`,
-            is_admin: firebaseUser.email === import.meta.env.VITE_ADMIN_EMAIL
-        }])
-        .select()
-        .single();
-
-    if (error) {
-        console.error('Error creating user:', error);
-        return null;
+            display_name: firebaseUser.displayName || 'Anonymous',
+            photo_url: firebaseUser.photoURL || null
+        };
     }
 
-    return newUser;
-};
-
-// Database backup helper
-export const createDatabaseBackup = async (userId) => {
     try {
-        const { data: companies } = await supabase
-            .from('companies')
-            .select('*, hardware(*), models(*)')
-            .eq('user_id', userId);
-
-        const backup = {
-            timestamp: new Date().toISOString(),
-            user_id: userId,
-            companies: companies || []
+        const userData = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            display_name: firebaseUser.displayName || 'Anonymous',
+            photo_url: firebaseUser.photoURL || null,
+            is_anonymous: firebaseUser.isAnonymous
         };
 
-        // Store backup in local storage as failsafe
-        localStorage.setItem(`backup_${userId}_${Date.now()}`, JSON.stringify(backup));
+        // Upsert user in Supabase
+        const { data, error } = await supabase
+            .from('users')
+            .upsert(userData, { onConflict: 'id' })
+            .select()
+            .single();
 
-        // Also log to console for manual recovery if needed
-        console.log('🛡️ Database backup created:', backup);
-
-        return backup;
+        if (error) throw error;
+        return data;
     } catch (error) {
-        console.error('Backup failed:', error);
+        console.error('Supabase sync failed:', error);
+        // Return basic user data even if sync fails
+        return {
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            display_name: firebaseUser.displayName || 'Anonymous',
+            photo_url: firebaseUser.photoURL || null
+        };
+    }
+};
+
+// Database backup function
+export const createDatabaseBackup = async (userId) => {
+    if (!supabase) return null;
+
+    try {
+        const { data, error } = await supabase
+            .from('database_backups')
+            .insert([{ user_id: userId }])
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Backup creation failed:', error);
         return null;
     }
 };
 
 // Restore from backup
-export const restoreFromBackup = async (backupData) => {
+export const restoreFromBackup = async (backupId) => {
+    if (!supabase) return null;
+
     try {
-        // This would restore data from backup
-        console.log('Restoring from backup:', backupData);
-        // Implementation would go here
-        return true;
+        const { data, error } = await supabase
+            .from('database_backups')
+            .select('*')
+            .eq('id', backupId)
+            .single();
+
+        if (error) throw error;
+        return data;
     } catch (error) {
-        console.error('Restore failed:', error);
-        return false;
+        console.error('Backup restoration failed:', error);
+        return null;
     }
 };

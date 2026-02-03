@@ -17,22 +17,37 @@
   }
 
   .glass-panel:hover {
-    @apply border-white/20 bg-slate-900/60 scale-[1.005];
+    @apply border-white/20 bg-slate-900/60;
+    transform: scale(1.005);
     box-shadow: inset 0 0 60px rgba(6, 182, 212, 0.05), 0 30px 60px rgba(0, 0, 0, 0.6);
   }
 
   /* Liquid Chrome Button */
   .btn-premium {
-    @apply relative overflow-hidden bg-white text-black px-8 py-4 rounded-2xl font-black text-xs tracking-[0.2em] transition-all duration-500 hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255, 255, 255, 0.3)];
+    @apply relative overflow-hidden bg-white text-black px-8 py-4 rounded-2xl font-black text-xs tracking-[0.2em] transition-all duration-500;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  }
+
+  .btn-premium:hover {
+    transform: scale(1.05);
+  }
+
+  .btn-premium:active {
+    transform: scale(0.95);
   }
 
   .btn-premium::after {
     content: '';
-    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent translate-x-[-100%] transition-transform duration-1000 skew-x-[-20deg];
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent transition-transform duration-1000;
+    transform: translateX(-100%) skewX(-20deg);
   }
 
   .btn-premium:hover::after {
-    @apply translate-x-[200%];
+    transform: translateX(200%) skewX(-20deg);
+  }
+
+  .btn-primary {
+    @apply bg-white hover:bg-cyan-400 text-black font-black rounded-xl px-6 py-3 transition-all duration-300 shadow-lg;
   }
 
   .btn-glass {
@@ -65,11 +80,6 @@
     }
   }
 
-  /* Text Gradient */
-  .text-glow {
-    @apply bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500;
-  }
-
   .animate-in {
     animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   }
@@ -86,6 +96,11 @@
     }
   }
 
+  /* Text Gradient */
+  .text-glow {
+    @apply bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-500;
+  }
+
   /* Custom Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -96,7 +111,11 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+    @apply bg-white/10 rounded-full;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-white/20;
   }
 }
 

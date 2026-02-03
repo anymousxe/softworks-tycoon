@@ -25,17 +25,23 @@ function App() {
     const location = useLocation();
 
     useEffect(() => {
+        // Initialize auth
         init();
 
         // Check Site Status (Downtime)
         const checkStatus = async () => {
-            const { data } = await supabase
-                .from('site_status')
-                .select('*')
-                .single();
+            try {
+                const { data } = await supabase
+                    .from('site_status')
+                    .select('*')
+                    .single();
 
-            if (data) setSiteStatus(data);
-            setStatusLoading(false);
+                if (data) setSiteStatus(data);
+            } catch (error) {
+                console.log('Site status check failed (table may not exist yet):', error);
+            } finally {
+                setStatusLoading(false);
+            }
         };
 
         checkStatus();
@@ -81,7 +87,7 @@ function App() {
     }
 
     return (
-        <div className="bg-[#050505] min-h-screen text-slate-200 selection:bg-cyan-500 selection:text-black">
+        <div className="bg-[#030303] min-h-screen text-slate-200 selection:bg-cyan-500 selection:text-black">
             <BroadcastBanner />
             <UpdateModal />
             <MigrationModal />
