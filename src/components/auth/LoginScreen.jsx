@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Google, Ghost, ArrowRight, Cpu, Zap, Globe, Lock, Terminal } from 'lucide-react';
+import { Shield, Chrome, Ghost, ArrowRight, Cpu, Zap, Globe, Lock, Terminal } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import { toast } from 'react-hot-toast';
 
@@ -92,7 +92,7 @@ const LoginScreen = () => {
                                     className="w-full btn-premium flex items-center justify-center gap-4 py-5 hover:tracking-[0.3em]"
                                 >
                                     <div className="bg-white/10 p-2 rounded-lg">
-                                        <Google className="w-5 h-5" />
+                                        <Chrome className="w-5 h-5" />
                                     </div>
                                     ESTABLISH NEURAL LINK
                                 </button>

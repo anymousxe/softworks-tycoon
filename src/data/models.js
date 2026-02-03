@@ -68,7 +68,7 @@ export const VARIANT_TYPES = [
     { id: 'lite', name: 'Lite', costMult: 0.6, qualityMult: 0.7, desc: 'Faster, cheaper' },
     { id: 'flash', name: 'Flash', costMult: 0.5, qualityMult: 0.6, desc: 'Fastest response' },
     { id: 'pro', name: 'Pro', costMult: 1.5, qualityMult: 1.3, desc: 'Higher quality' },
-    { id: 'mini', name: 'Mini', costMult: 0.4, quality Mult: 0.5, desc: 'Smallest model' },
+    { id: 'mini', name: 'Mini', costMult: 0.4, qualityMult: 0.5, desc: 'Smallest model' },
     { id: 'ultra', name: 'Ultra', costMult: 2.0, qualityMult: 1.6, desc: 'Maximum power' }
 ];
 

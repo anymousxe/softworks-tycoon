@@ -1,11 +1,23 @@
 import React from 'react';
 import useGameStore from '../../store/gameStore';
-import { DollarSign, Cpu, FlaskConical, Calendar, FastForward } from 'lucide-react';
+import useAuthStore from '../../store/authStore';
+import { DollarSign, Calendar, FastForward, LogOut, User } from 'lucide-react';
 
 const TopBar = () => {
     const { activeCompany, nextWeek } = useGameStore();
+    const { user, profile, logout } = useAuthStore();
 
     if (!activeCompany) return null;
+
+    const handleLogout = async () => {
+        if (confirm('Are you sure you want to logout?')) {
+            await logout();
+        }
+    };
+
+    // Get display name and photo
+    const displayName = profile?.display_name || user?.displayName || 'User';
+    const photoURL = profile?.photo_url || user?.photoURL;
 
     return (
         <header className="h-20 bg-slate-950/40 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-8 fixed top-0 right-0 left-24 md:left-64 z-30 transition-all duration-300">
@@ -62,6 +74,35 @@ const TopBar = () => {
                         NEXT WEEK
                         <FastForward className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
+
+                    {/* User Profile & Logout */}
+                    <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+                        {photoURL ? (
+                            <img
+                                src={photoURL}
+                                alt={displayName}
+                                className="w-10 h-10 rounded-full border-2 border-white/10"
+                                onError={(e) => {
+                                    e.target.style.display = 'none';
+                                    e.target.nextSibling.style.display = 'flex';
+                                }}
+                            />
+                        ) : null}
+                        <div
+                            className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white/10 flex items-center justify-center"
+                            style={{ display: photoURL ? 'none' : 'flex' }}
+                        >
+                            <User className="w-5 h-5 text-slate-500" />
+                        </div>
+
+                        <button
+                            onClick={handleLogout}
+                            className="p-2 hover:bg-red-500/10 rounded-lg transition-colors group"
+                            title="Logout"
+                        >
+                            <LogOut className="w-5 h-5 text-slate-500 group-hover:text-red-500 transition-colors" />
+                        </button>
+                    </div>
                 </div>
             </div>
         </header>
