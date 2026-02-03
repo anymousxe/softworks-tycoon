@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import useGameStore from '../../store/gameStore';
 import { HARDWARE, SHOP_ITEMS } from '../../data/constants';
-import { Cpu, Server, Zap, ShoppingCart, Info, Check, Package, TrendingUp } from 'lucide-react';
+import { Cpu, Server, Zap, ShoppingCart, Info, Package, TrendingUp, Plus } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const HardwareMarket = () => {
-    const { activeCompany, hardware, buyHardware } = useGameStore();
+    const { activeCompany, purchaseHardware } = useGameStore();
     const [activeTab, setActiveTab] = useState('compute');
     const [loadingId, setLoadingId] = useState(null);
 
-    const handlePurchase = async (item) => {
-        if (activeCompany.cash < item.cost) return toast.error('Insufficient capital for requisition');
+    // Safe access to hardware array
+    const hardware = activeCompany?.hardware || [];
+
+    const handlePurchase = (item) => {
+        if (!activeCompany || activeCompany.cash < item.cost) {
+            return toast.error('Insufficient capital for requisition');
+        }
 
         setLoadingId(item.id);
         try {
-            await buyHardware(item.id, item.cost);
-            toast.success(`${item.name} successfully deployed to infrastructure.`, {
-                icon: '🛰️',
-                className: 'glass-panel text-white'
-            });
+            purchaseHardware(item);
+            toast.success(`${item.name} successfully deployed!`, { icon: '🛰️' });
         } catch (error) {
             toast.error('Deployment failed');
         } finally {
@@ -27,9 +29,16 @@ const HardwareMarket = () => {
     };
 
     const getOwnedCount = (id) => {
-        const hw = hardware.find(h => h.type_id === id);
-        return hw ? hw.count : 0;
+        return hardware.filter(h => h.id === id).length;
     };
+
+    if (!activeCompany) {
+        return (
+            <div className="h-96 flex items-center justify-center">
+                <p className="text-slate-500">Loading...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="animate-in space-y-10 mb-20">
@@ -68,7 +77,6 @@ const HardwareMarket = () => {
 
                         return (
                             <div key={hw.id} className="glass-panel p-8 flex flex-col justify-between group h-80 relative overflow-hidden transition-all hover:bg-slate-900/60 font-sans">
-                                {/* Background Decor */}
                                 <Cpu className="absolute -right-4 -bottom-4 w-32 h-32 text-white/[0.02] group-hover:text-cyan-500/[0.05] transition-all group-hover:scale-110" />
 
                                 <div className="relative z-10">
@@ -108,8 +116,8 @@ const HardwareMarket = () => {
                                             onClick={() => handlePurchase(hw)}
                                             disabled={!canAfford || loadingId === hw.id}
                                             className={`p-4 rounded-xl transition-all shadow-xl ${canAfford
-                                                    ? 'bg-white text-black hover:bg-cyan-400'
-                                                    : 'bg-white/5 text-slate-700 cursor-not-allowed'
+                                                ? 'bg-white text-black hover:bg-cyan-400'
+                                                : 'bg-white/5 text-slate-700 cursor-not-allowed'
                                                 }`}
                                         >
                                             {loadingId === hw.id ? <Package className="w-5 h-5 animate-bounce" /> : <ShoppingCart className="w-5 h-5" />}
@@ -120,7 +128,7 @@ const HardwareMarket = () => {
                         );
                     })
                 ) : (
-                    SHOP_ITEMS.map((item) => {
+                    (SHOP_ITEMS || []).map((item) => {
                         const canAfford = activeCompany.cash >= item.cost;
                         return (
                             <div key={item.id} className="glass-panel p-8 flex flex-col justify-between group h-80 border-purple-500/10 hover:border-purple-500/30">
@@ -145,8 +153,8 @@ const HardwareMarket = () => {
                                         onClick={() => handlePurchase(item)}
                                         disabled={!canAfford || loadingId === item.id}
                                         className={`p-4 rounded-xl transition-all shadow-xl shadow-purple-500/5 ${canAfford
-                                                ? 'bg-purple-600 text-white hover:bg-purple-400'
-                                                : 'bg-white/5 text-slate-700 cursor-not-allowed'
+                                            ? 'bg-purple-600 text-white hover:bg-purple-400'
+                                            : 'bg-white/5 text-slate-700 cursor-not-allowed'
                                             }`}
                                     >
                                         {loadingId === item.id ? <Package className="w-5 h-5 animate-bounce" /> : <Plus className="w-5 h-5" />}
@@ -172,7 +180,5 @@ const HardwareMarket = () => {
         </div>
     );
 };
-
-import { Plus } from 'lucide-react';
 
 export default HardwareMarket;
