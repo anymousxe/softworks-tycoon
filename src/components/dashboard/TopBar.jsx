@@ -1,0 +1,71 @@
+import React from 'react';
+import useGameStore from '../../store/gameStore';
+import { DollarSign, Cpu, FlaskConical, Calendar, FastForward } from 'lucide-react';
+
+const TopBar = () => {
+    const { activeCompany, nextWeek } = useGameStore();
+
+    if (!activeCompany) return null;
+
+    return (
+        <header className="h-20 bg-slate-950/40 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-8 fixed top-0 right-0 left-24 md:left-64 z-30 transition-all duration-300">
+            <div className="flex items-center gap-6">
+                <div>
+                    <h2 className="text-xl font-black text-white tracking-tight leading-none uppercase">{activeCompany.name}</h2>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        <span className="text-[10px] text-cyan-400 font-mono font-bold tracking-widest uppercase opacity-70">Simulation Link Stable</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-8">
+                <div className="hidden lg:flex items-center gap-8 border-r border-white/10 pr-8">
+                    <div className="text-right">
+                        <div className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-0.5">Corporate Funds</div>
+                        <div className="text-green-400 font-black text-xl tracking-tighter flex items-center justify-end">
+                            <DollarSign className="w-4 h-4" />
+                            {activeCompany.cash.toLocaleString()}
+                        </div>
+                    </div>
+
+                    <div className="text-right">
+                        <div className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-0.5">Compute Power</div>
+                        <div className="text-blue-400 font-black text-xl tracking-tighter flex items-center justify-end gap-1">
+                            {activeCompany.compute || 0}
+                            <span className="text-xs font-mono ml-0.5">TF</span>
+                        </div>
+                    </div>
+
+                    <div className="text-right">
+                        <div className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-0.5">Research Points</div>
+                        <div className="text-purple-400 font-black text-xl tracking-tighter flex items-center justify-end gap-1">
+                            {activeCompany.research_pts}
+                            <span className="text-xs font-mono ml-0.5">PTS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <div className="text-right">
+                        <div className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-0.5">Simulation Timeline</div>
+                        <div className="text-white font-mono text-sm font-bold flex items-center gap-2 justify-end">
+                            <Calendar className="w-3 h-3 text-slate-500" />
+                            W{activeCompany.week}/{activeCompany.year}
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={nextWeek}
+                        className="bg-white hover:bg-cyan-400 text-black px-6 py-3 rounded-xl font-black text-xs tracking-widest transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group shadow-xl shadow-white/5"
+                    >
+                        NEXT WEEK
+                        <FastForward className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                </div>
+            </div>
+        </header>
+    );
+};
+
+export default TopBar;
