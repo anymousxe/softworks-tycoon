@@ -77,24 +77,29 @@ const TopBar = () => {
 
                     {/* User Profile & Logout */}
                     <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+                        {/* Profile Picture */}
                         {photoURL ? (
                             <img
                                 src={photoURL}
                                 alt={displayName}
-                                className="w-10 h-10 rounded-full border-2 border-white/10"
+                                className="w-10 h-10 rounded-full border-2 border-white/10 object-cover"
                                 onError={(e) => {
                                     e.target.style.display = 'none';
-                                    e.target.nextSibling.style.display = 'flex';
                                 }}
                             />
-                        ) : null}
-                        <div
-                            className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white/10 flex items-center justify-center"
-                            style={{ display: photoURL ? 'none' : 'flex' }}
-                        >
-                            <User className="w-5 h-5 text-slate-500" />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-800 border-2 border-white/10 flex items-center justify-center">
+                                <User className="w-5 h-5 text-slate-500" />
+                            </div>
+                        )}
+
+                        {/* Username - Hidden on small screens */}
+                        <div className="hidden md:block">
+                            <div className="text-white font-bold text-sm leading-none">{displayName}</div>
+                            <div className="text-[9px] text-slate-500 font-mono uppercase tracking-widest mt-1">Neural Architect</div>
                         </div>
 
+                        {/* Logout Button */}
                         <button
                             onClick={handleLogout}
                             className="p-2 hover:bg-red-500/10 rounded-lg transition-colors group"
