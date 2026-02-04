@@ -10,16 +10,6 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      },
-      mangle: true,
-      format: {
-        comments: false
-      }
-    }
+    minify: 'esbuild'
   }
 })
