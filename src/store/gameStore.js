@@ -201,6 +201,30 @@ const useGameStore = create(
                 return newCompany;
             },
 
+            // Delete a company
+            deleteCompany: async (companyId) => {
+                const { companies, activeCompany } = get();
+
+                if (supabase) {
+                    try {
+                        await supabase
+                            .from('companies')
+                            .delete()
+                            .eq('id', companyId);
+                    } catch (e) {
+                        console.warn('Supabase delete failed, continuing with local:', e);
+                    }
+                }
+
+                const updatedCompanies = companies.filter(c => c.id !== companyId);
+                const newActiveCompany = activeCompany?.id === companyId ? null : activeCompany;
+
+                set({
+                    companies: updatedCompanies,
+                    activeCompany: newActiveCompany
+                });
+            },
+
             // Create a new model (FREE)
             createModel: async (modelData) => {
                 const { activeCompany } = get();

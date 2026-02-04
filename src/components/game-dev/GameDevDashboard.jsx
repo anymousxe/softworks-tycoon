@@ -3,12 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import {
     Home, Gamepad2, Building2, Users, TrendingUp, Settings, LogOut,
     Trophy, DollarSign, Calendar, Clock, Play, Pause, FastForward,
-    Plus, Star, MessageCircle, Video, Sparkles, ChevronRight
+    Plus, Star, MessageCircle, Video, Sparkles, ChevronRight, Store
 } from 'lucide-react';
 import useGameDevStore, { GENRES, GAME_SCOPES, ENGINES, PUBLISHERS } from '../../store/gameDevStore';
 import useAuthStore from '../../store/authStore';
 import MistPanel from './MistPanel';
 import SocialPanel from './SocialPanel';
+import StudioPanel from './StudioPanel';
+import FinancesPanel from './FinancesPanel';
+import AwardsPanel from './AwardsPanel';
+import SettingsPanel from './SettingsPanel';
+import StoresPanel from './StoresPanel';
 
 // Character Avatar Component (CSS-based sprite)
 const CharacterAvatar = ({ character, size = 'md' }) => {
@@ -94,6 +99,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         { id: 'home', icon: Home, label: 'Dashboard' },
         { id: 'develop', icon: Gamepad2, label: 'Develop' },
         { id: 'studio', icon: Building2, label: 'Studio' },
+        { id: 'stores', icon: Store, label: 'Stores' },
         { id: 'mist', icon: () => <span className="text-lg">⚙️</span>, label: 'Mist Store' },
         { id: 'social', icon: MessageCircle, label: 'Social' },
         { id: 'finances', icon: DollarSign, label: 'Finances' },
@@ -482,10 +488,11 @@ const GameDevDashboard = () => {
             case 'develop': return <DevelopPanel />;
             case 'mist': return <MistPanel />;
             case 'social': return <SocialPanel />;
-            case 'studio': return <div className="p-8 text-white">Studio Management - Coming Soon</div>;
-            case 'finances': return <div className="p-8 text-white">Finances - Coming Soon</div>;
-            case 'awards': return <div className="p-8 text-white">Awards - Coming Soon</div>;
-            case 'settings': return <div className="p-8 text-white">Settings - Coming Soon</div>;
+            case 'studio': return <StudioPanel />;
+            case 'stores': return <StoresPanel />;
+            case 'finances': return <FinancesPanel />;
+            case 'awards': return <AwardsPanel />;
+            case 'settings': return <SettingsPanel />;
             default: return <DashboardHome setActiveTab={setActiveTab} />;
         }
     };

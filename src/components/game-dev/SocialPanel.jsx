@@ -1,14 +1,55 @@
 import React, { useState } from 'react';
 import {
     MessageCircle, Video, Heart, Repeat2, Send, Plus,
-    ThumbsUp, ThumbsDown, Eye, Users, Sparkles, AlertCircle
+    ThumbsUp, ThumbsDown, Eye, Users, Sparkles, AlertCircle,
+    Trash2, X, MoreVertical
 } from 'lucide-react';
 import useGameDevStore, { RANDOM_USERNAMES } from '../../store/gameDevStore';
 
+// Delete Confirmation Modal
+const DeleteConfirmModal = ({ title, onConfirm, onCancel }) => (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-8">
+        <div className="bg-slate-900 rounded-2xl p-8 max-w-md w-full">
+            <div className="w-16 h-16 rounded-full bg-red-500/20 mx-auto mb-6 flex items-center justify-center">
+                <Trash2 className="w-8 h-8 text-red-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-white text-center mb-2">Delete {title}?</h2>
+            <p className="text-slate-400 text-center mb-8">This action cannot be undone.</p>
+            <div className="flex gap-4">
+                <button onClick={onCancel} className="flex-1 py-3 bg-slate-800 rounded-xl text-slate-400 font-bold">Cancel</button>
+                <button onClick={onConfirm} className="flex-1 py-3 bg-red-500 hover:bg-red-600 rounded-xl text-white font-bold">Delete</button>
+            </div>
+        </div>
+    </div>
+);
+
 // Z Post Component (Twitter/X parody)
-const ZPost = ({ post, studioName }) => {
+const ZPost = ({ post, studioName, onDelete }) => {
+    const [showMenu, setShowMenu] = useState(false);
+
     return (
-        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-4">
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-4 relative group">
+            {/* Delete Menu Button */}
+            <div className="absolute top-4 right-4">
+                <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="p-2 hover:bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                    <MoreVertical className="w-4 h-4 text-slate-500" />
+                </button>
+                {showMenu && (
+                    <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-xl overflow-hidden z-10 shadow-xl">
+                        <button
+                            onClick={() => { onDelete(post.id); setShowMenu(false); }}
+                            className="px-4 py-3 flex items-center gap-2 text-red-400 hover:bg-red-500/10 w-full text-left"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Post
+                        </button>
+                    </div>
+                )}
+            </div>
+
             <div className="flex gap-3">
                 {/* Avatar */}
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
@@ -58,9 +99,32 @@ const ZPost = ({ post, studioName }) => {
 };
 
 // YouVideo Video Component
-const YouVideoCard = ({ video, studioName }) => {
+const YouVideoCard = ({ video, studioName, onDelete }) => {
+    const [showMenu, setShowMenu] = useState(false);
+
     return (
-        <div className="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden">
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden group relative">
+            {/* Delete Menu Button */}
+            <div className="absolute top-2 right-2 z-10">
+                <button
+                    onClick={() => setShowMenu(!showMenu)}
+                    className="p-2 bg-black/50 hover:bg-black/70 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                    <MoreVertical className="w-4 h-4 text-white" />
+                </button>
+                {showMenu && (
+                    <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-white/10 rounded-xl overflow-hidden shadow-xl">
+                        <button
+                            onClick={() => { onDelete(video.id); setShowMenu(false); }}
+                            className="px-4 py-3 flex items-center gap-2 text-red-400 hover:bg-red-500/10 w-full text-left"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            Delete Video
+                        </button>
+                    </div>
+                )}
+            </div>
+
             {/* Thumbnail */}
             <div className="aspect-video bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center relative">
                 <Video className="w-16 h-16 text-red-400" />
@@ -92,13 +156,17 @@ const YouVideoCard = ({ video, studioName }) => {
 
 // Social Media Panel
 const SocialPanel = () => {
-    const { studio, zPosts, youVideoPosts, zFollowers, youVideoSubscribers, postToZ, postToYouVideo, releasedGames } = useGameDevStore();
+    const {
+        studio, zPosts, youVideoPosts, zFollowers, youVideoSubscribers,
+        postToZ, postToYouVideo, deleteZPost, deleteYouVideo, releasedGames
+    } = useGameDevStore();
 
     const [activeTab, setActiveTab] = useState('z');
     const [showCompose, setShowCompose] = useState(false);
     const [newPost, setNewPost] = useState({ content: '', title: '', description: '' });
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState(null);
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
 
     // Generate fake comments (simulating AI)
     const generateComments = (content) => {
@@ -204,6 +272,23 @@ const SocialPanel = () => {
         }, 1000);
     };
 
+    const handleDeleteZ = (postId) => {
+        setDeleteConfirm({ type: 'z', id: postId });
+    };
+
+    const handleDeleteYouVideo = (videoId) => {
+        setDeleteConfirm({ type: 'youvideo', id: videoId });
+    };
+
+    const confirmDelete = () => {
+        if (deleteConfirm.type === 'z') {
+            deleteZPost(deleteConfirm.id);
+        } else {
+            deleteYouVideo(deleteConfirm.id);
+        }
+        setDeleteConfirm(null);
+    };
+
     return (
         <div className="p-8">
             <h1 className="text-3xl font-black text-white mb-8">Social Media</h1>
@@ -213,8 +298,8 @@ const SocialPanel = () => {
                 <button
                     onClick={() => setActiveTab('z')}
                     className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${activeTab === 'z'
-                            ? 'bg-slate-800 text-white'
-                            : 'text-slate-500 hover:text-white'
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-500 hover:text-white'
                         }`}
                 >
                     <span className="text-xl">𝕏</span>
@@ -224,8 +309,8 @@ const SocialPanel = () => {
                 <button
                     onClick={() => setActiveTab('youvideo')}
                     className={`px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all ${activeTab === 'youvideo'
-                            ? 'bg-slate-800 text-white'
-                            : 'text-slate-500 hover:text-white'
+                        ? 'bg-slate-800 text-white'
+                        : 'text-slate-500 hover:text-white'
                         }`}
                 >
                     <span className="text-xl text-red-500">▶️</span>
@@ -329,7 +414,7 @@ const SocialPanel = () => {
                         </div>
                     ) : (
                         zPosts.map(post => (
-                            <ZPost key={post.id} post={post} studioName={studio?.name} />
+                            <ZPost key={post.id} post={post} studioName={studio?.name} onDelete={handleDeleteZ} />
                         ))
                     )}
                 </div>
@@ -346,10 +431,19 @@ const SocialPanel = () => {
                         </div>
                     ) : (
                         youVideoPosts.map(video => (
-                            <YouVideoCard key={video.id} video={video} studioName={studio?.name} />
+                            <YouVideoCard key={video.id} video={video} studioName={studio?.name} onDelete={handleDeleteYouVideo} />
                         ))
                     )}
                 </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {deleteConfirm && (
+                <DeleteConfirmModal
+                    title={deleteConfirm.type === 'z' ? 'Post' : 'Video'}
+                    onConfirm={confirmDelete}
+                    onCancel={() => setDeleteConfirm(null)}
+                />
             )}
         </div>
     );
