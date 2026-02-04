@@ -6,7 +6,7 @@ import { REVIEWS_DB } from '../../data/models';
 const ReviewsPanel = () => {
     const { activeCompany } = useGameStore();
     const models = activeCompany?.models || [];
-    const liveModels = models.filter(m => m.released || m.status === 'live');
+    const liveModels = models.filter(m => m.status === 'released');
 
     // Generate fake reviews based on model quality
     const generateReviews = (model) => {

@@ -10,6 +10,7 @@ import LabPanel from './LabPanel';
 import BusinessPanel from './BusinessPanel';
 import ReviewsPanel from './ReviewsPanel';
 import ShopPanel from './ShopPanel';
+import SettingsPanel from './SettingsPanel';
 import AdminPanel from '../admin/AdminPanel';
 
 const Dashboard = () => {
@@ -35,6 +36,8 @@ const Dashboard = () => {
                 return <ReviewsPanel />;
             case 'shop':
                 return <ShopPanel />;
+            case 'settings':
+                return <SettingsPanel />;
             case 'admin':
                 return <AdminPanel />;
             default:
