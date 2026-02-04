@@ -358,3 +358,157 @@ export const LAWSUIT_EVENTS = [
 
 export const APP_ID = 'softworks-tycoon';
 export const ADMIN_EMAIL = 'anymousxe.info@gmail.com';
+
+// Initial leaderboard models for 2024 start (relatively small models)
+export const INITIAL_LEADERBOARD_2024 = [
+    { name: 'GPT-4', company: 'OpenAI', params: 1760000000000, type: 'text', quality: 92, released: '2024-01', isOpenSource: false },
+    { name: 'Claude 2.1', company: 'Anthropic', params: 175000000000, type: 'text', quality: 88, released: '2024-01', isOpenSource: false },
+    { name: 'Gemini Pro', company: 'Google DeepMind', params: 340000000000, type: 'multimodal', quality: 89, released: '2024-01', isOpenSource: false },
+    { name: 'Llama 2 70B', company: 'Meta AI', params: 70000000000, type: 'text', quality: 78, released: '2024-01', isOpenSource: true },
+    { name: 'Mistral Medium', company: 'Mistral AI', params: 56000000000, type: 'text', quality: 76, released: '2024-01', isOpenSource: false },
+    { name: 'Phi-2', company: 'Microsoft AI', params: 2700000000, type: 'text', quality: 52, released: '2024-01', isOpenSource: true },
+    { name: 'DBRX Base', company: 'Databricks', params: 132000000000, type: 'text', quality: 72, released: '2024-01', isOpenSource: true },
+    { name: 'Falcon 180B', company: 'TII UAE', params: 180000000000, type: 'text', quality: 74, released: '2024-01', isOpenSource: true },
+    { name: 'Qwen 72B', company: 'Alibaba Cloud AI', params: 72000000000, type: 'text', quality: 71, released: '2024-01', isOpenSource: true },
+    { name: 'DeepSeek LLM 67B', company: 'DeepSeek', params: 67000000000, type: 'text', quality: 68, released: '2024-01', isOpenSource: true },
+    { name: 'Command R', company: 'Cohere', params: 35000000000, type: 'text', quality: 65, released: '2024-01', isOpenSource: false },
+    { name: 'Solar 10.7B', company: 'Upstage', params: 10700000000, type: 'text', quality: 55, released: '2024-01', isOpenSource: true },
+    { name: 'Midjourney v5.2', company: 'Midjourney', params: 8000000000, type: 'image', quality: 88, released: '2024-01', isOpenSource: false },
+    { name: 'DALL-E 3', company: 'OpenAI', params: 12000000000, type: 'image', quality: 85, released: '2024-01', isOpenSource: false },
+    { name: 'Stable Diffusion XL', company: 'Stability AI', params: 6600000000, type: 'image', quality: 78, released: '2024-01', isOpenSource: true },
+];
+
+// Competitor AI release patterns - models they might build over time
+export const COMPETITOR_MODEL_TEMPLATES = [
+    // OpenAI releases
+    { company: 'OpenAI', prefix: 'GPT', versions: ['4.5', '5', '5.5', '6'], variants: ['', 'o', 'o1', 'o3'], baseParams: 1500000000000, growthRate: 1.3, silentChance: 0.05 },
+    { company: 'OpenAI', prefix: 'DALL-E', versions: ['4', '5'], variants: ['', 'Pro'], baseParams: 15000000000, growthRate: 1.5, silentChance: 0.02, type: 'image' },
+    { company: 'OpenAI', prefix: 'Sora', versions: ['1', '2', '3'], variants: ['', 'Pro', 'Ultra'], baseParams: 50000000000, growthRate: 2.0, silentChance: 0.1, type: 'video' },
+
+    // Anthropic releases
+    { company: 'Anthropic', prefix: 'Claude', versions: ['3', '3.5', '4', '4.5', '5'], variants: ['Haiku', 'Sonnet', 'Opus'], baseParams: 400000000000, growthRate: 1.4, silentChance: 0.08 },
+
+    // Google releases
+    { company: 'Google DeepMind', prefix: 'Gemini', versions: ['1.5', '2', '2.5', '3'], variants: ['Flash', 'Pro', 'Ultra'], baseParams: 800000000000, growthRate: 1.5, silentChance: 0.1 },
+    { company: 'Google DeepMind', prefix: 'AlphaCode', versions: ['2', '3'], variants: ['', 'Pro'], baseParams: 100000000000, growthRate: 1.6, silentChance: 0.15 },
+    { company: 'Google DeepMind', prefix: 'Imagen', versions: ['3', '4'], variants: ['', 'Video'], baseParams: 20000000000, growthRate: 1.8, silentChance: 0.05, type: 'image' },
+
+    // Meta releases (mostly open source)
+    { company: 'Meta AI', prefix: 'Llama', versions: ['3', '3.1', '4', '5'], variants: ['8B', '70B', '405B', '1T'], baseParams: 405000000000, growthRate: 1.3, silentChance: 0.03, isOpenSource: true },
+
+    // xAI releases
+    { company: 'xAI', prefix: 'Grok', versions: ['2', '3', '4'], variants: ['', 'Pro', 'Vision'], baseParams: 500000000000, growthRate: 1.5, silentChance: 0.12 },
+
+    // Mistral releases (mostly open)
+    { company: 'Mistral AI', prefix: 'Mistral', versions: ['Large', 'Next', 'Ultra'], variants: ['', 'Plus'], baseParams: 120000000000, growthRate: 1.4, silentChance: 0.05, isOpenSource: true },
+
+    // Chinese companies
+    { company: 'DeepSeek', prefix: 'DeepSeek', versions: ['V2', 'V3', 'R1'], variants: ['', 'Coder', 'MoE'], baseParams: 200000000000, growthRate: 1.6, silentChance: 0.2, isOpenSource: true },
+    { company: 'Alibaba Cloud AI', prefix: 'Qwen', versions: ['2', '2.5', '3'], variants: ['', 'Plus', 'Max'], baseParams: 150000000000, growthRate: 1.4, silentChance: 0.08, isOpenSource: true },
+    { company: 'Baidu ERNIE', prefix: 'ERNIE', versions: ['4.0', '5.0', 'X'], variants: ['', 'Turbo', 'Ultra'], baseParams: 300000000000, growthRate: 1.3, silentChance: 0.15 },
+
+    // Others
+    { company: 'Cohere', prefix: 'Command', versions: ['R', 'R+', 'X'], variants: ['', 'Turbo'], baseParams: 50000000000, growthRate: 1.3, silentChance: 0.02 },
+    { company: 'Stability AI', prefix: 'Stable Diffusion', versions: ['3', '4', '5'], variants: ['', 'Ultra'], baseParams: 12000000000, growthRate: 1.8, silentChance: 0.05, type: 'image', isOpenSource: true },
+    { company: 'Midjourney', prefix: 'Midjourney', versions: ['v6', 'v7', 'v8'], variants: ['', 'Pro'], baseParams: 15000000000, growthRate: 1.6, silentChance: 0.08, type: 'image' },
+];
+
+// Employee types with salaries and bonuses
+export const EMPLOYEES = [
+    // Engineering
+    { id: 'ml_engineer', name: 'ML Engineer', salary: 15000, qualityBonus: 2, speedBonus: 0, category: 'engineering' },
+    { id: 'sr_ml_engineer', name: 'Senior ML Engineer', salary: 30000, qualityBonus: 5, speedBonus: 1, category: 'engineering' },
+    { id: 'principal_ml', name: 'Principal ML Scientist', salary: 55000, qualityBonus: 10, speedBonus: 2, category: 'engineering' },
+    { id: 'research_scientist', name: 'Research Scientist', salary: 40000, qualityBonus: 8, speedBonus: 0, researchBonus: 5, category: 'engineering' },
+    { id: 'data_engineer', name: 'Data Engineer', salary: 12000, qualityBonus: 1, dataBonus: 10, category: 'engineering' },
+    { id: 'platform_engineer', name: 'Platform Engineer', salary: 14000, computeBonus: 5, upkeepReduction: 0.05, category: 'engineering' },
+    { id: 'security_engineer', name: 'Security Engineer', salary: 16000, securityBonus: 15, category: 'engineering' },
+
+    // Business
+    { id: 'sales_rep', name: 'Sales Representative', salary: 8000, revenueBonus: 0.03, category: 'business' },
+    { id: 'account_exec', name: 'Account Executive', salary: 12000, revenueBonus: 0.06, dealBonus: 10, category: 'business' },
+    { id: 'enterprise_sales', name: 'Enterprise Sales Manager', salary: 25000, revenueBonus: 0.1, dealBonus: 25, category: 'business' },
+    { id: 'marketing_mgr', name: 'Marketing Manager', salary: 10000, hypeBonus: 5, category: 'business' },
+    { id: 'pr_specialist', name: 'PR Specialist', salary: 8000, hypeBonus: 3, lawsuitDefense: 5, category: 'business' },
+
+    // Legal
+    { id: 'legal_counsel', name: 'Legal Counsel', salary: 20000, lawsuitDefense: 20, category: 'legal' },
+    { id: 'ip_lawyer', name: 'IP Lawyer', salary: 25000, lawsuitDefense: 30, dataRiskReduction: 10, category: 'legal' },
+    { id: 'compliance_officer', name: 'Compliance Officer', salary: 18000, lawsuitDefense: 15, regulatoryBonus: 20, category: 'legal' },
+
+    // Leadership
+    { id: 'vp_engineering', name: 'VP of Engineering', salary: 50000, qualityBonus: 15, speedBonus: 5, category: 'leadership' },
+    { id: 'vp_research', name: 'VP of Research', salary: 60000, researchBonus: 20, qualityBonus: 10, category: 'leadership' },
+    { id: 'cto', name: 'CTO', salary: 80000, qualityBonus: 20, speedBonus: 10, computeBonus: 10, category: 'leadership' },
+    { id: 'ceo', name: 'CEO', salary: 100000, allBonus: 5, hypeBonus: 15, category: 'leadership' },
+];
+
+// Ad campaign options
+export const AD_CAMPAIGNS = [
+    // Social Media
+    { id: 'twitter_ads', name: 'Twitter/X Ads', costPerWeek: 5000, hypeBonus: 3, reachMultiplier: 1.0, category: 'social' },
+    { id: 'linkedin_ads', name: 'LinkedIn Ads', costPerWeek: 8000, hypeBonus: 2, enterpriseBonus: 10, category: 'social' },
+    { id: 'youtube_sponsor', name: 'YouTube Sponsorship', costPerWeek: 15000, hypeBonus: 8, category: 'social' },
+    { id: 'reddit_ads', name: 'Reddit Ads', costPerWeek: 3000, hypeBonus: 2, devReach: 5, category: 'social' },
+
+    // Tech Press
+    { id: 'techcrunch_feature', name: 'TechCrunch Feature', costPerWeek: 25000, hypeBonus: 15, duration: 1, category: 'press' },
+    { id: 'wired_article', name: 'Wired Article', costPerWeek: 30000, hypeBonus: 12, duration: 1, category: 'press' },
+    { id: 'verge_coverage', name: 'The Verge Coverage', costPerWeek: 20000, hypeBonus: 10, category: 'press' },
+    { id: 'hacker_news', name: 'Hacker News Campaign', costPerWeek: 5000, hypeBonus: 5, devReach: 15, category: 'press' },
+
+    // Events
+    { id: 'conference_booth', name: 'AI Conference Booth', costPerWeek: 50000, hypeBonus: 20, enterpriseBonus: 30, duration: 1, category: 'events' },
+    { id: 'keynote_speech', name: 'Keynote Speech', costPerWeek: 100000, hypeBonus: 40, duration: 1, category: 'events' },
+    { id: 'hackathon_sponsor', name: 'Hackathon Sponsor', costPerWeek: 25000, hypeBonus: 10, devReach: 25, category: 'events' },
+
+    // Influencers
+    { id: 'tech_youtuber', name: 'Tech YouTuber Review', costPerWeek: 35000, hypeBonus: 18, duration: 1, category: 'influencer' },
+    { id: 'ai_researcher_endorsement', name: 'AI Researcher Endorsement', costPerWeek: 75000, hypeBonus: 25, qualityPerception: 10, duration: 1, category: 'influencer' },
+
+    // Mass Media
+    { id: 'tv_ad', name: 'TV Advertisement', costPerWeek: 200000, hypeBonus: 30, massReach: 50, category: 'mass' },
+    { id: 'times_square', name: 'Times Square Billboard', costPerWeek: 150000, hypeBonus: 25, massReach: 40, category: 'mass' },
+    { id: 'super_bowl', name: 'Super Bowl Ad', costPerWeek: 5000000, hypeBonus: 200, massReach: 500, duration: 1, category: 'mass' },
+];
+
+// API pricing presets
+export const API_PRICING_PRESETS = [
+    { id: 'free_tier', name: 'Free Tier', inputCost: 0, outputCost: 0, rateLimit: 10, desc: 'Great for devs, no revenue' },
+    { id: 'budget', name: 'Budget', inputCost: 0.15, outputCost: 0.60, rateLimit: 60, desc: 'Cheap option for startups' },
+    { id: 'standard', name: 'Standard', inputCost: 0.50, outputCost: 1.50, rateLimit: 500, desc: 'Standard pricing' },
+    { id: 'premium', name: 'Premium', inputCost: 2.50, outputCost: 10.00, rateLimit: 1000, desc: 'Higher margin, less volume' },
+    { id: 'enterprise', name: 'Enterprise', inputCost: 5.00, outputCost: 15.00, rateLimit: 10000, desc: 'For big companies' },
+    { id: 'openai_style', name: 'OpenAI-style', inputCost: 2.50, outputCost: 10.00, rateLimit: 3000, desc: 'Similar to GPT-4 pricing' },
+    { id: 'anthropic_style', name: 'Anthropic-style', inputCost: 3.00, outputCost: 15.00, rateLimit: 4000, desc: 'Similar to Claude pricing' },
+    { id: 'cheap_volume', name: 'Volume Leader', inputCost: 0.10, outputCost: 0.30, rateLimit: 5000, desc: 'Low price, high volume' },
+];
+
+// Parameters for open source releases - realistic limits
+export const OPEN_SOURCE_LIMITS = {
+    maxReasonableParams: 20000000000, // 20B max for consumer hardware
+    maxEnterpriseParams: 405000000000, // 405B for enterprise open source (like Llama 3.1)
+    adoptionBySize: [
+        { maxParams: 7000000000, adoption: 1.5, desc: 'Runs on any GPU' },
+        { maxParams: 13000000000, adoption: 1.3, desc: 'Runs on gaming GPUs' },
+        { maxParams: 34000000000, adoption: 1.0, desc: 'Needs pro hardware' },
+        { maxParams: 70000000000, adoption: 0.7, desc: 'Datacenter only' },
+        { maxParams: 405000000000, adoption: 0.3, desc: 'Few can run this' },
+        { maxParams: Infinity, adoption: 0.05, desc: 'Research only' },
+    ]
+};
+
+// Week-by-week competitor release chances
+export const COMPETITOR_RELEASE_CHANCES = {
+    normalWeek: 0.08, // 8% chance any given week
+    afterPlayerRelease: 0.25, // 25% chance after player releases something big
+    quarterEnd: 0.35, // 35% chance end of quarter (weeks 12, 24, 36, 48)
+    silentBreakthrough: 0.02, // 2% chance of silent company breakthrough
+};
+
+// Quality decay settings - your model quality drops when better models release
+export const QUALITY_DECAY = {
+    perBetterModel: 2, // Lose 2 quality when a better model releases
+    maxDecayPerWeek: 10, // Can't lose more than 10 quality per week
+    minimumQuality: 10, // Quality can't drop below 10
+};
