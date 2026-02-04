@@ -995,12 +995,19 @@ const useGameDevStore = create(
 
                 const publisher = PUBLISHERS.find(p => p.id === publisherId);
 
+                // Determine final price
+                const priceToUse = price || currentGame.editions[0]?.price || 29.99;
+
                 const releasedGame = {
                     ...currentGame,
                     status: 'released',
                     releasedAt: { year: currentYear, month: currentMonth },
                     publisher: publisher,
                     platforms: platforms,
+                    // Update editions with actual release price
+                    editions: currentGame.editions.map((ed, i) =>
+                        i === 0 ? { ...ed, price: priceToUse } : ed
+                    ),
                     sales: 0,
                     revenue: 0,
                     reviews: [],
@@ -1010,7 +1017,6 @@ const useGameDevStore = create(
                 };
 
                 // Calculate initial hype/sales based on quality and fame
-                const priceToUse = price || currentGame.editions[0]?.price || 29.99;
                 const initialSales = Math.floor(
                     1000 * (releasedGame.quality / 100) * (1 + get().fame / 50) * (1 + (publisher?.reachBonus || 0))
                 );

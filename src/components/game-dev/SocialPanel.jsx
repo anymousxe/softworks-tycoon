@@ -304,7 +304,7 @@ const SocialPanel = () => {
                 >
                     <span className="text-xl">𝕏</span>
                     <span>Z</span>
-                    <span className="text-xs bg-slate-700 px-2 py-0.5 rounded-full">{zFollowers.toLocaleString()}</span>
+                    <span className="text-xs bg-slate-700 px-2 py-0.5 rounded-full">{zPosts.length} posts</span>
                 </button>
                 <button
                     onClick={() => setActiveTab('youvideo')}
@@ -315,7 +315,7 @@ const SocialPanel = () => {
                 >
                     <span className="text-xl text-red-500">▶️</span>
                     <span>YouVideo</span>
-                    <span className="text-xs bg-slate-700 px-2 py-0.5 rounded-full">{youVideoSubscribers.toLocaleString()}</span>
+                    <span className="text-xs bg-slate-700 px-2 py-0.5 rounded-full">{youVideoPosts.length} videos</span>
                 </button>
             </div>
 

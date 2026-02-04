@@ -230,9 +230,10 @@ const ReleaseModal = ({ game, onClose, onRelease }) => {
 
 // Main Stores Panel
 const StoresPanel = () => {
-    const { releasedGames, currentGame, releaseGame, releaseOnPlatform, applyToSubscription, fame } = useGameDevStore();
+    const { releasedGames, currentGame, releaseGame, releaseOnPlatform, applyToSubscription, fame, setModSupport, setPiracyProtection } = useGameDevStore();
     const [selectedPlatform, setSelectedPlatform] = useState('mist');
     const [showReleaseModal, setShowReleaseModal] = useState(false);
+    const [selectedGame, setSelectedGame] = useState(null);
 
     // Get games per platform
     const getGamesOnPlatform = (platformId) => {
@@ -258,6 +259,12 @@ const StoresPanel = () => {
     const handleSubscriptionApply = (gameId, serviceId) => {
         const result = applyToSubscription(gameId, serviceId);
         // Could show toast based on result
+    };
+
+    const handleAddPlatform = (gameId, platformId) => {
+        releaseOnPlatform(gameId, platformId);
+        // Refresh selected game data
+        setSelectedGame(releasedGames.find(g => g.id === gameId));
     };
 
     return (
@@ -376,7 +383,11 @@ const StoresPanel = () => {
                     </h3>
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                         {releasedGames.filter(g => g.platforms?.includes(selectedPlatform)).map(game => (
-                            <div key={game.id} className="bg-slate-800/50 border border-white/5 rounded-2xl p-6">
+                            <button
+                                key={game.id}
+                                onClick={() => setSelectedGame(game)}
+                                className="bg-slate-800/50 border border-white/5 hover:border-purple-500/50 rounded-2xl p-6 text-left transition-all"
+                            >
                                 <h4 className="text-lg font-bold text-white mb-2">{game.name}</h4>
                                 <div className="flex items-center gap-4 text-sm">
                                     <span className="text-green-400">{(game.sales || 0).toLocaleString()} sales</span>
@@ -389,11 +400,96 @@ const StoresPanel = () => {
                                         </span>
                                     ))}
                                 </div>
-                            </div>
+                            </button>
                         ))}
                         {releasedGames.filter(g => g.platforms?.includes(selectedPlatform)).length === 0 && (
                             <div className="col-span-full text-center py-8 text-slate-600">
                                 No games on this platform yet
+                            </div>
+                        )}
+
+                        {/* Game Details Modal */}
+                        {selectedGame && (
+                            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-8">
+                                <div className="bg-slate-900 rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-2xl font-bold text-white">{selectedGame.name}</h2>
+                                        <button onClick={() => setSelectedGame(null)} className="p-2 hover:bg-white/5 rounded-lg">
+                                            <X className="w-5 h-5 text-slate-500" />
+                                        </button>
+                                    </div>
+
+                                    {/* Stats */}
+                                    <div className="grid grid-cols-4 gap-4 mb-6">
+                                        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+                                            <p className="text-2xl font-black text-white">{(selectedGame.sales || 0).toLocaleString()}</p>
+                                            <p className="text-[10px] text-slate-500 uppercase">Sales</p>
+                                        </div>
+                                        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+                                            <p className="text-2xl font-black text-green-400">${(selectedGame.revenue || 0).toLocaleString()}</p>
+                                            <p className="text-[10px] text-slate-500 uppercase">Revenue</p>
+                                        </div>
+                                        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+                                            <p className="text-2xl font-black text-yellow-400">{selectedGame.rating || 0}</p>
+                                            <p className="text-[10px] text-slate-500 uppercase">Rating</p>
+                                        </div>
+                                        <div className="bg-slate-800/50 rounded-xl p-4 text-center">
+                                            <p className="text-2xl font-black text-purple-400">${(selectedGame.editions?.[0]?.price || 0).toFixed(2)}</p>
+                                            <p className="text-[10px] text-slate-500 uppercase">Price</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Current Platforms */}
+                                    <div className="mb-6">
+                                        <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wider">Available On</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedGame.platforms?.map(p => {
+                                                const platform = STORE_PLATFORMS.find(sp => sp.id === p);
+                                                return (
+                                                    <div key={p} className="px-3 py-2 bg-slate-800 rounded-lg flex items-center gap-2">
+                                                        <span className="text-lg">{platform?.icon}</span>
+                                                        <span className="text-sm text-white font-bold">{platform?.name}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Add to More Platforms */}
+                                    <div className="mb-6">
+                                        <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wider">Expand to More Platforms</h3>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {STORE_PLATFORMS.filter(p => !selectedGame.platforms?.includes(p.id)).map(platform => (
+                                                <button
+                                                    key={platform.id}
+                                                    onClick={() => handleAddPlatform(selectedGame.id, platform.id)}
+                                                    className="p-3 bg-slate-800/50 hover:bg-purple-500/20 border border-white/5 hover:border-purple-500/50 rounded-xl text-left transition-all"
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-lg">{platform.icon}</span>
+                                                        <span className="text-xs font-bold text-white">{platform.name}</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-500 mt-1">{(platform.cut * 100).toFixed(0)}% cut</p>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Game Settings */}
+                                    <div>
+                                        <h3 className="text-sm font-bold text-white mb-3 uppercase tracking-wider">Game Settings</h3>
+                                        <div className="space-y-3">
+                                            <div className="bg-slate-800/50 rounded-xl p-4">
+                                                <p className="text-xs text-slate-500 uppercase mb-2">Mod Support</p>
+                                                <p className="text-white font-bold capitalize">{selectedGame.modSupport || 'None'}</p>
+                                            </div>
+                                            <div className="bg-slate-800/50 rounded-xl p-4">
+                                                <p className="text-xs text-slate-500 uppercase mb-2">DRM Protection</p>
+                                                <p className="text-white font-bold capitalize">{selectedGame.drm || 'None'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
