@@ -145,85 +145,85 @@ export const PUBLISHERS = [
 
 // Store Platforms
 export const STORE_PLATFORMS = [
-    { 
-        id: 'mist', 
-        name: 'Mist', 
-        icon: '⚙️', 
+    {
+        id: 'mist',
+        name: 'Mist',
+        icon: '⚙️',
         color: 'blue',
-        cut: 0.30, 
-        reach: 1.0, 
-        requirements: [], 
-        desc: 'The biggest PC gaming platform. 30% revenue cut.' 
+        cut: 0.30,
+        reach: 1.0,
+        requirements: [],
+        desc: 'The biggest PC gaming platform. 30% revenue cut.'
     },
-    { 
-        id: 'awesome_games', 
-        name: 'Awesome Games', 
-        icon: '🎮', 
+    {
+        id: 'awesome_games',
+        name: 'Awesome Games',
+        icon: '🎮',
         color: 'purple',
-        cut: 0.12, 
-        reach: 0.4, 
-        requirements: [], 
+        cut: 0.12,
+        reach: 0.4,
+        requirements: [],
         desc: 'Lower cut but less reach. Sometimes offers exclusivity deals.',
         exclusivityBonus: 500000
     },
-    { 
-        id: 'cloud_streaming', 
-        name: 'CloudStreaming', 
-        icon: '☁️', 
+    {
+        id: 'cloud_streaming',
+        name: 'CloudStreaming',
+        icon: '☁️',
         color: 'cyan',
-        cut: 0.25, 
-        reach: 0.3, 
-        requirements: [], 
-        desc: 'Stream games without downloads. Growing platform.' 
+        cut: 0.25,
+        reach: 0.3,
+        requirements: [],
+        desc: 'Stream games without downloads. Growing platform.'
     },
-    { 
-        id: 'xstation_store', 
-        name: 'XStation Store', 
-        icon: '🎯', 
+    {
+        id: 'xstation_store',
+        name: 'XStation Store',
+        icon: '🎯',
         color: 'green',
-        cut: 0.30, 
-        reach: 0.6, 
-        requirements: ['console_cert'], 
-        desc: 'Xbox-style console marketplace. Requires certification.' 
+        cut: 0.30,
+        reach: 0.6,
+        requirements: ['console_cert'],
+        desc: 'Xbox-style console marketplace. Requires certification.'
     },
-    { 
-        id: 'playbox_store', 
-        name: 'PlayBox Store', 
-        icon: '🕹️', 
+    {
+        id: 'playbox_store',
+        name: 'PlayBox Store',
+        icon: '🕹️',
         color: 'blue',
-        cut: 0.30, 
-        reach: 0.65, 
-        requirements: ['console_cert'], 
-        desc: 'PlayStation-style console marketplace. Premium audience.' 
+        cut: 0.30,
+        reach: 0.65,
+        requirements: ['console_cert'],
+        desc: 'PlayStation-style console marketplace. Premium audience.'
     },
-    { 
-        id: 'gog', 
-        name: 'Good Old Games', 
-        icon: '📀', 
+    {
+        id: 'gog',
+        name: 'Good Old Games',
+        icon: '📀',
         color: 'amber',
-        cut: 0.30, 
-        reach: 0.15, 
-        requirements: [], 
-        desc: 'DRM-free platform. Niche but passionate audience.' 
+        cut: 0.30,
+        reach: 0.15,
+        requirements: [],
+        desc: 'DRM-free platform. Niche but passionate audience.'
     },
-    { 
-        id: 'itch', 
-        name: 'Itch.io', 
-        icon: '🎲', 
+    {
+        id: 'itch',
+        name: 'Itch.io',
+        icon: '🎲',
         color: 'pink',
-        cut: 0.10, 
-        reach: 0.08, 
-        requirements: [], 
-        desc: 'Indie-focused. You choose the cut. Great for small games.' 
+        cut: 0.10,
+        reach: 0.08,
+        requirements: [],
+        desc: 'Indie-focused. You choose the cut. Great for small games.'
     },
-    { 
-        id: 'mistrip', 
-        name: 'Mistrip.com', 
-        icon: '🏴‍☠️', 
+    {
+        id: 'mistrip',
+        name: 'Mistrip.com',
+        icon: '🏴‍☠️',
         color: 'red',
-        cut: 0, 
-        reach: 0.5, 
-        requirements: [], 
+        cut: 0,
+        reach: 0.5,
+        requirements: [],
         desc: 'Put it on the pirate bay yourself. Bold marketing move.',
         isPiracy: true
     }
@@ -246,7 +246,7 @@ export const SUBSCRIPTION_SERVICES = [
         name: 'PlayBox+',
         icon: '➕',
         color: 'blue',
-        monthlyPayout: 0.4,
+        monthlyPayout: 0.4, // per player per month
         reachBonus: 2.5,
         requirements: { minQuality: 75, minFame: 30 },
         desc: 'PlayStation Plus equivalent. Premium subscribers.'
@@ -308,35 +308,35 @@ export const EMPLOYEE_TYPES = [
     { id: 'programmer', name: 'Programmer', salary: 8000, category: 'dev', devBonus: 0.15, icon: '💻' },
     { id: 'senior_programmer', name: 'Senior Programmer', salary: 15000, category: 'dev', devBonus: 0.30, icon: '👨‍💻' },
     { id: 'lead_programmer', name: 'Lead Programmer', salary: 25000, category: 'dev', devBonus: 0.50, icon: '🏆' },
-    
+
     // Art
     { id: 'artist', name: '2D Artist', salary: 6000, category: 'art', qualityBonus: 5, icon: '🎨' },
     { id: '3d_artist', name: '3D Artist', salary: 8000, category: 'art', qualityBonus: 8, icon: '🖼️' },
     { id: 'concept_artist', name: 'Concept Artist', salary: 10000, category: 'art', qualityBonus: 10, icon: '✏️' },
     { id: 'animator', name: 'Animator', salary: 9000, category: 'art', qualityBonus: 7, icon: '🎬' },
     { id: 'art_director', name: 'Art Director', salary: 18000, category: 'art', qualityBonus: 20, icon: '🎯' },
-    
+
     // Audio
     { id: 'composer', name: 'Composer', salary: 8000, category: 'audio', qualityBonus: 8, icon: '🎵' },
     { id: 'sound_designer', name: 'Sound Designer', salary: 7000, category: 'audio', qualityBonus: 6, icon: '🔊' },
     { id: 'voice_actor', name: 'Voice Actor', salary: 5000, category: 'audio', qualityBonus: 5, icon: '🎤' },
     { id: 'famous_voice_actor', name: 'Famous Voice Actor', salary: 50000, category: 'audio', qualityBonus: 15, hypeBonus: 10, icon: '⭐' },
     { id: 'audio_director', name: 'Audio Director', salary: 15000, category: 'audio', qualityBonus: 15, icon: '🎧' },
-    
+
     // Writing
     { id: 'writer', name: 'Writer', salary: 6000, category: 'writing', qualityBonus: 5, icon: '✍️' },
     { id: 'narrative_designer', name: 'Narrative Designer', salary: 10000, category: 'writing', qualityBonus: 10, icon: '📜' },
     { id: 'lead_writer', name: 'Lead Writer', salary: 15000, category: 'writing', qualityBonus: 15, icon: '📚' },
-    
+
     // QA
     { id: 'qa_tester', name: 'QA Tester', salary: 4000, category: 'qa', bugFixBonus: 0.1, icon: '🐛' },
     { id: 'qa_lead', name: 'QA Lead', salary: 8000, category: 'qa', bugFixBonus: 0.25, icon: '🔍' },
-    
+
     // Marketing
     { id: 'community_manager', name: 'Community Manager', salary: 5000, category: 'marketing', hypeBonus: 5, icon: '💬' },
     { id: 'marketing_manager', name: 'Marketing Manager', salary: 10000, category: 'marketing', hypeBonus: 15, icon: '📢' },
     { id: 'pr_specialist', name: 'PR Specialist', salary: 8000, category: 'marketing', hypeBonus: 10, icon: '📰' },
-    
+
     // Leadership
     { id: 'producer', name: 'Producer', salary: 12000, category: 'leadership', devBonus: 0.1, qualityBonus: 5, icon: '📋' },
     { id: 'creative_director', name: 'Creative Director', salary: 25000, category: 'leadership', qualityBonus: 20, icon: '🎨' },
@@ -537,7 +537,64 @@ const useGameDevStore = create(
             // Piracy tracking
             piracyEvents: [],
 
-            // Create character
+            // Multi-save system
+            saves: [],
+            currentSaveId: null,
+
+            // Save the current game state
+            saveGame: () => {
+                const {
+                    character, studio, studios, currentGame, releasedGames,
+                    zPosts, zFollowers, youVideoPosts, youVideoSubscribers,
+                    cash, loans, monthlyExpenses, monthlyIncome, financialHistory,
+                    currentYear, currentMonth, employees, awards, nominations,
+                    investors, fame, officeUpgrades, officeCapacity, settings,
+                    piracyEvents, currentSaveId, saves
+                } = get();
+
+                if (!character) return; // Don't save if no game started
+
+                const saveData = {
+                    id: currentSaveId || `save-${Date.now()}`,
+                    lastPlayed: new Date().toISOString(),
+                    name: studio?.name ? `${studio.name} (${character.firstName})` : `${character.firstName} ${character.lastName}`,
+                    data: {
+                        character, studio, studios, currentGame, releasedGames,
+                        zPosts, zFollowers, youVideoPosts, youVideoSubscribers,
+                        cash, loans, monthlyExpenses, monthlyIncome, financialHistory,
+                        currentYear, currentMonth, employees, awards, nominations,
+                        investors, fame, officeUpgrades, officeCapacity, settings,
+                        piracyEvents
+                    }
+                };
+
+                const newSaves = currentSaveId
+                    ? saves.map(s => s.id === currentSaveId ? saveData : s)
+                    : [...saves, saveData];
+
+                set({
+                    saves: newSaves,
+                    currentSaveId: saveData.id
+                });
+            },
+
+            // Load a save
+            loadSave: (saveId) => {
+                const save = get().saves.find(s => s.id === saveId);
+                if (save) {
+                    set({
+                        ...save.data,
+                        currentSaveId: saveId
+                    });
+                }
+            },
+
+            // Delete a save
+            deleteSave: (saveId) => {
+                set({ saves: get().saves.filter(s => s.id !== saveId) });
+            },
+
+            // Create character (modified to start new save context)
             createCharacter: (characterData) => {
                 const character = {
                     id: `char-${Date.now()}`,
@@ -555,17 +612,45 @@ const useGameDevStore = create(
                     createdAt: new Date().toISOString()
                 };
 
+                // Create a new save ID immediately
+                const newSaveId = `save-${Date.now()}`;
+
                 set({
+                    currentSaveId: newSaveId,
                     character,
+                    studio: null,
+                    studios: [],
+                    currentGame: null,
+                    releasedGames: [],
+                    zPosts: [],
+                    zFollowers: 0,
+                    youVideoPosts: [],
+                    youVideoSubscribers: 0,
+                    cash: 10000,
+                    loans: [],
+                    monthlyExpenses: 0,
+                    monthlyIncome: 0,
+                    financialHistory: [],
                     currentYear: characterData.startingYear,
                     currentMonth: 1,
-                    cash: 10000
+                    employees: [],
+                    awards: [],
+                    nominations: [],
+                    investors: [],
+                    fame: 0,
+                    officeUpgrades: [],
+                    officeCapacity: 5,
+                    settings: { ...DEFAULT_SETTINGS },
+                    piracyEvents: []
                 });
+
+                // Initial save
+                get().saveGame();
 
                 return character;
             },
 
-            // Create studio
+            // Create studio (Auto-save after creation)
             createStudio: (studioData) => {
                 const studio = {
                     id: `studio-${Date.now()}`,
@@ -585,6 +670,8 @@ const useGameDevStore = create(
                     studios: newStudios
                 });
 
+                get().saveGame(); // Save progress
+
                 return studio;
             },
 
@@ -594,6 +681,7 @@ const useGameDevStore = create(
                 const newStudio = studios.find(s => s.id === studioId);
                 if (newStudio) {
                     set({ studio: newStudio });
+                    get().saveGame();
                 }
             },
 
@@ -601,11 +689,12 @@ const useGameDevStore = create(
             deleteStudio: (studioId) => {
                 const studios = get().studios.filter(s => s.id !== studioId);
                 const currentStudio = get().studio;
-                
+
                 set({
                     studios,
                     studio: currentStudio?.id === studioId ? (studios[0] || null) : currentStudio
                 });
+                get().saveGame();
             },
 
             // Start developing a game
@@ -643,6 +732,7 @@ const useGameDevStore = create(
                 };
 
                 set({ currentGame: game });
+                get().saveGame();
                 return game;
             },
 
@@ -673,6 +763,7 @@ const useGameDevStore = create(
                     return game;
                 });
                 set({ releasedGames });
+                get().saveGame();
             },
 
             // Add DLC to released game
@@ -693,6 +784,7 @@ const useGameDevStore = create(
                     return game;
                 });
                 set({ releasedGames });
+                get().saveGame();
             },
 
             // Add chapter/episode to game
@@ -711,6 +803,7 @@ const useGameDevStore = create(
                     return game;
                 });
                 set({ releasedGames });
+                get().saveGame();
             },
 
             // Update game post-release (fixes, features)
@@ -731,6 +824,7 @@ const useGameDevStore = create(
                     return game;
                 });
                 set({ releasedGames });
+                get().saveGame();
             },
 
             // Set mod support for game
@@ -742,6 +836,7 @@ const useGameDevStore = create(
                     return game;
                 });
                 set({ releasedGames });
+                get().saveGame();
             },
 
             // Set DRM/piracy protection
@@ -753,6 +848,7 @@ const useGameDevStore = create(
                     return game;
                 });
                 set({ releasedGames });
+                get().saveGame();
             },
 
             // Release on additional platform
@@ -767,15 +863,16 @@ const useGameDevStore = create(
                     return game;
                 });
                 set({ releasedGames });
+                get().saveGame();
             },
 
             // Apply for subscription service
             applyToSubscription: (gameId, serviceId) => {
                 const service = SUBSCRIPTION_SERVICES.find(s => s.id === serviceId);
                 const game = get().releasedGames.find(g => g.id === gameId);
-                
+
                 if (!service || !game) return { success: false, reason: 'Invalid game or service' };
-                
+
                 // Check requirements
                 if (game.quality < service.requirements.minQuality) {
                     return { success: false, reason: `Requires ${service.requirements.minQuality}+ quality rating` };
@@ -793,8 +890,9 @@ const useGameDevStore = create(
                     }
                     return g;
                 });
-                
+
                 set({ releasedGames });
+                get().saveGame();
                 return { success: true };
             },
 
@@ -812,7 +910,7 @@ const useGameDevStore = create(
 
                 // Calculate employee costs
                 const employeeCosts = employees.reduce((sum, emp) => sum + (emp.salary || 0), 0);
-                
+
                 // Calculate loan interest
                 const loanPayments = loans.reduce((sum, loan) => sum + (loan.monthlyPayment || 0), 0);
 
@@ -844,10 +942,10 @@ const useGameDevStore = create(
                         const platform = STORE_PLATFORMS.find(sp => sp.id === p);
                         return sum + (platform?.reach || 0);
                     }, 0);
-                    
+
                     const qualityFactor = (game.quality || 50) / 100;
                     const ageFactor = Math.max(0.1, 1 - ((newYear - game.releasedAt.year) * 12 + newMonth - game.releasedAt.month) * 0.05);
-                    
+
                     const baseSales = Math.floor(1000 * qualityFactor * platformMultiplier * ageFactor * (1 + fame / 100));
                     const price = game.editions[0]?.price || 29.99;
                     const revenue = baseSales * price;
@@ -883,6 +981,9 @@ const useGameDevStore = create(
                     monthlyExpenses: employeeCosts + loanPayments,
                     financialHistory
                 });
+
+                // Auto-save every month
+                get().saveGame();
             },
 
             // Release a game
@@ -909,11 +1010,12 @@ const useGameDevStore = create(
                 };
 
                 // Calculate initial hype/sales based on quality and fame
+                const priceToUse = price || currentGame.editions[0]?.price || 29.99;
                 const initialSales = Math.floor(
                     1000 * (releasedGame.quality / 100) * (1 + get().fame / 50) * (1 + (publisher?.reachBonus || 0))
                 );
                 releasedGame.sales = initialSales;
-                releasedGame.revenue = initialSales * price * (1 - (publisher?.cut || 0));
+                releasedGame.revenue = initialSales * priceToUse * (1 - (publisher?.cut || 0));
 
                 set({
                     currentGame: null,
@@ -921,8 +1023,24 @@ const useGameDevStore = create(
                     cash: get().cash + releasedGame.revenue,
                     fame: Math.min(100, get().fame + Math.floor(releasedGame.quality / 10))
                 });
+                get().saveGame();
 
                 return releasedGame;
+            },
+
+            // Remove game from store (Unlist)
+            unlistGame: (gameId, platformId) => {
+                const releasedGames = get().releasedGames.map(game => {
+                    if (game.id === gameId) {
+                        return {
+                            ...game,
+                            platforms: game.platforms.filter(p => p !== platformId)
+                        };
+                    }
+                    return game;
+                });
+                set({ releasedGames });
+                get().saveGame();
             },
 
             // Post to Z (Twitter)
@@ -937,13 +1055,22 @@ const useGameDevStore = create(
                     postedAt: { year: get().currentYear, month: get().currentMonth }
                 };
 
-                set({ zPosts: [post, ...get().zPosts] });
+                // Gain followers based on post
+                const currentFollowers = get().zFollowers;
+                const newFollowers = Math.floor(Math.random() * 50) + Math.floor(currentFollowers * 0.05) + 5;
+
+                set({
+                    zPosts: [post, ...get().zPosts].slice(0, 50), // Limit history
+                    zFollowers: currentFollowers + newFollowers
+                });
+                get().saveGame();
                 return post;
             },
 
             // Delete Z post
             deleteZPost: (postId) => {
                 set({ zPosts: get().zPosts.filter(p => p.id !== postId) });
+                get().saveGame();
             },
 
             // Post to YouVideo
@@ -960,13 +1087,22 @@ const useGameDevStore = create(
                     postedAt: { year: get().currentYear, month: get().currentMonth }
                 };
 
-                set({ youVideoPosts: [video, ...get().youVideoPosts] });
+                // Gain subscribers based on video
+                const currentSubs = get().youVideoSubscribers;
+                const newSubs = Math.floor(Math.random() * 100) + Math.floor(currentSubs * 0.08) + 10;
+
+                set({
+                    youVideoPosts: [video, ...get().youVideoPosts].slice(0, 50), // Limit history
+                    youVideoSubscribers: currentSubs + newSubs
+                });
+                get().saveGame();
                 return video;
             },
 
             // Delete YouVideo video
             deleteYouVideo: (videoId) => {
                 set({ youVideoPosts: get().youVideoPosts.filter(v => v.id !== videoId) });
+                get().saveGame();
             },
 
             // Hire employee
@@ -978,11 +1114,13 @@ const useGameDevStore = create(
                     morale: 80
                 };
                 set({ employees: [...get().employees, newEmployee] });
+                get().saveGame();
             },
 
             // Fire employee
             fireEmployee: (employeeId) => {
                 set({ employees: get().employees.filter(e => e.id !== employeeId) });
+                get().saveGame();
             },
 
             // Purchase office upgrade
@@ -997,6 +1135,7 @@ const useGameDevStore = create(
                     officeUpgrades: [...get().officeUpgrades, upgradeId],
                     officeCapacity: get().officeCapacity + (upgrade.capacity || 0)
                 });
+                get().saveGame();
                 return { success: true };
             },
 
@@ -1017,6 +1156,7 @@ const useGameDevStore = create(
                     cash: get().cash + amount,
                     loans: [...get().loans, loan]
                 });
+                get().saveGame();
             },
 
             // Pay off loan early
@@ -1040,48 +1180,59 @@ const useGameDevStore = create(
                     cash: get().cash - amount,
                     loans
                 });
+                get().saveGame();
             },
 
             // Update settings
             updateSettings: (newSettings) => {
                 set({ settings: { ...get().settings, ...newSettings } });
+                get().saveGame();
             },
 
-            // Reset game dev
-            resetGameDev: () => set({
-                character: null,
-                studio: null,
-                studios: [],
-                currentGame: null,
-                releasedGames: [],
-                zPosts: [],
-                zFollowers: 0,
-                youVideoPosts: [],
-                youVideoSubscribers: 0,
-                cash: 10000,
-                loans: [],
-                monthlyExpenses: 0,
-                monthlyIncome: 0,
-                financialHistory: [],
-                currentYear: 2024,
-                currentMonth: 1,
-                employees: [],
-                awards: [],
-                nominations: [],
-                investors: [],
-                fame: 0,
-                officeUpgrades: [],
-                officeCapacity: 5,
-                settings: { ...DEFAULT_SETTINGS },
-                piracyEvents: []
-            }),
+            // Reset game dev (clears active state only)
+            resetGameDev: () => {
+                set({
+                    currentSaveId: null,
+                    character: null,
+                    studio: null,
+                    studios: [],
+                    currentGame: null,
+                    releasedGames: [],
+                    zPosts: [],
+                    zFollowers: 0,
+                    youVideoPosts: [],
+                    youVideoSubscribers: 0,
+                    cash: 10000,
+                    loans: [],
+                    monthlyExpenses: 0,
+                    monthlyIncome: 0,
+                    financialHistory: [],
+                    currentYear: 2024,
+                    currentMonth: 1,
+                    employees: [],
+                    awards: [],
+                    nominations: [],
+                    investors: [],
+                    fame: 0,
+                    officeUpgrades: [],
+                    officeCapacity: 5,
+                    settings: { ...DEFAULT_SETTINGS },
+                    piracyEvents: []
+                });
+            },
 
-            // Logout (just clear current session)
-            logout: () => set({ studio: null })
+            // Logout (back to menu)
+            logout: () => {
+                get().saveGame(); // Save before quit
+                set({ currentSaveId: null, character: null }); // Clear active
+            }
         }),
         {
             name: 'game-dev-tycoon-storage',
             partialize: (state) => ({
+                saves: state.saves,
+                // Persist active state too so reload works
+                currentSaveId: state.currentSaveId,
                 character: state.character,
                 studios: state.studios,
                 studio: state.studio,

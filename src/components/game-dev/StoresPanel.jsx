@@ -23,47 +23,52 @@ const PlatformCard = ({ platform, isActive, onSelect, gameCount }) => {
     return (
         <div
             onClick={onSelect}
-            className={`relative p-6 rounded-2xl border-2 cursor-pointer transition-all hover:scale-[1.02] overflow-hidden ${isActive
-                    ? `bg-gradient-to-br ${classes}`
-                    : 'bg-slate-800/50 border-white/5 hover:border-white/20'
+            className={`relative p-6 rounded-3xl border cursor-pointer transition-all duration-300 hover:scale-[1.02] overflow-hidden group ${isActive
+                ? `bg-gradient-to-br ${classes} border-transparent shadow-lg shadow-${platform.color}-500/20`
+                : 'bg-slate-900/40 backdrop-blur-xl border-white/5 hover:border-white/20 hover:bg-slate-900/60'
                 }`}
         >
+            {/* Background Glow */}
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-${platform.color}-500/10 rounded-full blur-[50px] transition-opacity group-hover:opacity-100 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
+
             {/* Icon */}
-            <div className={`w-14 h-14 rounded-xl mb-4 flex items-center justify-center text-3xl ${isActive ? 'bg-white/20' : 'bg-slate-700'
+            <div className={`relative w-16 h-16 rounded-2xl mb-6 flex items-center justify-center text-4xl shadow-lg transition-transform group-hover:scale-110 ${isActive ? 'bg-white/20 backdrop-blur-md' : 'bg-slate-800 border border-white/5'
                 }`}>
                 {platform.icon}
             </div>
 
             {/* Info */}
-            <h3 className={`text-xl font-bold ${isActive ? 'text-white' : 'text-white'}`}>{platform.name}</h3>
-            <p className={`text-sm mt-1 ${isActive ? 'text-white/80' : 'text-slate-500'}`}>{platform.desc}</p>
+            <h3 className={`relative text-2xl font-black ${isActive ? 'text-white' : 'text-white'}`}>{platform.name}</h3>
+            <p className={`relative text-sm mt-2 font-medium ${isActive ? 'text-white/90' : 'text-slate-500'}`}>{platform.desc}</p>
 
             {/* Stats */}
-            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-white/10">
+            <div className={`relative flex items-center gap-6 mt-6 pt-6 border-t ${isActive ? 'border-white/20' : 'border-white/5'}`}>
                 <div>
-                    <p className={`text-[10px] uppercase ${isActive ? 'text-white/60' : 'text-slate-600'}`}>Revenue Cut</p>
-                    <p className={`font-bold ${isActive ? 'text-white' : 'text-red-400'}`}>{(platform.cut * 100).toFixed(0)}%</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-white/70' : 'text-slate-500'}`}>Revenue Cut</p>
+                    <p className={`text-xl font-black ${isActive ? 'text-white' : 'text-slate-200'}`}>{(platform.cut * 100).toFixed(0)}%</p>
                 </div>
                 <div>
-                    <p className={`text-[10px] uppercase ${isActive ? 'text-white/60' : 'text-slate-600'}`}>Reach</p>
-                    <p className={`font-bold ${isActive ? 'text-white' : 'text-green-400'}`}>{(platform.reach * 100).toFixed(0)}%</p>
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-white/70' : 'text-slate-500'}`}>Reach</p>
+                    <p className={`text-xl font-black ${isActive ? 'text-white' : 'text-slate-200'}`}>{(platform.reach * 100).toFixed(0)}%</p>
                 </div>
                 {gameCount > 0 && (
                     <div className="ml-auto">
-                        <p className={`text-sm font-bold ${isActive ? 'text-white' : 'text-purple-400'}`}>{gameCount} games</p>
+                        <span className={`px-3 py-1 rounded-lg text-xs font-bold ${isActive ? 'bg-white/20 text-white' : 'bg-purple-500/20 text-purple-400'}`}>
+                            {gameCount} games
+                        </span>
                     </div>
                 )}
             </div>
 
             {/* Special badges */}
             {platform.isPiracy && (
-                <div className="absolute top-4 right-4 px-2 py-1 bg-red-500/20 rounded-full text-[10px] text-red-400 font-bold uppercase">
+                <div className="absolute top-4 right-4 px-3 py-1 bg-red-500/20 border border-red-500/20 rounded-lg text-[10px] text-red-400 font-bold uppercase tracking-wider">
                     Piracy
                 </div>
             )}
             {platform.exclusivityBonus && (
-                <div className="absolute top-4 right-4 px-2 py-1 bg-purple-500/20 rounded-full text-[10px] text-purple-400 font-bold uppercase">
-                    Exclusivity Deal
+                <div className="absolute top-4 right-4 px-3 py-1 bg-purple-500/20 border border-purple-500/20 rounded-lg text-[10px] text-purple-400 font-bold uppercase tracking-wider">
+                    Exclusivity
                 </div>
             )}
         </div>
@@ -74,10 +79,10 @@ const PlatformCard = ({ platform, isActive, onSelect, gameCount }) => {
 const SubscriptionCard = ({ service, isApplied, onApply, eligible }) => {
     return (
         <div className={`p-6 rounded-2xl border-2 transition-all ${isApplied
-                ? 'bg-green-500/10 border-green-500/50'
-                : eligible
-                    ? 'bg-slate-800/50 border-white/5 hover:border-purple-500/30'
-                    : 'bg-slate-800/30 border-white/5 opacity-50'
+            ? 'bg-green-500/10 border-green-500/50'
+            : eligible
+                ? 'bg-slate-800/50 border-white/5 hover:border-purple-500/30'
+                : 'bg-slate-800/30 border-white/5 opacity-50'
             }`}>
             <div className="flex items-start gap-4">
                 <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-3xl ${isApplied ? 'bg-green-500/20' : 'bg-slate-700'
@@ -110,8 +115,8 @@ const SubscriptionCard = ({ service, isApplied, onApply, eligible }) => {
                     onClick={onApply}
                     disabled={!eligible}
                     className={`w-full mt-4 py-3 rounded-xl font-bold transition-all ${eligible
-                            ? 'bg-purple-500 hover:bg-purple-600 text-white'
-                            : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                        ? 'bg-purple-500 hover:bg-purple-600 text-white'
+                        : 'bg-slate-700 text-slate-500 cursor-not-allowed'
                         }`}
                 >
                     {eligible ? 'Apply Now' : 'Not Eligible'}
@@ -172,8 +177,8 @@ const ReleaseModal = ({ game, onClose, onRelease }) => {
                             key={platform.id}
                             onClick={() => togglePlatform(platform.id)}
                             className={`p-4 rounded-xl border-2 text-left transition-all ${selectedPlatforms.includes(platform.id)
-                                    ? 'border-purple-500 bg-purple-500/10'
-                                    : 'border-white/5 hover:border-white/20'
+                                ? 'border-purple-500 bg-purple-500/10'
+                                : 'border-white/5 hover:border-white/20'
                                 }`}
                         >
                             <div className="flex items-center gap-3">

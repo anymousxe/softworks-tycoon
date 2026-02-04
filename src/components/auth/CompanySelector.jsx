@@ -53,7 +53,7 @@ const CompanySelector = () => {
 
     const handleSelectCompany = (company) => {
         selectCompany(company);
-        navigate('/ai-tycoon/dashboard');
+        navigate('/ai-tycoon');
     };
 
     const handleDeleteCompany = (company, e) => {

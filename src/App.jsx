@@ -20,6 +20,7 @@ import CompanySelector from './components/auth/CompanySelector';
 import CharacterCreator from './components/game-dev/CharacterCreator';
 import StudioSetup from './components/game-dev/StudioSetup';
 import GameDevDashboard from './components/game-dev/GameDevDashboard';
+import GameDevSaveSelector from './components/game-dev/GameDevSaveSelector';
 
 function App() {
     const { user, loading, init } = useAuthStore();
@@ -89,13 +90,7 @@ function App() {
                 {/* ============= GAME DEV TYCOON ROUTES ============= */}
                 <Route path="/game-dev" element={
                     user ? (
-                        character && studio ? (
-                            <Navigate to="/game-dev/dashboard" replace />
-                        ) : character ? (
-                            <Navigate to="/game-dev/studio-setup" replace />
-                        ) : (
-                            <Navigate to="/game-dev/character" replace />
-                        )
+                        <GameDevSaveSelector />
                     ) : (
                         <Navigate to="/" replace />
                     )

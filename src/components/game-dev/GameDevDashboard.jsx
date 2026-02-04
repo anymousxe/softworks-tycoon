@@ -251,6 +251,24 @@ const DashboardHome = ({ setActiveTab }) => {
                 </div>
             </div>
 
+            {/* Social Stats Row */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] text-slate-500 uppercase mb-1">Z Followers</p>
+                        <p className="text-2xl font-black text-white">{useGameDevStore.getState().zFollowers?.toLocaleString() || 0}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center font-bold text-white text-lg">𝕏</div>
+                </div>
+                <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] text-slate-500 uppercase mb-1">YouVideo Subs</p>
+                        <p className="text-2xl font-black text-red-400">{useGameDevStore.getState().youVideoSubscribers?.toLocaleString() || 0}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white">▶️</div>
+                </div>
+            </div>
+
             {/* Current Project */}
             {currentGame && (
                 <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6">

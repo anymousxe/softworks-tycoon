@@ -359,58 +359,59 @@ export const LAWSUIT_EVENTS = [
 export const APP_ID = 'softworks-tycoon';
 export const ADMIN_EMAIL = 'anymousxe.info@gmail.com';
 
-// Initial leaderboard models for 2024 start - FICTIONAL NAMES, SMALL params for early 2024
+// Initial leaderboard models for 2024 start - Adjusted to start lower (1B range) but grow fast
 export const INITIAL_LEADERBOARD_2024 = [
-    { name: 'Nexus-4', company: 'NeuralPath', params: 175000000000, type: 'text', quality: 82, released: '2024-01', isOpenSource: false },
-    { name: 'Atlas 2.1', company: 'SafeMind AI', params: 70000000000, type: 'text', quality: 75, released: '2024-01', isOpenSource: false },
-    { name: 'Titan Pro', company: 'Cognex Labs', params: 140000000000, type: 'multimodal', quality: 78, released: '2024-01', isOpenSource: false },
-    { name: 'Hydra 70B', company: 'Nexus AI', params: 70000000000, type: 'text', quality: 70, released: '2024-01', isOpenSource: true },
-    { name: 'Breeze Large', company: 'WindAI', params: 56000000000, type: 'text', quality: 68, released: '2024-01', isOpenSource: false },
-    { name: 'Spark-2', company: 'Axiom Systems', params: 2700000000, type: 'text', quality: 45, released: '2024-01', isOpenSource: true },
-    { name: 'FluxDB Base', company: 'DataBridge', params: 32000000000, type: 'text', quality: 58, released: '2024-01', isOpenSource: true },
-    { name: 'Phoenix 180B', company: 'DragonMind', params: 80000000000, type: 'text', quality: 65, released: '2024-01', isOpenSource: true },
-    { name: 'Nimbus 72B', company: 'CloudPhoenix', params: 72000000000, type: 'text', quality: 62, released: '2024-01', isOpenSource: true },
-    { name: 'Trench LLM 67B', company: 'AbyssAI', params: 67000000000, type: 'text', quality: 60, released: '2024-01', isOpenSource: true },
-    { name: 'Synth R', company: 'Syntex', params: 35000000000, type: 'text', quality: 55, released: '2024-01', isOpenSource: false },
-    { name: 'Nova 10.7B', company: 'Stellar AI', params: 10700000000, type: 'text', quality: 48, released: '2024-01', isOpenSource: true },
-    { name: 'PixelMage v5.2', company: 'PixelMage', params: 8000000000, type: 'image', quality: 80, released: '2024-01', isOpenSource: false },
-    { name: 'Canvas-3', company: 'NeuralPath', params: 12000000000, type: 'image', quality: 76, released: '2024-01', isOpenSource: false },
-    { name: 'DreamForge XL', company: 'DreamForge', params: 6600000000, type: 'image', quality: 68, released: '2024-01', isOpenSource: true },
+    { name: 'Nexus-4', company: 'NeuralPath', params: 5500000000, type: 'text', quality: 78, released: '2024-01', isOpenSource: false },
+    { name: 'Atlas 2.1', company: 'SafeMind AI', params: 2500000000, type: 'text', quality: 72, released: '2024-01', isOpenSource: false },
+    { name: 'Titan Pro', company: 'Cognex Labs', params: 4000000000, type: 'multimodal', quality: 75, released: '2024-01', isOpenSource: false },
+    { name: 'Hydra 7B', company: 'Nexus AI', params: 7000000000, type: 'text', quality: 65, released: '2024-01', isOpenSource: true },
+    { name: 'Breeze Mini', company: 'WindAI', params: 1500000000, type: 'text', quality: 60, released: '2024-01', isOpenSource: false },
+    { name: 'Spark-1', company: 'Axiom Systems', params: 800000000, type: 'text', quality: 40, released: '2024-01', isOpenSource: true },
+    { name: 'FluxDB Base', company: 'DataBridge', params: 1200000000, type: 'text', quality: 50, released: '2024-01', isOpenSource: true },
+    { name: 'Phoenix 3B', company: 'DragonMind', params: 3000000000, type: 'text', quality: 58, released: '2024-01', isOpenSource: true },
+    { name: 'Nimbus 2B', company: 'CloudPhoenix', params: 2000000000, type: 'text', quality: 55, released: '2024-01', isOpenSource: true },
+    { name: 'Trench LLM 1B', company: 'AbyssAI', params: 1100000000, type: 'text', quality: 52, released: '2024-01', isOpenSource: true },
+    { name: 'Synth R', company: 'Syntex', params: 1500000000, type: 'text', quality: 48, released: '2024-01', isOpenSource: false },
+    { name: 'Nova 1B', company: 'Stellar AI', params: 1000000000, type: 'text', quality: 45, released: '2024-01', isOpenSource: true },
+    { name: 'PixelMage v5.2', company: 'PixelMage', params: 2500000000, type: 'image', quality: 78, released: '2024-01', isOpenSource: false },
+    { name: 'Canvas-3', company: 'NeuralPath', params: 3000000000, type: 'image', quality: 72, released: '2024-01', isOpenSource: false },
+    { name: 'DreamForge XL', company: 'DreamForge', params: 1800000000, type: 'image', quality: 65, released: '2024-01', isOpenSource: true },
 ];
 
 // Competitor AI release patterns - FICTIONAL NAMES
+// Growth rates increased significantly to simulate "get better FAST"
 export const COMPETITOR_MODEL_TEMPLATES = [
     // NeuralPath releases (like OpenAI)
-    { company: 'NeuralPath', prefix: 'Nexus', versions: ['4.5', '5', '5.5', '6'], variants: ['', 'o', 'o1', 'o3'], baseParams: 200000000000, growthRate: 1.3, silentChance: 0.05 },
-    { company: 'NeuralPath', prefix: 'Canvas', versions: ['4', '5'], variants: ['', 'Pro'], baseParams: 15000000000, growthRate: 1.5, silentChance: 0.02, type: 'image' },
-    { company: 'NeuralPath', prefix: 'Motion', versions: ['1', '2', '3'], variants: ['', 'Pro', 'Ultra'], baseParams: 50000000000, growthRate: 2.0, silentChance: 0.1, type: 'video' },
+    { company: 'NeuralPath', prefix: 'Nexus', versions: ['4.5', '5', '5.5', '6'], variants: ['', 'o', 'o1', 'o3'], baseParams: 10000000000, growthRate: 3.5, silentChance: 0.1 },
+    { company: 'NeuralPath', prefix: 'Canvas', versions: ['4', '5'], variants: ['', 'Pro'], baseParams: 5000000000, growthRate: 2.5, silentChance: 0.05, type: 'image' },
+    { company: 'NeuralPath', prefix: 'Motion', versions: ['1', '2', '3'], variants: ['', 'Pro', 'Ultra'], baseParams: 8000000000, growthRate: 4.0, silentChance: 0.2, type: 'video' },
 
     // SafeMind AI releases (like Anthropic)
-    { company: 'SafeMind AI', prefix: 'Atlas', versions: ['3', '3.5', '4', '4.5', '5'], variants: ['Swift', 'Core', 'Prime'], baseParams: 100000000000, growthRate: 1.4, silentChance: 0.08 },
+    { company: 'SafeMind AI', prefix: 'Atlas', versions: ['3', '3.5', '4', '4.5', '5'], variants: ['Swift', 'Core', 'Prime'], baseParams: 8000000000, growthRate: 3.0, silentChance: 0.15 },
 
     // Cognex Labs releases (like Google)
-    { company: 'Cognex Labs', prefix: 'Titan', versions: ['1.5', '2', '2.5', '3'], variants: ['Flash', 'Pro', 'Ultra'], baseParams: 180000000000, growthRate: 1.5, silentChance: 0.1 },
-    { company: 'Cognex Labs', prefix: 'AlphaScript', versions: ['2', '3'], variants: ['', 'Pro'], baseParams: 100000000000, growthRate: 1.6, silentChance: 0.15 },
-    { company: 'Cognex Labs', prefix: 'VisionGen', versions: ['3', '4'], variants: ['', 'Video'], baseParams: 20000000000, growthRate: 1.8, silentChance: 0.05, type: 'image' },
+    { company: 'Cognex Labs', prefix: 'Titan', versions: ['1.5', '2', '2.5', '3'], variants: ['Flash', 'Pro', 'Ultra'], baseParams: 12000000000, growthRate: 3.2, silentChance: 0.1 },
+    { company: 'Cognex Labs', prefix: 'AlphaScript', versions: ['2', '3'], variants: ['', 'Pro'], baseParams: 6000000000, growthRate: 2.8, silentChance: 0.2 },
+    { company: 'Cognex Labs', prefix: 'VisionGen', versions: ['3', '4'], variants: ['', 'Video'], baseParams: 4000000000, growthRate: 2.5, silentChance: 0.1, type: 'image' },
 
     // Nexus AI releases (like Meta - open source)
-    { company: 'Nexus AI', prefix: 'Hydra', versions: ['3', '3.1', '4', '5'], variants: ['8B', '70B', '405B', '1T'], baseParams: 70000000000, growthRate: 1.3, silentChance: 0.03, isOpenSource: true },
+    { company: 'Nexus AI', prefix: 'Hydra', versions: ['3', '3.1', '4', '5'], variants: ['8B', '70B', '405B', '1T'], baseParams: 7000000000, growthRate: 2.5, silentChance: 0.05, isOpenSource: true },
 
     // Stellar AI releases (like xAI)
-    { company: 'Stellar AI', prefix: 'Nova', versions: ['2', '3', '4'], variants: ['', 'Pro', 'Vision'], baseParams: 120000000000, growthRate: 1.5, silentChance: 0.12 },
+    { company: 'Stellar AI', prefix: 'Nova', versions: ['2', '3', '4'], variants: ['', 'Pro', 'Vision'], baseParams: 5000000000, growthRate: 3.8, silentChance: 0.2 },
 
     // WindAI releases (like Mistral - open)
-    { company: 'WindAI', prefix: 'Breeze', versions: ['Large', 'Next', 'Ultra'], variants: ['', 'Plus'], baseParams: 80000000000, growthRate: 1.4, silentChance: 0.05, isOpenSource: true },
+    { company: 'WindAI', prefix: 'Breeze', versions: ['Large', 'Next', 'Ultra'], variants: ['', 'Plus'], baseParams: 4000000000, growthRate: 2.8, silentChance: 0.1, isOpenSource: true },
 
     // Eastern companies
-    { company: 'AbyssAI', prefix: 'Trench', versions: ['V2', 'V3', 'R1'], variants: ['', 'Coder', 'MoE'], baseParams: 100000000000, growthRate: 1.6, silentChance: 0.2, isOpenSource: true },
-    { company: 'CloudPhoenix', prefix: 'Nimbus', versions: ['2', '2.5', '3'], variants: ['', 'Plus', 'Max'], baseParams: 80000000000, growthRate: 1.4, silentChance: 0.08, isOpenSource: true },
-    { company: 'DragonMind', prefix: 'Phoenix', versions: ['4.0', '5.0', 'X'], variants: ['', 'Turbo', 'Ultra'], baseParams: 100000000000, growthRate: 1.3, silentChance: 0.15 },
+    { company: 'AbyssAI', prefix: 'Trench', versions: ['V2', 'V3', 'R1'], variants: ['', 'Coder', 'MoE'], baseParams: 5000000000, growthRate: 3.0, silentChance: 0.25, isOpenSource: true },
+    { company: 'CloudPhoenix', prefix: 'Nimbus', versions: ['2', '2.5', '3'], variants: ['', 'Plus', 'Max'], baseParams: 6000000000, growthRate: 2.6, silentChance: 0.1, isOpenSource: true },
+    { company: 'DragonMind', prefix: 'Phoenix', versions: ['4.0', '5.0', 'X'], variants: ['', 'Turbo', 'Ultra'], baseParams: 8000000000, growthRate: 2.5, silentChance: 0.2 },
 
     // Others
-    { company: 'Syntex', prefix: 'Synth', versions: ['R', 'R+', 'X'], variants: ['', 'Turbo'], baseParams: 50000000000, growthRate: 1.3, silentChance: 0.02 },
-    { company: 'DreamForge', prefix: 'DreamForge', versions: ['3', '4', '5'], variants: ['', 'Ultra'], baseParams: 12000000000, growthRate: 1.8, silentChance: 0.05, type: 'image', isOpenSource: true },
-    { company: 'PixelMage', prefix: 'PixelMage', versions: ['v6', 'v7', 'v8'], variants: ['', 'Pro'], baseParams: 15000000000, growthRate: 1.6, silentChance: 0.08, type: 'image' },
+    { company: 'Syntex', prefix: 'Synth', versions: ['R', 'R+', 'X'], variants: ['', 'Turbo'], baseParams: 3000000000, growthRate: 2.2, silentChance: 0.05 },
+    { company: 'DreamForge', prefix: 'DreamForge', versions: ['3', '4', '5'], variants: ['', 'Ultra'], baseParams: 2000000000, growthRate: 2.5, silentChance: 0.08, type: 'image', isOpenSource: true },
+    { company: 'PixelMage', prefix: 'PixelMage', versions: ['v6', 'v7', 'v8'], variants: ['', 'Pro'], baseParams: 3000000000, growthRate: 2.4, silentChance: 0.1, type: 'image' },
 ];
 
 // Employee types with salaries and bonuses
