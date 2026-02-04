@@ -20,13 +20,14 @@ import {
 } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
-    const { logout, isAdmin } = useAuthStore();
-    const { reset: resetGame } = useGameStore();
+    const { logout } = useAuthStore();
+    const { logout: exitSession } = useGameStore();
+    const isAdmin = useAuthStore(state => state.isAdmin);
 
-    // Exit to save selection (not logout)
+    // Exit to save selection (NOT delete saves!)
     const handleExitSession = () => {
-        if (confirm('Return to save selection?')) {
-            resetGame(); // Clears activeCompany, goes back to company selector
+        if (confirm('Return to save selection? Your progress is saved.')) {
+            exitSession(); // Just clears activeCompany, preserves companies
         }
     };
 
@@ -77,12 +78,19 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             </nav>
 
             <div className="p-4 mt-auto space-y-2">
-                <button className="w-full flex items-center gap-4 p-4 rounded-xl text-slate-500 hover:text-white hover:bg-white/5 transition-all group">
+                {/* Settings - NOW NAVIGATES! */}
+                <button
+                    onClick={() => setActiveTab('settings')}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all group ${activeTab === 'settings'
+                            ? 'bg-cyan-500/10 border border-cyan-500/20 text-cyan-400'
+                            : 'text-slate-500 hover:text-white hover:bg-white/5 border border-transparent'
+                        }`}
+                >
                     <Settings className="w-6 h-6 shrink-0 group-hover:rotate-90 transition-transform duration-500" />
                     <span className="hidden md:block font-bold text-sm">Settings</span>
                 </button>
 
-                {/* Exit Session - goes back to save menu */}
+                {/* Exit Session - goes back to save menu, DOES NOT DELETE */}
                 <button
                     onClick={handleExitSession}
                     className="w-full flex items-center gap-4 p-4 rounded-xl text-yellow-500/60 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all group"

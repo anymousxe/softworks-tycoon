@@ -88,60 +88,60 @@ export const HARDWARE = [
     { id: 'quantum_real', name: 'Q-Bit Quantum Processor', cost: 15000000, compute: 100000, upkeep: 50000, generation: 'quantum', reqTech: 'quantum_real' },
 ];
 
-// AI Companies / Rivals with expanded roster
+// AI Companies / Rivals with expanded roster - FICTIONAL KNOCKOFF NAMES
 export const RIVALS_LIST = [
     // Tier 1 - Giants
-    { name: 'OpenAI', strength: 98, color: 'text-green-400', specialty: 'text', hq: 'San Francisco', paramRange: '1.5T-2T' },
-    { name: 'Google DeepMind', strength: 97, color: 'text-blue-400', specialty: 'multimodal', hq: 'London', paramRange: '1T-1.8T' },
-    { name: 'Anthropic', strength: 95, color: 'text-yellow-400', specialty: 'safety', hq: 'San Francisco', paramRange: '500B-1T' },
-    { name: 'Meta AI', strength: 93, color: 'text-blue-300', specialty: 'open-source', hq: 'Menlo Park', paramRange: '400B-700B' },
-    { name: 'Microsoft AI', strength: 91, color: 'text-cyan-400', specialty: 'enterprise', hq: 'Redmond', paramRange: '500B-800B' },
-    { name: 'Amazon AGI', strength: 88, color: 'text-orange-400', specialty: 'cloud', hq: 'Seattle', paramRange: '300B-500B' },
+    { name: 'NeuralPath', strength: 98, color: 'text-green-400', specialty: 'text', hq: 'Bay City', paramRange: '1.5T-2T' },
+    { name: 'Cognex Labs', strength: 97, color: 'text-blue-400', specialty: 'multimodal', hq: 'Cambridge UK', paramRange: '1T-1.8T' },
+    { name: 'SafeMind AI', strength: 95, color: 'text-yellow-400', specialty: 'safety', hq: 'Bay City', paramRange: '500B-1T' },
+    { name: 'Nexus AI', strength: 93, color: 'text-blue-300', specialty: 'open-source', hq: 'Silicon Beach', paramRange: '400B-700B' },
+    { name: 'Axiom Systems', strength: 91, color: 'text-cyan-400', specialty: 'enterprise', hq: 'Pacific NW', paramRange: '500B-800B' },
+    { name: 'Cumulus AGI', strength: 88, color: 'text-orange-400', specialty: 'cloud', hq: 'Raincity', paramRange: '300B-500B' },
 
     // Tier 2 - Major Players
-    { name: 'X.AI / xAI', strength: 89, color: 'text-slate-200', specialty: 'reasoning', hq: 'Austin', paramRange: '300B-600B' },
-    { name: 'Mistral AI', strength: 85, color: 'text-orange-400', specialty: 'efficient', hq: 'Paris', paramRange: '100B-200B' },
-    { name: 'Cohere', strength: 80, color: 'text-teal-400', specialty: 'enterprise', hq: 'Toronto', paramRange: '100B-150B' },
-    { name: 'Stability AI', strength: 82, color: 'text-purple-400', specialty: 'image', hq: 'London', paramRange: '5B-20B' },
-    { name: 'Midjourney', strength: 88, color: 'text-pink-400', specialty: 'image', hq: 'San Francisco', paramRange: '10B-30B' },
-    { name: 'Runway', strength: 79, color: 'text-violet-400', specialty: 'video', hq: 'New York', paramRange: '8B-25B' },
-    { name: 'Pika Labs', strength: 75, color: 'text-rose-400', specialty: 'video', hq: 'Palo Alto', paramRange: '5B-15B' },
+    { name: 'Stellar AI', strength: 89, color: 'text-slate-200', specialty: 'reasoning', hq: 'Lone Star', paramRange: '300B-600B' },
+    { name: 'WindAI', strength: 85, color: 'text-orange-400', specialty: 'efficient', hq: 'Paris', paramRange: '100B-200B' },
+    { name: 'Syntex', strength: 80, color: 'text-teal-400', specialty: 'enterprise', hq: 'Maple City', paramRange: '100B-150B' },
+    { name: 'DreamForge', strength: 82, color: 'text-purple-400', specialty: 'image', hq: 'London', paramRange: '5B-20B' },
+    { name: 'PixelMage', strength: 88, color: 'text-pink-400', specialty: 'image', hq: 'Bay City', paramRange: '10B-30B' },
+    { name: 'MotionCraft', strength: 79, color: 'text-violet-400', specialty: 'video', hq: 'Manhattan', paramRange: '8B-25B' },
+    { name: 'ClipForge', strength: 75, color: 'text-rose-400', specialty: 'video', hq: 'Valley Tech', paramRange: '5B-15B' },
 
     // Tier 3 - Challengers
-    { name: 'Perplexity', strength: 76, color: 'text-indigo-400', specialty: 'search', hq: 'San Francisco', paramRange: '50B-100B' },
-    { name: 'Character.AI', strength: 78, color: 'text-cyan-400', specialty: 'roleplay', hq: 'Palo Alto', paramRange: '20B-50B' },
-    { name: 'Inflection AI', strength: 74, color: 'text-amber-400', specialty: 'personal-ai', hq: 'Palo Alto', paramRange: '50B-100B' },
-    { name: 'Adept', strength: 72, color: 'text-emerald-400', specialty: 'agents', hq: 'San Francisco', paramRange: '30B-80B' },
-    { name: 'Aleph Alpha', strength: 70, color: 'text-red-400', specialty: 'european', hq: 'Heidelberg', paramRange: '30B-70B' },
-    { name: 'AI21 Labs', strength: 71, color: 'text-lime-400', specialty: 'text', hq: 'Tel Aviv', paramRange: '40B-100B' },
-    { name: 'Hugging Face', strength: 68, color: 'text-yellow-200', specialty: 'open-source', hq: 'New York', paramRange: 'Various' },
+    { name: 'OmniSearch', strength: 76, color: 'text-indigo-400', specialty: 'search', hq: 'Bay City', paramRange: '50B-100B' },
+    { name: 'PersonaBot', strength: 78, color: 'text-cyan-400', specialty: 'roleplay', hq: 'Valley Tech', paramRange: '20B-50B' },
+    { name: 'Companion AI', strength: 74, color: 'text-amber-400', specialty: 'personal-ai', hq: 'Valley Tech', paramRange: '50B-100B' },
+    { name: 'ActionMind', strength: 72, color: 'text-emerald-400', specialty: 'agents', hq: 'Bay City', paramRange: '30B-80B' },
+    { name: 'EuroAI', strength: 70, color: 'text-red-400', specialty: 'european', hq: 'Berlin', paramRange: '30B-70B' },
+    { name: 'Genesis Labs', strength: 71, color: 'text-lime-400', specialty: 'text', hq: 'Tech Aviv', paramRange: '40B-100B' },
+    { name: 'ModelHub', strength: 68, color: 'text-yellow-200', specialty: 'open-source', hq: 'Manhattan', paramRange: 'Various' },
 
     // Tier 4 - Specialists
-    { name: 'ElevenLabs', strength: 85, color: 'text-blue-400', specialty: 'audio', hq: 'New York', paramRange: '1B-5B' },
-    { name: 'Suno AI', strength: 78, color: 'text-green-300', specialty: 'music', hq: 'Cambridge', paramRange: '2B-8B' },
-    { name: 'Udio', strength: 75, color: 'text-pink-300', specialty: 'music', hq: 'New York', paramRange: '2B-6B' },
-    { name: 'Luma AI', strength: 72, color: 'text-purple-300', specialty: '3d', hq: 'San Francisco', paramRange: '3B-10B' },
-    { name: 'Ideogram', strength: 74, color: 'text-teal-300', specialty: 'image', hq: 'Toronto', paramRange: '5B-15B' },
-    { name: 'Leonardo.AI', strength: 70, color: 'text-orange-300', specialty: 'image', hq: 'Sydney', paramRange: '3B-12B' },
+    { name: 'VoxSynth', strength: 85, color: 'text-blue-400', specialty: 'audio', hq: 'Manhattan', paramRange: '1B-5B' },
+    { name: 'HarmonyAI', strength: 78, color: 'text-green-300', specialty: 'music', hq: 'Boston', paramRange: '2B-8B' },
+    { name: 'SoundCraft', strength: 75, color: 'text-pink-300', specialty: 'music', hq: 'Manhattan', paramRange: '2B-6B' },
+    { name: 'DimensionAI', strength: 72, color: 'text-purple-300', specialty: '3d', hq: 'Bay City', paramRange: '3B-10B' },
+    { name: 'ArtForge', strength: 74, color: 'text-teal-300', specialty: 'image', hq: 'Maple City', paramRange: '5B-15B' },
+    { name: 'CanvasAI', strength: 70, color: 'text-orange-300', specialty: 'image', hq: 'Down Under', paramRange: '3B-12B' },
 
-    // Tier 5 - Chinese Tech
-    { name: 'Baidu ERNIE', strength: 86, color: 'text-red-500', specialty: 'chinese-nlp', hq: 'Beijing', paramRange: '300B-500B' },
-    { name: 'Alibaba Qwen', strength: 84, color: 'text-orange-500', specialty: 'multimodal', hq: 'Hangzhou', paramRange: '200B-400B' },
-    { name: 'Tencent Hunyuan', strength: 80, color: 'text-blue-500', specialty: 'chinese-nlp', hq: 'Shenzhen', paramRange: '150B-300B' },
-    { name: 'ByteDance Doubao', strength: 78, color: 'text-cyan-500', specialty: 'video', hq: 'Beijing', paramRange: '100B-250B' },
-    { name: 'Zhipu AI (GLM)', strength: 76, color: 'text-green-500', specialty: 'text', hq: 'Beijing', paramRange: '100B-200B' },
-    { name: '01.AI (Yi)', strength: 79, color: 'text-purple-500', specialty: 'bilingual', hq: 'Beijing', paramRange: '60B-150B' },
-    { name: 'Moonshot AI (Kimi)', strength: 74, color: 'text-indigo-500', specialty: 'long-context', hq: 'Beijing', paramRange: '50B-120B' },
-    { name: 'DeepSeek', strength: 82, color: 'text-slate-400', specialty: 'coding', hq: 'Hangzhou', paramRange: '200B-300B' },
+    // Tier 5 - Eastern Tech
+    { name: 'DragonMind', strength: 86, color: 'text-red-500', specialty: 'nlp', hq: 'Imperial City', paramRange: '300B-500B' },
+    { name: 'CloudPhoenix', strength: 84, color: 'text-orange-500', specialty: 'multimodal', hq: 'Silk Valley', paramRange: '200B-400B' },
+    { name: 'TigerNet', strength: 80, color: 'text-blue-500', specialty: 'nlp', hq: 'Harbor City', paramRange: '150B-300B' },
+    { name: 'ByteStream', strength: 78, color: 'text-cyan-500', specialty: 'video', hq: 'Imperial City', paramRange: '100B-250B' },
+    { name: 'JadeAI', strength: 76, color: 'text-green-500', specialty: 'text', hq: 'Imperial City', paramRange: '100B-200B' },
+    { name: 'UnityMind', strength: 79, color: 'text-purple-500', specialty: 'bilingual', hq: 'Imperial City', paramRange: '60B-150B' },
+    { name: 'StarGlider', strength: 74, color: 'text-indigo-500', specialty: 'long-context', hq: 'Imperial City', paramRange: '50B-120B' },
+    { name: 'AbyssAI', strength: 82, color: 'text-slate-400', specialty: 'coding', hq: 'Silk Valley', paramRange: '200B-300B' },
 
     // Tier 6 - Emerging
-    { name: 'Together AI', strength: 65, color: 'text-violet-400', specialty: 'inference', hq: 'San Francisco', paramRange: 'Various' },
-    { name: 'Fireworks AI', strength: 63, color: 'text-rose-500', specialty: 'inference', hq: 'Palo Alto', paramRange: 'Various' },
-    { name: 'Anyscale', strength: 62, color: 'text-blue-400', specialty: 'infra', hq: 'San Francisco', paramRange: 'N/A' },
-    { name: 'Databricks Mosaic', strength: 68, color: 'text-red-400', specialty: 'enterprise', hq: 'San Francisco', paramRange: '40B-100B' },
-    { name: 'Reka AI', strength: 66, color: 'text-amber-400', specialty: 'multimodal', hq: 'San Francisco', paramRange: '20B-50B' },
-    { name: 'Contextual AI', strength: 58, color: 'text-cyan-300', specialty: 'rag', hq: 'Palo Alto', paramRange: '20B-40B' },
-    { name: 'Magic', strength: 55, color: 'text-purple-400', specialty: 'coding', hq: 'San Francisco', paramRange: '30B-80B' },
+    { name: 'Collective AI', strength: 65, color: 'text-violet-400', specialty: 'inference', hq: 'Bay City', paramRange: 'Various' },
+    { name: 'BlazeTech', strength: 63, color: 'text-rose-500', specialty: 'inference', hq: 'Valley Tech', paramRange: 'Various' },
+    { name: 'ScaleOS', strength: 62, color: 'text-blue-400', specialty: 'infra', hq: 'Bay City', paramRange: 'N/A' },
+    { name: 'DataBridge', strength: 68, color: 'text-red-400', specialty: 'enterprise', hq: 'Bay City', paramRange: '40B-100B' },
+    { name: 'VisionFlow', strength: 66, color: 'text-amber-400', specialty: 'multimodal', hq: 'Bay City', paramRange: '20B-50B' },
+    { name: 'ContextAI', strength: 58, color: 'text-cyan-300', specialty: 'rag', hq: 'Valley Tech', paramRange: '20B-40B' },
+    { name: 'CodeCraft', strength: 55, color: 'text-purple-400', specialty: 'coding', hq: 'Bay City', paramRange: '30B-80B' },
 ];
 
 // Client companies that purchase AI services
@@ -359,58 +359,58 @@ export const LAWSUIT_EVENTS = [
 export const APP_ID = 'softworks-tycoon';
 export const ADMIN_EMAIL = 'anymousxe.info@gmail.com';
 
-// Initial leaderboard models for 2024 start (relatively small models)
+// Initial leaderboard models for 2024 start - FICTIONAL NAMES, SMALL params for early 2024
 export const INITIAL_LEADERBOARD_2024 = [
-    { name: 'GPT-4', company: 'OpenAI', params: 1760000000000, type: 'text', quality: 92, released: '2024-01', isOpenSource: false },
-    { name: 'Claude 2.1', company: 'Anthropic', params: 175000000000, type: 'text', quality: 88, released: '2024-01', isOpenSource: false },
-    { name: 'Gemini Pro', company: 'Google DeepMind', params: 340000000000, type: 'multimodal', quality: 89, released: '2024-01', isOpenSource: false },
-    { name: 'Llama 2 70B', company: 'Meta AI', params: 70000000000, type: 'text', quality: 78, released: '2024-01', isOpenSource: true },
-    { name: 'Mistral Medium', company: 'Mistral AI', params: 56000000000, type: 'text', quality: 76, released: '2024-01', isOpenSource: false },
-    { name: 'Phi-2', company: 'Microsoft AI', params: 2700000000, type: 'text', quality: 52, released: '2024-01', isOpenSource: true },
-    { name: 'DBRX Base', company: 'Databricks', params: 132000000000, type: 'text', quality: 72, released: '2024-01', isOpenSource: true },
-    { name: 'Falcon 180B', company: 'TII UAE', params: 180000000000, type: 'text', quality: 74, released: '2024-01', isOpenSource: true },
-    { name: 'Qwen 72B', company: 'Alibaba Cloud AI', params: 72000000000, type: 'text', quality: 71, released: '2024-01', isOpenSource: true },
-    { name: 'DeepSeek LLM 67B', company: 'DeepSeek', params: 67000000000, type: 'text', quality: 68, released: '2024-01', isOpenSource: true },
-    { name: 'Command R', company: 'Cohere', params: 35000000000, type: 'text', quality: 65, released: '2024-01', isOpenSource: false },
-    { name: 'Solar 10.7B', company: 'Upstage', params: 10700000000, type: 'text', quality: 55, released: '2024-01', isOpenSource: true },
-    { name: 'Midjourney v5.2', company: 'Midjourney', params: 8000000000, type: 'image', quality: 88, released: '2024-01', isOpenSource: false },
-    { name: 'DALL-E 3', company: 'OpenAI', params: 12000000000, type: 'image', quality: 85, released: '2024-01', isOpenSource: false },
-    { name: 'Stable Diffusion XL', company: 'Stability AI', params: 6600000000, type: 'image', quality: 78, released: '2024-01', isOpenSource: true },
+    { name: 'Nexus-4', company: 'NeuralPath', params: 175000000000, type: 'text', quality: 82, released: '2024-01', isOpenSource: false },
+    { name: 'Atlas 2.1', company: 'SafeMind AI', params: 70000000000, type: 'text', quality: 75, released: '2024-01', isOpenSource: false },
+    { name: 'Titan Pro', company: 'Cognex Labs', params: 140000000000, type: 'multimodal', quality: 78, released: '2024-01', isOpenSource: false },
+    { name: 'Hydra 70B', company: 'Nexus AI', params: 70000000000, type: 'text', quality: 70, released: '2024-01', isOpenSource: true },
+    { name: 'Breeze Large', company: 'WindAI', params: 56000000000, type: 'text', quality: 68, released: '2024-01', isOpenSource: false },
+    { name: 'Spark-2', company: 'Axiom Systems', params: 2700000000, type: 'text', quality: 45, released: '2024-01', isOpenSource: true },
+    { name: 'FluxDB Base', company: 'DataBridge', params: 32000000000, type: 'text', quality: 58, released: '2024-01', isOpenSource: true },
+    { name: 'Phoenix 180B', company: 'DragonMind', params: 80000000000, type: 'text', quality: 65, released: '2024-01', isOpenSource: true },
+    { name: 'Nimbus 72B', company: 'CloudPhoenix', params: 72000000000, type: 'text', quality: 62, released: '2024-01', isOpenSource: true },
+    { name: 'Trench LLM 67B', company: 'AbyssAI', params: 67000000000, type: 'text', quality: 60, released: '2024-01', isOpenSource: true },
+    { name: 'Synth R', company: 'Syntex', params: 35000000000, type: 'text', quality: 55, released: '2024-01', isOpenSource: false },
+    { name: 'Nova 10.7B', company: 'Stellar AI', params: 10700000000, type: 'text', quality: 48, released: '2024-01', isOpenSource: true },
+    { name: 'PixelMage v5.2', company: 'PixelMage', params: 8000000000, type: 'image', quality: 80, released: '2024-01', isOpenSource: false },
+    { name: 'Canvas-3', company: 'NeuralPath', params: 12000000000, type: 'image', quality: 76, released: '2024-01', isOpenSource: false },
+    { name: 'DreamForge XL', company: 'DreamForge', params: 6600000000, type: 'image', quality: 68, released: '2024-01', isOpenSource: true },
 ];
 
-// Competitor AI release patterns - models they might build over time
+// Competitor AI release patterns - FICTIONAL NAMES
 export const COMPETITOR_MODEL_TEMPLATES = [
-    // OpenAI releases
-    { company: 'OpenAI', prefix: 'GPT', versions: ['4.5', '5', '5.5', '6'], variants: ['', 'o', 'o1', 'o3'], baseParams: 1500000000000, growthRate: 1.3, silentChance: 0.05 },
-    { company: 'OpenAI', prefix: 'DALL-E', versions: ['4', '5'], variants: ['', 'Pro'], baseParams: 15000000000, growthRate: 1.5, silentChance: 0.02, type: 'image' },
-    { company: 'OpenAI', prefix: 'Sora', versions: ['1', '2', '3'], variants: ['', 'Pro', 'Ultra'], baseParams: 50000000000, growthRate: 2.0, silentChance: 0.1, type: 'video' },
+    // NeuralPath releases (like OpenAI)
+    { company: 'NeuralPath', prefix: 'Nexus', versions: ['4.5', '5', '5.5', '6'], variants: ['', 'o', 'o1', 'o3'], baseParams: 200000000000, growthRate: 1.3, silentChance: 0.05 },
+    { company: 'NeuralPath', prefix: 'Canvas', versions: ['4', '5'], variants: ['', 'Pro'], baseParams: 15000000000, growthRate: 1.5, silentChance: 0.02, type: 'image' },
+    { company: 'NeuralPath', prefix: 'Motion', versions: ['1', '2', '3'], variants: ['', 'Pro', 'Ultra'], baseParams: 50000000000, growthRate: 2.0, silentChance: 0.1, type: 'video' },
 
-    // Anthropic releases
-    { company: 'Anthropic', prefix: 'Claude', versions: ['3', '3.5', '4', '4.5', '5'], variants: ['Haiku', 'Sonnet', 'Opus'], baseParams: 400000000000, growthRate: 1.4, silentChance: 0.08 },
+    // SafeMind AI releases (like Anthropic)
+    { company: 'SafeMind AI', prefix: 'Atlas', versions: ['3', '3.5', '4', '4.5', '5'], variants: ['Swift', 'Core', 'Prime'], baseParams: 100000000000, growthRate: 1.4, silentChance: 0.08 },
 
-    // Google releases
-    { company: 'Google DeepMind', prefix: 'Gemini', versions: ['1.5', '2', '2.5', '3'], variants: ['Flash', 'Pro', 'Ultra'], baseParams: 800000000000, growthRate: 1.5, silentChance: 0.1 },
-    { company: 'Google DeepMind', prefix: 'AlphaCode', versions: ['2', '3'], variants: ['', 'Pro'], baseParams: 100000000000, growthRate: 1.6, silentChance: 0.15 },
-    { company: 'Google DeepMind', prefix: 'Imagen', versions: ['3', '4'], variants: ['', 'Video'], baseParams: 20000000000, growthRate: 1.8, silentChance: 0.05, type: 'image' },
+    // Cognex Labs releases (like Google)
+    { company: 'Cognex Labs', prefix: 'Titan', versions: ['1.5', '2', '2.5', '3'], variants: ['Flash', 'Pro', 'Ultra'], baseParams: 180000000000, growthRate: 1.5, silentChance: 0.1 },
+    { company: 'Cognex Labs', prefix: 'AlphaScript', versions: ['2', '3'], variants: ['', 'Pro'], baseParams: 100000000000, growthRate: 1.6, silentChance: 0.15 },
+    { company: 'Cognex Labs', prefix: 'VisionGen', versions: ['3', '4'], variants: ['', 'Video'], baseParams: 20000000000, growthRate: 1.8, silentChance: 0.05, type: 'image' },
 
-    // Meta releases (mostly open source)
-    { company: 'Meta AI', prefix: 'Llama', versions: ['3', '3.1', '4', '5'], variants: ['8B', '70B', '405B', '1T'], baseParams: 405000000000, growthRate: 1.3, silentChance: 0.03, isOpenSource: true },
+    // Nexus AI releases (like Meta - open source)
+    { company: 'Nexus AI', prefix: 'Hydra', versions: ['3', '3.1', '4', '5'], variants: ['8B', '70B', '405B', '1T'], baseParams: 70000000000, growthRate: 1.3, silentChance: 0.03, isOpenSource: true },
 
-    // xAI releases
-    { company: 'xAI', prefix: 'Grok', versions: ['2', '3', '4'], variants: ['', 'Pro', 'Vision'], baseParams: 500000000000, growthRate: 1.5, silentChance: 0.12 },
+    // Stellar AI releases (like xAI)
+    { company: 'Stellar AI', prefix: 'Nova', versions: ['2', '3', '4'], variants: ['', 'Pro', 'Vision'], baseParams: 120000000000, growthRate: 1.5, silentChance: 0.12 },
 
-    // Mistral releases (mostly open)
-    { company: 'Mistral AI', prefix: 'Mistral', versions: ['Large', 'Next', 'Ultra'], variants: ['', 'Plus'], baseParams: 120000000000, growthRate: 1.4, silentChance: 0.05, isOpenSource: true },
+    // WindAI releases (like Mistral - open)
+    { company: 'WindAI', prefix: 'Breeze', versions: ['Large', 'Next', 'Ultra'], variants: ['', 'Plus'], baseParams: 80000000000, growthRate: 1.4, silentChance: 0.05, isOpenSource: true },
 
-    // Chinese companies
-    { company: 'DeepSeek', prefix: 'DeepSeek', versions: ['V2', 'V3', 'R1'], variants: ['', 'Coder', 'MoE'], baseParams: 200000000000, growthRate: 1.6, silentChance: 0.2, isOpenSource: true },
-    { company: 'Alibaba Cloud AI', prefix: 'Qwen', versions: ['2', '2.5', '3'], variants: ['', 'Plus', 'Max'], baseParams: 150000000000, growthRate: 1.4, silentChance: 0.08, isOpenSource: true },
-    { company: 'Baidu ERNIE', prefix: 'ERNIE', versions: ['4.0', '5.0', 'X'], variants: ['', 'Turbo', 'Ultra'], baseParams: 300000000000, growthRate: 1.3, silentChance: 0.15 },
+    // Eastern companies
+    { company: 'AbyssAI', prefix: 'Trench', versions: ['V2', 'V3', 'R1'], variants: ['', 'Coder', 'MoE'], baseParams: 100000000000, growthRate: 1.6, silentChance: 0.2, isOpenSource: true },
+    { company: 'CloudPhoenix', prefix: 'Nimbus', versions: ['2', '2.5', '3'], variants: ['', 'Plus', 'Max'], baseParams: 80000000000, growthRate: 1.4, silentChance: 0.08, isOpenSource: true },
+    { company: 'DragonMind', prefix: 'Phoenix', versions: ['4.0', '5.0', 'X'], variants: ['', 'Turbo', 'Ultra'], baseParams: 100000000000, growthRate: 1.3, silentChance: 0.15 },
 
     // Others
-    { company: 'Cohere', prefix: 'Command', versions: ['R', 'R+', 'X'], variants: ['', 'Turbo'], baseParams: 50000000000, growthRate: 1.3, silentChance: 0.02 },
-    { company: 'Stability AI', prefix: 'Stable Diffusion', versions: ['3', '4', '5'], variants: ['', 'Ultra'], baseParams: 12000000000, growthRate: 1.8, silentChance: 0.05, type: 'image', isOpenSource: true },
-    { company: 'Midjourney', prefix: 'Midjourney', versions: ['v6', 'v7', 'v8'], variants: ['', 'Pro'], baseParams: 15000000000, growthRate: 1.6, silentChance: 0.08, type: 'image' },
+    { company: 'Syntex', prefix: 'Synth', versions: ['R', 'R+', 'X'], variants: ['', 'Turbo'], baseParams: 50000000000, growthRate: 1.3, silentChance: 0.02 },
+    { company: 'DreamForge', prefix: 'DreamForge', versions: ['3', '4', '5'], variants: ['', 'Ultra'], baseParams: 12000000000, growthRate: 1.8, silentChance: 0.05, type: 'image', isOpenSource: true },
+    { company: 'PixelMage', prefix: 'PixelMage', versions: ['v6', 'v7', 'v8'], variants: ['', 'Pro'], baseParams: 15000000000, growthRate: 1.6, silentChance: 0.08, type: 'image' },
 ];
 
 // Employee types with salaries and bonuses

@@ -607,9 +607,13 @@ const useGameStore = create(
                         const qualityBonus = employeeBonuses.qualityBonus || 0;
                         updated.parameters = baseParams + (model.parameters || 0) + paramsEarned;
 
-                        updated.quality = Math.min(100, Math.floor(
-                            updated.parameters * TRAINING_CONSTANTS.PARAMS_TO_QUALITY_RATIO * 1000000000
-                        ) + (model.data_quality || 50) * 0.3 + qualityBonus);
+                        // Quality uses LOG SCALE: bigger models = higher quality
+                        // ~1B = 40, ~10B = 50, ~100B = 70, ~1T = 90
+                        const paramLog = Math.log10(Math.max(updated.parameters, 1000000)); // log10 of params
+                        const baseQuality = Math.floor((paramLog - 6) * 10); // 6 = log10(1M), each order of magnitude adds 10
+                        const dataBonus = (model.data_quality || 50) * 0.2; // data quality adds up to 20
+                        const qualBonus = employeeBonuses.qualityBonus || 0;
+                        updated.quality = Math.min(100, Math.max(1, baseQuality + dataBonus + qualBonus));
 
                         totalExpenses += model.training_cost_per_week || 0;
 
