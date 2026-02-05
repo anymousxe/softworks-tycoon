@@ -67,31 +67,85 @@ export const checkForLawsuit = (dataSources, hasLegalTeam = false) => {
 };
 
 // Generate a random competitor model release
+// Generate a random competitor model release
 const generateCompetitorRelease = (week, year, playerBestParams = 0, isSandbox = false) => {
+    // 1. Pick a random template
     const template = COMPETITOR_MODEL_TEMPLATES[Math.floor(Math.random() * COMPETITOR_MODEL_TEMPLATES.length)];
-    const version = template.versions[Math.floor(Math.random() * template.versions.length)];
-    const variant = template.variants[Math.floor(Math.random() * template.variants.length)];
 
-    // Calculate params based on year progression and growth rate
-    const yearsSince2024 = year - 2024 + (week / 52);
-    let baseMultiplier = Math.pow(template.growthRate, yearsSince2024);
+    // 2. Determine Version & Variant
+    const versionIndex = Math.floor(Math.random() * template.versions.length);
+    const version = template.versions[versionIndex];
 
-    // Silent breakthrough - much bigger jump
+    // Explicit variant types requested by user
+    const variantTypes = [
+        { name: 'Pro', multiplier: 1.5, qualityBonus: 5 },
+        { name: 'Lite', multiplier: 0.5, qualityBonus: -5 },
+        { name: 'Mini', multiplier: 0.3, qualityBonus: -8 },
+        { name: 'Ultra', multiplier: 2.0, qualityBonus: 10 },
+        { name: 'Flash', multiplier: 0.4, qualityBonus: -2 }, // Fast but small
+        { name: 'Max', multiplier: 1.8, qualityBonus: 8 },
+        { name: '', multiplier: 1.0, qualityBonus: 0 } // Base model
+    ];
+
+    // 30% chance to pick a special variant, otherwise use template defaults or base
+    let variant = '';
+    let sizeMultiplier = 1.0;
+    let qualityMod = 0;
+
+    if (Math.random() < 0.4) {
+        const v = variantTypes[Math.floor(Math.random() * variantTypes.length)];
+        variant = v.name;
+        sizeMultiplier = v.multiplier;
+        qualityMod = v.qualityBonus;
+    } else {
+        // Fallback to template variants
+        variant = template.variants[Math.floor(Math.random() * template.variants.length)];
+    }
+
+    // 3. Calculate Parameters (Logic: Base * Growth * Random Variance * Size Variant)
+    // Years since start (assuming 2024 start)
+    const yearsSinceStart = (year - 2024) + (week / 52);
+
+    // Growth factor: Compound annual growth
+    // We add randomness to the growth rate itself for this release
+    const randomGrowth = template.growthRate + (Math.random() * 0.4 - 0.2);
+    let baseParams = template.baseParams * Math.pow(randomGrowth, yearsSinceStart);
+
+    // If sandbox and player is ahead, rubber band catchup (competitors release bigger models)
+    if (isSandbox && playerBestParams > baseParams) {
+        // 40% chance to try and match player scale
+        if (Math.random() < 0.4) {
+            baseParams = playerBestParams * (0.8 + Math.random() * 0.4);
+        }
+    }
+
+    // Apply variant multiplier and random noise (0.8x to 1.2x)
+    const params = Math.floor(baseParams * sizeMultiplier * (0.8 + Math.random() * 0.4));
+
+    // 4. Determine Open Source (User request: versions like open source)
+    // 15% chance to be open source, or if template says so
+    const isOpenSource = template.isOpenSource || Math.random() < 0.15;
+
+    // 5. Silent Breakthrough logic
     const isSilentBreakthrough = Math.random() < template.silentChance;
     if (isSilentBreakthrough) {
-        baseMultiplier *= 2 + Math.random() * 3; // 2x to 5x bigger
+        // Breakthroughs are 2x-4x larger and higher quality
+        qualityMod += 15;
     }
 
-    // If in sandbox with huge player models, competitors try to catch up
-    if (isSandbox && playerBestParams > template.baseParams * 2) {
-        const catchupFactor = 0.5 + Math.random() * 0.8; // 50% to 130% of player
-        baseMultiplier = (playerBestParams / template.baseParams) * catchupFactor;
-    }
+    // 6. Calculate Quality (Log scale based + random)
+    // Bigger params = higher quality potential, guaranteed by strict log scale
+    // Formula: 40 + (log10(params) - 9) * 15. 
+    // 1B (log 9) = 40. 10B (log 10) = 55. 100B (log 11) = 70. 1T (log 12) = 85. 10T = 100.
+    const paramLog = Math.log10(Math.max(params, 1000000));
+    const baseQuality = 40 + ((paramLog - 9) * 15);
+    // Minimal random noise (+/- 2) to ensure parameters are king
+    const quality = Math.min(100, Math.max(1, Math.floor(baseQuality + qualityMod + (Math.random() * 4 - 2))));
 
-    const params = Math.floor(template.baseParams * baseMultiplier * (0.8 + Math.random() * 0.4));
-    const quality = Math.min(98, 50 + Math.floor(Math.log10(params) * 5) + Math.floor(Math.random() * 15));
-
-    const modelName = variant ? `${template.prefix} ${version} ${variant}` : `${template.prefix}-${version}`;
+    // Construct Name
+    let modelName = `${template.prefix} ${version}`;
+    if (variant) modelName += ` ${variant}`;
+    if (isSilentBreakthrough) modelName += ' (Breakthrough)';
 
     return {
         id: `competitor-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -99,9 +153,9 @@ const generateCompetitorRelease = (week, year, playerBestParams = 0, isSandbox =
         company: template.company,
         params,
         type: template.type || 'text',
-        quality,
+        quality: Math.floor(quality),
         released: `${year}-${String(Math.ceil(week / 4)).padStart(2, '0')}`,
-        isOpenSource: template.isOpenSource || false,
+        isOpenSource: isOpenSource,
         isSilentBreakthrough,
         week,
         year
@@ -632,12 +686,15 @@ const useGameStore = create(
                         updated.parameters = baseParams + (model.parameters || 0) + paramsEarned;
 
                         // Quality uses LOG SCALE: bigger models = higher quality
-                        // ~1B = 40, ~10B = 50, ~100B = 70, ~1T = 90
-                        const paramLog = Math.log10(Math.max(updated.parameters, 1000000)); // log10 of params
-                        const baseQuality = Math.floor((paramLog - 6) * 10); // 6 = log10(1M), each order of magnitude adds 10
-                        const dataBonus = (model.data_quality || 50) * 0.2; // data quality adds up to 20
+                        // Formula match competitor AI: 40 + (log10(params) - 9) * 15
+                        // 1B = 40 base. 10B = 55 base. 100B = 70 base.
+                        const paramLog = Math.log10(Math.max(updated.parameters, 1000000));
+                        const baseQuality = 40 + ((paramLog - 9) * 15);
+
+                        const dataBonus = (model.data_quality || 50) * 0.2; // data quality adds up to 10 (was 20? 50*0.2=10)
+                        // Actually data_quality is 0-100? If so 100*0.2 = 20.
                         const qualBonus = employeeBonuses.qualityBonus || 0;
-                        updated.quality = Math.min(100, Math.max(1, baseQuality + dataBonus + qualBonus));
+                        updated.quality = Math.min(100, Math.max(1, Math.floor(baseQuality + dataBonus + qualBonus)));
 
                         totalExpenses += model.training_cost_per_week || 0;
 

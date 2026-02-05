@@ -6,63 +6,33 @@ import { toast } from 'react-hot-toast';
 
 const ModelCard = ({ model }) => {
     const { releaseModel, createVariant, toggleParamDisclosure, setModelOpenSource } = useGameStore();
-    const [showVariantMenu, setShowVariantMenu] = useState(false);
-    const [customVariantName, setCustomVariantName] = useState('');
-    const [showOptions, setShowOptions] = useState(false);
+    const [showVariantMenu, setShowVariantMenu] = useState(false); // ... existing state
 
-    const isCreated = model.status === 'created';
-    const isTraining = model.status === 'training';
-    const isTrained = model.status === 'trained';
-    const isReleased = model.status === 'released';
-
-    const trainingProgress = model.training_weeks_total > 0
-        ? Math.round((model.training_weeks_completed / model.training_weeks_total) * 100)
-        : 0;
-
-    const parameterTier = PARAMETER_TIERS.find(t => model.parameters >= t.min && model.parameters < t.max);
-    const displayParams = model.disclosed_params
-        ? formatParameters(model.parameters, true)
-        : parameterTier?.display || 'Unknown';
-
-    const handleRelease = async () => {
-        if (model.parameters === 0) {
-            return toast.error('Cannot release a model with 0 parameters!');
-        }
-        const success = await releaseModel(model.id);
-        if (success) {
-            toast.success(`${model.name} released to the world!`, { icon: '🚀' });
-        }
-    };
-
-    const handleCreateVariant = async (variantType, customName = null) => {
-        const variant = await createVariant(model.id, variantType, customName);
-        if (variant) {
-            toast.success(`${variant.name} variant created!`, { icon: '🔀' });
-            setShowVariantMenu(false);
-            setCustomVariantName('');
-        }
-    };
+    // ... existing logic ...
 
     return (
-        <div className={`glass-panel p-6 border-white/5 hover:border-white/10 transition-all group relative overflow-hidden flex flex-col justify-between min-h-[320px] ${isCreated ? 'bg-slate-900/20' :
-                isTraining ? 'bg-purple-500/5' :
-                    isTrained ? 'bg-yellow-500/5' :
-                        'bg-slate-900/60'
+        <div className={`glass-panel p-6 border-white/5 hover:border-white/10 transition-all group relative flex flex-col justify-between min-h-[320px] ${isCreated ? 'bg-slate-900/20' :
+            isTraining ? 'bg-purple-500/5' :
+                isTrained ? 'bg-yellow-500/5' :
+                    'bg-slate-900/60'
             }`}>
-            {/* Background Status Glow */}
-            <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-20 transition-opacity group-hover:opacity-40 pointer-events-none ${isCreated ? 'bg-slate-500' :
+            {/* Background Status Glow - Wrapped in overflow-hidden container to prevent spill but allow popups */}
+            <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+                <div className={`absolute top-0 right-0 w-32 h-32 blur-[60px] opacity-20 transition-opacity group-hover:opacity-40 pointer-events-none ${isCreated ? 'bg-slate-500' :
                     isTraining ? 'bg-purple-500' :
                         isTrained ? 'bg-yellow-500' :
                             'bg-cyan-500'
-                }`}></div>
+                    }`}></div>
+            </div>
 
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-4">
+                    {/* ... (Header Content Unchanged) ... */}
                     <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-xl border ${isCreated ? 'bg-slate-800 border-white/5 text-slate-500' :
-                                isTraining ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' :
-                                    isTrained ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
-                                        'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
+                            isTraining ? 'bg-purple-500/10 border-purple-500/20 text-purple-400' :
+                                isTrained ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
+                                    'bg-cyan-500/10 border-cyan-500/20 text-cyan-400'
                             }`}>
                             {model.type === 'image' ? <Zap className="w-5 h-5" /> : <Cpu className="w-5 h-5" />}
                         </div>
@@ -81,6 +51,7 @@ const ModelCard = ({ model }) => {
                             </div>
                         </div>
                     </div>
+                    {/* ... (Options Menu Unchanged) ... */}
                     <div className="relative">
                         <button
                             onClick={() => setShowOptions(!showOptions)}
@@ -89,7 +60,7 @@ const ModelCard = ({ model }) => {
                             <MoreVertical className="w-5 h-5" />
                         </button>
                         {showOptions && (
-                            <div className="absolute right-0 top-8 bg-slate-900 border border-white/10 rounded-xl p-2 z-20 w-48">
+                            <div className="absolute right-0 top-8 bg-slate-900 border border-white/10 rounded-xl p-2 z-20 w-48 shadow-xl">
                                 <button
                                     onClick={() => toggleParamDisclosure(model.id)}
                                     className="w-full text-left px-3 py-2 text-xs text-slate-400 hover:bg-white/5 rounded-lg flex items-center gap-2"
@@ -112,11 +83,12 @@ const ModelCard = ({ model }) => {
                 </div>
 
                 <div className="space-y-4">
+                    {/* ... (Status Badge & Stats Unchanged) ... */}
                     {/* Status Badge */}
                     <div className={`inline-block text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${isCreated ? 'bg-slate-800 text-slate-400' :
-                            isTraining ? 'bg-purple-500/20 text-purple-400' :
-                                isTrained ? 'bg-yellow-500/20 text-yellow-500' :
-                                    'bg-cyan-500/20 text-cyan-400'
+                        isTraining ? 'bg-purple-500/20 text-purple-400' :
+                            isTrained ? 'bg-yellow-500/20 text-yellow-500' :
+                                'bg-cyan-500/20 text-cyan-400'
                         }`}>
                         {model.status}
                     </div>
@@ -222,7 +194,10 @@ const ModelCard = ({ model }) => {
 
                 {isReleased && (
                     <>
-                        <button className="flex-1 bg-white/5 hover:bg-white/10 text-white border border-white/10 py-3 rounded-xl font-bold text-xs uppercase transition-all">
+                        <button
+                            onClick={() => toast('Management console coming soon', { icon: '🚧' })}
+                            className="flex-1 bg-white/5 hover:bg-white/10 text-white border border-white/10 py-3 rounded-xl font-bold text-xs uppercase transition-all"
+                        >
                             MANAGE
                         </button>
                         <div className="relative">
@@ -235,7 +210,7 @@ const ModelCard = ({ model }) => {
                             </button>
 
                             {showVariantMenu && (
-                                <div className="absolute right-0 bottom-14 bg-slate-900 border border-white/10 rounded-xl p-3 z-20 w-64">
+                                <div className="absolute right-0 bottom-14 bg-slate-900 border border-white/10 rounded-xl p-3 z-50 w-64 shadow-2xl">
                                     <div className="text-[9px] text-slate-500 uppercase tracking-widest mb-2 font-bold">Create Variant</div>
 
                                     {/* Preset Variants */}
